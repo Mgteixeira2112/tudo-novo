@@ -1,0 +1,12 @@
+create index if not exists idx_reservations_guest_id on public.reservations(guest_id);
+create index if not exists idx_reservations_room_id on public.reservations(room_id);
+create index if not exists idx_room_consumptions_room_id on public.room_consumptions(room_id);
+create index if not exists idx_room_consumptions_reservation_id on public.room_consumptions(reservation_id);
+create index if not exists idx_room_consumptions_item_id on public.room_consumptions(item_id);
+create index if not exists idx_kitchen_orders_room_id on public.kitchen_orders(room_id);
+create index if not exists idx_kitchen_orders_reservation_id on public.kitchen_orders(reservation_id);
+create index if not exists idx_financial_transactions_reservation_id on public.financial_transactions(reservation_id);
+create index if not exists idx_inventory_items_linked_minibar on public.inventory_items(linked_minibar_item_id);
+create index if not exists idx_inventory_items_linked_menu on public.inventory_items(linked_menu_item_id);
+create index if not exists idx_stock_movements_related_reservation on public.stock_movements(related_reservation_id);
+create index if not exists idx_stock_movements_related_order on public.stock_movements(related_order_id);
