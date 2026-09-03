@@ -86,6 +86,17 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Public hotel presentation settings (sanitized)
+app.get('/api/public/settings', (req: Request, res: Response) => {
+  try {
+    const settings = dbManager.getSettings();
+    const { hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor } = settings as any;
+    res.json({ hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Settings (Front-end configurável)
 app.get('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
@@ -106,7 +117,7 @@ app.put('/api/settings', requireSupabaseAuth, requirePermission('manage_settings
 });
 
 // Supabase Status & SQL Schema Generator
-app.get('/api/supabase/status', (req: Request, res: Response) => {
+app.get('/api/supabase/status', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     const status = dbManager.getSupabaseStatus();
     res.json(status);
@@ -136,7 +147,7 @@ app.post('/api/supabase/reconnect', requireSupabaseAuth, requirePermission('mana
 });
 
 // Guests (Cadastro de Hóspedes)
-app.get('/api/guests', (req: Request, res: Response) => {
+app.get('/api/guests', requireSupabaseAuth, requirePermission('view_guests'), (req: Request, res: Response) => {
   try {
     const guests = dbManager.getGuests();
     res.json(guests);
@@ -175,7 +186,7 @@ app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_gue
 });
 
 // Rooms
-app.get('/api/rooms', (req: Request, res: Response) => {
+app.get('/api/rooms', requireSupabaseAuth, requirePermission('view_rooms'), (req: Request, res: Response) => {
   try {
     const rooms = dbManager.getRooms();
     res.json(rooms);
@@ -225,7 +236,7 @@ app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_room
 });
 
 // Reservations (Online Booking Engine & Internal)
-app.get('/api/reservations', (req: Request, res: Response) => {
+app.get('/api/reservations', requireSupabaseAuth, requirePermission('view_checkinout'), (req: Request, res: Response) => {
   try {
     const reservations = dbManager.getReservations();
     res.json(reservations);
@@ -273,7 +284,7 @@ app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkin
 });
 
 // Minibar (Frigobar)
-app.get('/api/minibar/items', (req: Request, res: Response) => {
+app.get('/api/minibar/items', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {
   try {
     const items = dbManager.getMinibarItems();
     res.json(items);
@@ -322,7 +333,7 @@ app.delete('/api/minibar/items/:id', requireSupabaseAuth, requirePermission('man
   }
 });
 
-app.get('/api/minibar/consumptions', (req: Request, res: Response) => {
+app.get('/api/minibar/consumptions', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {
   try {
     const roomId = req.query.roomId as string | undefined;
     const consumptions = dbManager.getRoomConsumptions(roomId);
@@ -351,7 +362,7 @@ app.get('/api/kitchen/menu', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/kitchen/orders', (req: Request, res: Response) => {
+app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {
   try {
     const orders = dbManager.getOrders();
     res.json(orders);
@@ -381,7 +392,7 @@ app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermissi
 });
 
 // Kanbans por Setor em Tempo Real
-app.get('/api/tasks', (req: Request, res: Response) => {
+app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), (req: Request, res: Response) => {
   try {
     const sector = req.query.sector as any;
     const tasks = dbManager.getTasks(sector);
@@ -421,7 +432,7 @@ app.delete('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) 
 });
 
 // Financial Control & Stats (Faturamento e Controle Financeiro)
-app.get('/api/financial/transactions', (req: Request, res: Response) => {
+app.get('/api/financial/transactions', requireSupabaseAuth, requirePermission('view_financial'), (req: Request, res: Response) => {
   try {
     const transactions = dbManager.getTransactions();
     res.json(transactions);
@@ -439,7 +450,7 @@ app.post('/api/financial/transactions', requireSupabaseAuth, requirePermission('
   }
 });
 
-app.get('/api/financial/stats', (req: Request, res: Response) => {
+app.get('/api/financial/stats', requireSupabaseAuth, requirePermission('view_financial'), (req: Request, res: Response) => {
   try {
     const stats = dbManager.getFinancialStats();
     res.json(stats);
