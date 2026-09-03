@@ -63,6 +63,20 @@ async function requireSupabaseAuth(req: Request, res: Response, next: NextFuncti
   }
 }
 
+function requirePermission(permission: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authUser = (req as Request & { authUser?: { staffUser?: any } }).authUser;
+    const staffUser = authUser?.staffUser;
+    if (!staffUser) {
+      return res.status(401).json({ error: 'Autenticação obrigatória.' });
+    }
+    if (staffUser.role === 'admin' || staffUser.permissions?.includes(permission)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Permissão insuficiente para esta operação.' });
+  };
+}
+
 // -------------------------------------------------------------
 // API Endpoints
 // -------------------------------------------------------------
