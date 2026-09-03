@@ -44,3 +44,5 @@ s=p.read_text()
 s=s.replace("createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase", "createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, loadPublicSettingsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase")
 s=s.replace("getPublicSettings: () => fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),", "getPublicSettings: () => isGitHubPagesRuntime() ? loadPublicSettingsFromSupabase() : fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),")
 p.write_text(s)
+
+# trigger
