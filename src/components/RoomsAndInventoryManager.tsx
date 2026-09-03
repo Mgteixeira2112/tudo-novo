@@ -34,7 +34,7 @@ import { api } from '../services/api.ts';
 import { IntegratedInventoryManager } from './IntegratedInventoryManager.tsx';
 
 export const RoomsAndInventoryManager: React.FC = () => {
-  const { rooms, settings, refreshData } = useHotel();
+  const { rooms, settings, refreshData, currentUser } = useHotel();
 
   // Active sub-module tab
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory' | 'minibar' | 'room_service' | 'finance'>('rooms');
@@ -117,9 +117,10 @@ export const RoomsAndInventoryManager: React.FC = () => {
 
   // Load initial minibar, menu items, and orders
   useEffect(() => {
+    if (!currentUser) return;
     loadMinibarData();
     loadKitchenData();
-  }, []);
+  }, [currentUser?.id]);
 
   const loadMinibarData = () => {
     api.getMinibarItems().then(setMinibarItems).catch(console.error);
