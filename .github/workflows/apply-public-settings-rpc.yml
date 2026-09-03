@@ -1,0 +1,27 @@
+name: Apply Public Settings RPC Fix
+on:
+  push:
+    branches: [hotfix/public-settings-pages-rpc]
+    paths:
+      - 'scripts/apply_public_settings_rpc.py'
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply patch
+        run: python scripts/apply_public_settings_rpc.py
+      - name: Install and build
+        run: npm install && npm run build
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/pagesData.ts
+          git commit -m "fix: usar RPC pública segura para settings no Pages" || exit 0
+          git push
