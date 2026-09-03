@@ -3,7 +3,7 @@ import { HotelProvider, useHotel } from './context/HotelContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { OnlineBookingEngine } from './components/OnlineBookingEngine.tsx';
 import { KanbanBoard } from './components/KanbanBoard.tsx';
-import { CheckInCheckOutModal } from './components/CheckInCheckOutModal.tsx';
+import { ReceptionManager } from './components/ReceptionManager.tsx';
 import { GuestsManager } from './components/GuestsManager.tsx';
 import { RoomsAndInventoryManager } from './components/RoomsAndInventoryManager.tsx';
 import { MinibarAndKitchen } from './components/MinibarAndKitchen.tsx';
@@ -292,7 +292,7 @@ const AppContent: React.FC = () => {
             {activeAdminTab === 'overview' && <FinancialDashboard />}
             {activeAdminTab === 'rooms_inventory' && <RoomsAndInventoryManager />}
             {activeAdminTab === 'kanbans' && <KanbanBoard />}
-            {activeAdminTab === 'checkinout' && <CheckInCheckOutModal />}
+            {activeAdminTab === 'checkinout' && <ReceptionManager />}
             {activeAdminTab === 'guests' && <GuestsManager />}
             {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
             {activeAdminTab === 'settings' && (
