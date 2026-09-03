@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 import { createServer as createViteServer } from 'vite';
 import { dbManager } from './server/db.ts';
 
@@ -520,49 +521,74 @@ app.delete('/api/users/:id', (req: Request, res: Response) => {
   }
 });
 
-// Login endpoint (harmonizado com Supabase Auth)
-app.post('/api/auth/login', (req: Request, res: Response) => {
+// Login endpoint: credentials are always verified by Supabase Auth.
+app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
-    const { email, password, supabaseAuthId } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail é obrigatório.' });
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
     }
 
-    let user = dbManager.getUserByEmail(email);
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return res.status(503).json({
+        error: 'Autenticação segura indisponível: configure SUPABASE_URL e SUPABASE_ANON_KEY no servidor.'
+      });
+    }
 
-    // Se o usuário autenticou no Supabase e ainda não constava no perfil local, criar perfil
-    if (!user && supabaseAuthId) {
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
+
+    const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError || !authData.user || !authData.session) {
+      return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
+    }
+
+    const verifiedEmail = authData.user.email;
+    if (!verifiedEmail) {
+      return res.status(401).json({ error: 'Conta autenticada sem e-mail válido.' });
+    }
+
+    let user = dbManager.getUserByEmail(verifiedEmail);
+
+    // Create the local staff profile only after Supabase has verified the identity.
+    if (!user) {
       user = dbManager.createUser({
-        email,
-        fullName: email.split('@')[0],
+        email: verifiedEmail,
+        fullName: String(authData.user.user_metadata?.full_name || verifiedEmail.split('@')[0]),
         role: 'recepcionista',
         sector: 'Recepcao',
         status: 'Ativo',
         permissions: ['view_rooms', 'view_checkinout', 'manage_checkinout', 'view_guests', 'view_kanbans'],
-        supabaseAuthId
+        supabaseAuthId: authData.user.id
       });
-    }
-
-    if (!user) {
-      return res.status(401).json({ error: 'Usuário não encontrado com este e-mail.' });
     }
 
     if (user.status !== 'Ativo') {
       return res.status(403).json({ error: `Usuário encontra-se ${user.status.toLowerCase()}. Acesso bloqueado.` });
     }
 
-    // Atualizar último login
     const updatedUser = dbManager.updateUser(user.id, {
       lastLoginAt: new Date().toISOString(),
-      supabaseAuthId: supabaseAuthId || user.supabaseAuthId
+      supabaseAuthId: authData.user.id
     });
 
     res.json({
       user: updatedUser,
-      token: `staff_token_${updatedUser.id}_${Date.now()}`
+      token: authData.session.access_token
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('[Auth] Login failure:', err);
+    res.status(500).json({ error: 'Falha interna ao autenticar usuário.' });
   }
 });
 
