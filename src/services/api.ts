@@ -19,6 +19,7 @@ import {
 } from '../types.ts';
 import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, loadPublicSettingsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
 import { createInventoryItemCloud, createMinibarItemCloud, createTransactionCloud, deleteInventoryItemCloud, deleteMinibarItemCloud, loadConsumptionsCloud, loadFinancialStatsCloud, loadInventoryItemCloud, loadInventoryItemsCloud, loadInventoryStatsCloud, loadMinibarItemsCloud, loadStockMovementsCloud, loadTransactionsCloud, registerConsumptionCloud, registerStockMovementCloud, restockMinibarItemCloud, updateInventoryItemCloud, updateMinibarItemCloud } from './financeInventoryPages.ts';
+import { processCheckInAtomicCloud, processCheckOutAtomicCloud } from './checkInOutPages.ts';
 
 const BASE_URL = '/api';
 
@@ -151,12 +152,14 @@ export const api = {
     paymentMethod?: Reservation['paymentMethod'];
     keyCardNumber?: string;
     notes?: string;
-  }) =>
-    fetch(`${BASE_URL}/checkin`, {
+  }) => {
+    if (isGitHubPagesRuntime()) return processCheckInAtomicCloud(data);
+    return fetch(`${BASE_URL}/checkin`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(data),
-    }).then(r => handleResponse<{ reservation: Reservation; room: Room; task: KanbanTask }>(r)),
+    }).then(r => handleResponse<{ reservation: Reservation; room: Room; task: KanbanTask }>(r));
+  },
 
   processCheckOut: (data: {
     reservationId: string;
@@ -165,8 +168,9 @@ export const api = {
     discount?: number;
     inspectorName?: string;
     notes?: string;
-  }) =>
-    fetch(`${BASE_URL}/checkout`, {
+  }) => {
+    if (isGitHubPagesRuntime()) return processCheckOutAtomicCloud(data);
+    return fetch(`${BASE_URL}/checkout`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(data),
@@ -179,12 +183,14 @@ export const api = {
           minibarTotal: number;
           kitchenTotal: number;
           totalCharges: number;
+          priorPaid?: number;
           amountPaid: number;
           balance: number;
         };
         task: KanbanTask;
       }>(r)
-    ),
+    );
+  },
 
   // Minibar
   getMinibarItems: () => fetch(`${BASE_URL}/minibar/items`, { headers: protectedHeaders() }).then(r => handleResponse<MinibarItem[]>(r)).catch(() => loadMinibarItemsCloud()),

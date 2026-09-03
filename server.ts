@@ -405,18 +405,46 @@ app.put('/api/reservations/:id', requireSupabaseAuth, requirePermission('manage_
 });
 
 // Check-in & Check-out Flows
-app.post('/api/checkin', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
+app.post('/api/checkin', requireSupabaseAuth, requirePermission('manage_checkinout'), async (req: Request, res: Response) => {
   try {
-    const result = dbManager.processCheckIn(req.body);
+    const authorization = req.header('authorization') || '';
+    const token = authorization.split(' ')[1];
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY;
+    if (!url || !key || !token) return res.status(503).json({ error: 'Supabase autenticado indisponível.' });
+    const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+    const { data: result, error } = await client.rpc('process_checkin_atomic', {
+      p_reservation_id: req.body.reservationId,
+      p_room_id: req.body.roomId,
+      p_deposit_amount: Number(req.body.depositAmount || 0),
+      p_payment_method: req.body.paymentMethod || 'Cartao_Credito',
+      p_key_card_number: req.body.keyCardNumber || null,
+      p_notes: req.body.notes || null
+    });
+    if (error) return res.status(400).json({ error: error.message });
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
+app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkinout'), async (req: Request, res: Response) => {
   try {
-    const result = dbManager.processCheckOut(req.body);
+    const authorization = req.header('authorization') || '';
+    const token = authorization.split(' ')[1];
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY;
+    if (!url || !key || !token) return res.status(503).json({ error: 'Supabase autenticado indisponível.' });
+    const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+    const { data: result, error } = await client.rpc('process_checkout_atomic', {
+      p_reservation_id: req.body.reservationId,
+      p_payment_method: req.body.paymentMethod,
+      p_amount_paid: Number(req.body.amountPaid || 0),
+      p_discount: Number(req.body.discount || 0),
+      p_inspector_name: req.body.inspectorName || null,
+      p_notes: req.body.notes || null
+    });
+    if (error) return res.status(400).json({ error: error.message });
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
