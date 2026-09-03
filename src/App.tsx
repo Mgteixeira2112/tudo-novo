@@ -280,6 +280,9 @@ const AppContent: React.FC = () => {
         {mode === 'booking' ? (
           /* Public Online Booking Engine */
           <OnlineBookingEngine />
+        ) : !currentUser ? (
+          /* Protected staff portal */
+          <StaffLogin />
         ) : (
           /* Hotel Admin PMS & Sector Operation */
           <div className="animate-fade-in">

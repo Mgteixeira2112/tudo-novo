@@ -333,7 +333,10 @@ export const api = {
     }).then(r => handleResponse<{ tasksCreated: number; estimatedCost: number }>(r)),
 
   // Staff Users & Auth (RBAC)
-  getUsers: () => fetch(`${BASE_URL}/users`).then(r => handleResponse<StaffUser[]>(r)),
+  me: () =>
+    fetch(`${BASE_URL}/auth/me`, { headers: protectedHeaders() }).then(r => handleResponse<StaffUser>(r)),
+  getUsers: () =>
+    fetch(`${BASE_URL}/users`, { headers: protectedHeaders() }).then(r => handleResponse<StaffUser[]>(r)),
   createUser: (user: Omit<StaffUser, 'id' | 'createdAt' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/users`, {
       method: 'POST',

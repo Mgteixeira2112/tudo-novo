@@ -22,6 +22,7 @@ import {
   supabaseSignIn,
   supabaseSignUp,
   supabaseSignOut,
+  getSupabaseAuthSession,
   subscribeToStaffUsersRealtime
 } from '../services/supabase.ts';
 
@@ -130,15 +131,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const updated = fetchedUsers.find(u => u.id === prev.id);
           return updated || prev;
         }
-        // Restore last logged user or fallback to primary Admin
-        try {
-          const savedId = localStorage.getItem('hotel_auth_user_id');
-          if (savedId) {
-            const found = fetchedUsers.find(u => u.id === savedId);
-            if (found) return found;
-          }
-        } catch {}
-        return fetchedUsers[0] || null;
+        // Never authenticate from a local user id alone.
+        // Session restoration is handled separately through Supabase Auth.
+        return null;
       });
 
       setError(null);
@@ -256,17 +251,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
 
     setApiAccessToken(null);
-
-    // Fallback to first user or prompt
     setIsImpersonating(false);
     setOriginalAdminUser(null);
-    if (allUsers.length > 0) {
-      setCurrentUser(allUsers[0]);
-    }
+    setCurrentUser(null);
+    setMode('booking');
   };
 
   // Impersonate / switch user to quickly test and review sectoral views
   const switchUser = (userOrId: StaffUser | string) => {
+    if (currentUser?.role !== 'admin') return;
     const targetUser = typeof userOrId === 'string' ? allUsers.find(u => u.id === userOrId) : userOrId;
     if (!targetUser) return;
 
@@ -324,6 +317,39 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const canAccessTab = (tab: AdminTab) => {
     return checkCanAccessTab(currentUser, tab);
   };
+
+  // Restore persisted Supabase session and map it to the local staff profile.
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      try {
+        const session = await getSupabaseAuthSession({
+          url: supabaseStatus?.supabaseUrl,
+          anonKey: supabaseStatus?.supabaseAnonKey
+        });
+        if (!session?.access_token || cancelled) return;
+
+        setApiAccessToken(session.access_token);
+        const staff = await api.me();
+        if (cancelled) return;
+
+        setCurrentUser(staff);
+        setIsImpersonating(false);
+        setOriginalAdminUser(null);
+        const defaultTab = getDefaultTabForUser(staff);
+        setActiveAdminTab(defaultTab);
+      } catch {
+        setApiAccessToken(null);
+        if (!cancelled) setCurrentUser(null);
+      }
+    };
+
+    restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
   // Initial load
   useEffect(() => {

@@ -106,6 +106,15 @@ export async function getSupabaseAuthUser(config?: { url?: string; anonKey?: str
   const { data } = await supabase.auth.getUser();
   return data.user || null;
 }
+/**
+ * Supabase Auth: Get current persisted session
+ */
+export async function getSupabaseAuthSession(config?: { url?: string; anonKey?: string }) {
+  const supabase = getSupabaseClient(config?.url, config?.anonKey);
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session || null;
+}
 
 /**
  * Subscribes to Realtime updates on the 'staff_users' table in Supabase

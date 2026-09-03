@@ -44,9 +44,16 @@ async function requireSupabaseAuth(req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'Sessão inválida ou expirada.' });
     }
 
-    (req as Request & { authUser?: { id: string; email?: string } }).authUser = {
+    const email = data.user.email;
+    const staffUser = email ? dbManager.getUserByEmail(email) : undefined;
+    if (!staffUser || staffUser.status !== 'Ativo') {
+      return res.status(403).json({ error: 'Colaborador sem perfil ativo no hotel.' });
+    }
+
+    (req as Request & { authUser?: { id: string; email?: string; staffUser?: any } }).authUser = {
       id: data.user.id,
-      email: data.user.email
+      email,
+      staffUser
     };
 
     next();
@@ -66,7 +73,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Settings (Front-end configurável)
-app.get('/api/settings', (req: Request, res: Response) => {
+app.get('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     const settings = dbManager.getSettings();
     res.json(settings);
@@ -75,7 +82,7 @@ app.get('/api/settings', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/settings', requireSupabaseAuth, (req: Request, res: Response) => {
+app.put('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     const updated = dbManager.updateSettings(req.body);
     res.json(updated);
@@ -526,7 +533,12 @@ app.post('/api/inventory/replenish-order', (req: Request, res: Response) => {
 // -------------------------------------------------------------
 // Staff Users & Supabase Auth RBAC Endpoints
 // -------------------------------------------------------------
-app.get('/api/users', (req: Request, res: Response) => {
+app.get('/api/auth/me', requireSupabaseAuth, (req: Request, res: Response) => {
+  const authUser = (req as Request & { authUser?: { staffUser?: any } }).authUser;
+  res.json(authUser?.staffUser);
+});
+
+app.get('/api/users', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
     const users = dbManager.getUsers();
     res.json(users);
@@ -535,7 +547,7 @@ app.get('/api/users', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/users', requireSupabaseAuth, (req: Request, res: Response) => {
+app.post('/api/users', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
     const newUser = dbManager.createUser(req.body);
     res.status(201).json(newUser);
@@ -544,7 +556,7 @@ app.post('/api/users', requireSupabaseAuth, (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/users/:id', requireSupabaseAuth, (req: Request, res: Response) => {
+app.put('/api/users/:id', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
     const updated = dbManager.updateUser(req.params.id, req.body);
     res.json(updated);
@@ -553,7 +565,7 @@ app.put('/api/users/:id', requireSupabaseAuth, (req: Request, res: Response) => 
   }
 });
 
-app.delete('/api/users/:id', requireSupabaseAuth, (req: Request, res: Response) => {
+app.delete('/api/users/:id', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
     const success = dbManager.deleteUser(req.params.id);
     if (!success) {
@@ -636,7 +648,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/auth/register', requireSupabaseAuth, (req: Request, res: Response) => {
+app.post('/api/auth/register', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
     const { email, fullName, role, sector, phone, permissions, supabaseAuthId } = req.body;
     if (!email || !fullName) {
