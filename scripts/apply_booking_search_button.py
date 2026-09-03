@@ -13,3 +13,5 @@ if summary not in s: raise SystemExit('summary block not found')
 s=s.replace(summary,button,1)
 s=s.replace('<section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 space-y-4">','<section id="available-room-types" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 space-y-4 scroll-mt-6">',1)
 p.write_text(s)
+
+# trigger
