@@ -16,7 +16,7 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 
 export const StaffLogin: React.FC = () => {
-  const { login, settings, supabaseStatus } = useHotel();
+  const { login, bootstrapAdmin, settings, supabaseStatus } = useHotel();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +37,25 @@ export const StaffLogin: React.FC = () => {
       await login(email.trim(), password);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBootstrap = async () => {
+    if (!email || !password) {
+      setErrorMessage('Informe o e-mail e a senha desejados para o primeiro administrador.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const result = await bootstrapAdmin(email.trim(), password);
+      if (result.requiresEmailConfirmation) {
+        setErrorMessage('Conta criada. Confirme o e-mail no Supabase e depois use o botão de login.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Não foi possível criar o administrador inicial.');
     } finally {
       setSubmitting(false);
     }
@@ -160,6 +179,15 @@ export const StaffLogin: React.FC = () => {
                 )}
               </button>
             </form>
+
+            <button
+              type="button"
+              onClick={handleBootstrap}
+              disabled={submitting}
+              className="w-full py-2.5 px-4 bg-white hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#CCD5AE] disabled:opacity-50"
+            >
+              Criar primeiro administrador
+            </button>
 
             <div className="p-3 bg-[#F4F1EA] rounded-2xl border border-[#E6E3D8] text-[11px] text-[#6B705C] space-y-1">
               <span className="font-bold text-[#2C3327] block">Políticas de Segurança:</span>
