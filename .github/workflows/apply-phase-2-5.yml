@@ -1,0 +1,77 @@
+name: Apply phase 2.5
+on:
+  push:
+    branches: [refactor/fase-02-05-kanban-roomservice-supabase]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/fase-02-05-kanban-roomservice-supabase
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch server and Pages fallbacks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('server.ts'); s=p.read_text()
+          imp="import { dbManager } from './server/db.ts';"
+          add="import { dbManager } from './server/db.ts';\nimport { deleteTaskCloud, getMenuItemsCloud, getOrdersCloud, getTasksCloud, syncTasksCloud, upsertOrderCloud, upsertTaskCloud } from './server/operationalSupabase.ts';"
+          if imp in s: s=s.replace(imp,add,1)
+          s=s.replace("app.get('/api/kitchen/menu', (req: Request, res: Response) => {\n  try {\n    const menu = dbManager.getMenuItems();\n    res.json(menu);", "app.get('/api/kitchen/menu', async (req: Request, res: Response) => {\n  try {\n    const menu = (await getMenuItemsCloud()) ?? dbManager.getMenuItems();\n    res.json(menu);",1)
+          s=s.replace("app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {\n  try {\n    const orders = dbManager.getOrders();\n    res.json(orders);", "app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'), async (req: Request, res: Response) => {\n  try {\n    const orders = (await getOrdersCloud()) ?? dbManager.getOrders();\n    res.json(orders);",1)
+          s=s.replace("app.post('/api/kitchen/orders', publicRoomServiceLimiter, (req: Request, res: Response) => {\n  try {\n    const payload = sanitizePublicOrder(req.body);\n    const order = dbManager.createOrder(payload as any);\n    res.status(201).json(order);", "app.post('/api/kitchen/orders', publicRoomServiceLimiter, async (req: Request, res: Response) => {\n  try {\n    const payload = sanitizePublicOrder(req.body);\n    const order = dbManager.createOrder(payload as any);\n    await upsertOrderCloud(order).catch(err => console.warn('[Supabase] Falha ao persistir kitchen_order:', err));\n    await syncTasksCloud(dbManager.getTasks()).catch(err => console.warn('[Supabase] Falha ao sincronizar tarefas geradas:', err));\n    res.status(201).json(order);",1)
+          s=s.replace("app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {\n  try {\n    const { status } = req.body;\n    const order = dbManager.updateOrderStatus(req.params.id, status);\n    if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });\n    res.json(order);", "app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermission('manage_fnb'), async (req: Request, res: Response) => {\n  try {\n    const { status } = req.body;\n    const order = dbManager.updateOrderStatus(req.params.id, status);\n    if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });\n    await upsertOrderCloud(order).catch(err => console.warn('[Supabase] Falha ao atualizar kitchen_order:', err));\n    res.json(order);",1)
+          s=s.replace("app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), (req: Request, res: Response) => {\n  try {\n    const sector = req.query.sector as any;\n    const tasks = dbManager.getTasks(sector);\n    res.json(tasks);", "app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), async (req: Request, res: Response) => {\n  try {\n    const sector = req.query.sector as any;\n    const tasks = (await getTasksCloud(sector)) ?? dbManager.getTasks(sector);\n    res.json(tasks);",1)
+          s=s.replace("app.post('/api/tasks', requireSupabaseAuth, (req: Request, res: Response) => {\n  try {\n    const task = dbManager.createTask(req.body);\n    res.status(201).json(task);", "app.post('/api/tasks', requireSupabaseAuth, async (req: Request, res: Response) => {\n  try {\n    const task = dbManager.createTask(req.body);\n    await upsertTaskCloud(task).catch(err => console.warn('[Supabase] Falha ao criar kanban_task:', err));\n    res.status(201).json(task);",1)
+          s=s.replace("app.patch('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {\n  try {\n    const task = dbManager.updateTask(req.params.id, req.body);\n    if (!task) return res.status(404).json({ error: 'Tarefa não encontrada.' });\n    res.json(task);", "app.patch('/api/tasks/:id', requireSupabaseAuth, async (req: Request, res: Response) => {\n  try {\n    const task = dbManager.updateTask(req.params.id, req.body);\n    if (!task) return res.status(404).json({ error: 'Tarefa não encontrada.' });\n    await upsertTaskCloud(task).catch(err => console.warn('[Supabase] Falha ao atualizar kanban_task:', err));\n    res.json(task);",1)
+          s=s.replace("app.delete('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {\n  try {\n    const ok = dbManager.deleteTask(req.params.id);\n    if (!ok) return res.status(404).json({ error: 'Tarefa não encontrada.' });\n    res.json({ success: true });", "app.delete('/api/tasks/:id', requireSupabaseAuth, async (req: Request, res: Response) => {\n  try {\n    const ok = dbManager.deleteTask(req.params.id);\n    if (!ok) return res.status(404).json({ error: 'Tarefa não encontrada.' });\n    await deleteTaskCloud(req.params.id).catch(err => console.warn('[Supabase] Falha ao excluir kanban_task:', err));\n    res.json({ success: true });",1)
+          p.write_text(s)
+
+          p=Path('src/services/pagesData.ts'); s=p.read_text()
+          s=s.replace("import { Room } from '../types.ts';", "import { KanbanTask, KitchenOrder, MenuItem, Room, Reservation } from '../types.ts';",1) if "Reservation" not in s.split('\n')[0:2].__str__() else s
+          # append helpers if absent
+          if 'loadMenuItemsFromSupabase' not in s:
+            s += '''\nexport async function loadMenuItemsFromSupabase(): Promise<MenuItem[]> {\n  const supabase = getSupabaseClient(); if (!supabase) return [];\n  const { data, error } = await supabase.from('menu_items').select('*').eq('available', true).order('category').order('name');\n  if (error) throw error;\n  return (data || []).map((r:any) => ({ id:r.id,name:r.name,category:r.category,price:Number(r.price||0),description:r.description||'',prepTimeMinutes:Number(r.prep_time_minutes||0),available:r.available!==false })) as MenuItem[];\n}\n\nexport async function loadKitchenOrdersFromSupabase(): Promise<KitchenOrder[]> {\n  const supabase = getSupabaseClient(); if (!supabase) return [];\n  const { data, error } = await supabase.from('kitchen_orders').select('*').order('created_at',{ascending:false});\n  if (error) throw error;\n  return (data || []).map((r:any)=>({id:r.id,orderNumber:r.order_number,roomId:r.room_id||'',roomNumber:r.room_number,reservationId:r.reservation_id||'',guestName:r.guest_name||'',items:Array.isArray(r.items)?r.items:[],totalAmount:Number(r.total_amount||0),deliveryFee:Number(r.delivery_fee||0),destination:r.destination,deliverySector:r.delivery_sector,status:r.status,specialInstructions:r.special_instructions||'',createdAt:r.created_at,completedAt:r.completed_at||undefined})) as KitchenOrder[];\n}\n\nexport async function loadKanbanTasksFromSupabase(sector?: string): Promise<KanbanTask[]> {\n  const supabase = getSupabaseClient(); if (!supabase) return [];\n  let q = supabase.from('kanban_tasks').select('*').order('created_at',{ascending:false}); if (sector) q=q.eq('sector',sector);\n  const { data,error }=await q; if(error) throw error;\n  return (data||[]).map((r:any)=>({id:r.id,title:r.title,description:r.description||'',sector:r.sector,status:r.status,priority:r.priority,roomNumber:r.room_number||undefined,guestName:r.guest_name||undefined,assignedTo:r.assigned_to||undefined,relatedType:r.related_type||undefined,relatedId:r.related_id||undefined,createdAt:r.created_at,updatedAt:r.updated_at})) as KanbanTask[];\n}\n'''
+          p.write_text(s)
+
+          p=Path('src/services/api.ts'); s=p.read_text()
+          if "from './pagesData.ts'" not in s:
+            first_import_end=s.find("\n\nconst BASE_URL")
+            s=s[:first_import_end]+"\nimport { loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase } from './pagesData.ts';"+s[first_import_end:]
+          s=s.replace("getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)),", "getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)).catch(() => loadMenuItemsFromSupabase()),",1)
+          s=s.replace("getOrders: () => fetch(`${BASE_URL}/kitchen/orders`, { headers: protectedHeaders() }).then(r => handleResponse<KitchenOrder[]>(r)),", "getOrders: () => fetch(`${BASE_URL}/kitchen/orders`, { headers: protectedHeaders() }).then(r => handleResponse<KitchenOrder[]>(r)).catch(() => loadKitchenOrdersFromSupabase()),",1)
+          old="return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<KanbanTask[]>(r));"
+          new="return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<KanbanTask[]>(r)).catch(() => loadKanbanTasksFromSupabase(sector));"
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Add docs
+        run: |
+          cat > docs/FASE-02-05-KANBAN-ROOMSERVICE-SUPABASE.md <<'EOF'
+          # FASE 2.5 — Kanban + Room Service/Cozinha no Supabase
+
+          - `menu_items`, `kitchen_orders` e `kanban_tasks` passam a usar Supabase como fonte preferencial nas rotas operacionais.
+          - O cardápio-base foi migrado para a nuvem; tarefas demo não foram copiadas.
+          - GitHub Pages possui fallback direto de leitura para cardápio, pedidos e Kanban.
+          - `kitchen_orders` e `kanban_tasks` permanecem no Supabase Realtime.
+          - Nenhum INSERT anônimo direto foi liberado para pedidos.
+          - JSON permanece fallback transitório até a FASE 2.7.
+          EOF
+      - name: Validate
+        run: |
+          npm install
+          npm run build
+      - name: Commit
+        run: |
+          git config user.name "Mgteixeira2112"
+          git config user.email "102971119+Mgteixeira2112@users.noreply.github.com"
+          git add server.ts server/operationalSupabase.ts src/services/pagesData.ts src/services/api.ts docs/FASE-02-05-KANBAN-ROOMSERVICE-SUPABASE.md supabase/migrations/20260903063500_fase_02_05_kanban_kitchen_rls.sql
+          git commit -m "feat: migrar kanban e room service para Supabase" || exit 0
+          git push origin HEAD:refactor/fase-02-05-kanban-roomservice-supabase
