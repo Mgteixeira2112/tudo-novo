@@ -487,8 +487,67 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   // --- Guests ---
+  private mapGuestFromSupabase(row: any): Guest {
+    return {
+      id: row.id,
+      fullName: row.full_name,
+      document: row.document || '',
+      documentType: row.document_type || 'CPF',
+      email: row.email || '',
+      phone: row.phone || '',
+      address: row.address || '',
+      city: row.city || '',
+      state: row.state || '',
+      birthDate: row.birth_date || undefined,
+      preferences: row.preferences || '',
+      allergiesNotes: row.allergies_notes || '',
+      status: row.status || 'Ativo',
+      totalStays: Number(row.total_stays || 0),
+      totalSpent: Number(row.total_spent || 0),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    } as Guest;
+  }
+
+  private mapGuestToSupabase(guest: Guest) {
+    return {
+      id: guest.id,
+      full_name: guest.fullName,
+      document: guest.document || null,
+      document_type: guest.documentType || null,
+      email: guest.email || null,
+      phone: guest.phone || null,
+      address: guest.address || null,
+      city: guest.city || null,
+      state: guest.state || null,
+      birth_date: guest.birthDate || null,
+      preferences: guest.preferences || null,
+      allergies_notes: guest.allergiesNotes || null,
+      status: guest.status || 'Ativo',
+      total_stays: Number(guest.totalStays || 0),
+      total_spent: Number(guest.totalSpent || 0),
+      created_at: guest.createdAt || new Date().toISOString(),
+      updated_at: guest.updatedAt || new Date().toISOString()
+    };
+  }
+
   public getGuests(): Guest[] {
     return this.data.guests;
+  }
+
+  public async getGuestsPersistent(): Promise<Guest[]> {
+    if (!this.supabase) return this.getGuests();
+    try {
+      const { data, error } = await this.supabase.from('guests').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const guests = (data || []).map(row => this.mapGuestFromSupabase(row));
+      this.data.guests = guests;
+      this.persist();
+      return guests;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao ler guests; usando fallback JSON temporário:', err);
+      return this.getGuests();
+    }
   }
 
   public getGuestById(id: string): Guest | undefined {
@@ -529,9 +588,94 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
     return true;
   }
 
+  public async createGuestPersistent(guestData: Omit<Guest, 'id' | 'createdAt' | 'updatedAt' | 'totalStays' | 'totalSpent'>): Promise<Guest> {
+    if (!this.supabase) return this.createGuest(guestData);
+    const now = new Date().toISOString();
+    const guest: Guest = { ...guestData, id: `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`, totalStays: 0, totalSpent: 0, createdAt: now, updatedAt: now };
+    try {
+      const { data, error } = await this.supabase.from('guests').insert(this.mapGuestToSupabase(guest)).select('*').single();
+      if (error) throw error;
+      const saved = this.mapGuestFromSupabase(data);
+      this.data.guests = [saved, ...this.data.guests.filter(g => g.id !== saved.id)];
+      this.persist();
+      return saved;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao criar guest; usando fallback JSON temporário:', err);
+      return this.createGuest(guestData);
+    }
+  }
+
+  public async updateGuestPersistent(id: string, updates: Partial<Guest>): Promise<Guest | null> {
+    if (!this.supabase) return this.updateGuest(id, updates);
+    try {
+      const { data: currentRow, error: readError } = await this.supabase.from('guests').select('*').eq('id', id).maybeSingle();
+      if (readError) throw readError;
+      if (!currentRow) return null;
+      const merged = { ...this.mapGuestFromSupabase(currentRow), ...updates, id, updatedAt: new Date().toISOString() } as Guest;
+      const { data, error } = await this.supabase.from('guests').update(this.mapGuestToSupabase(merged)).eq('id', id).select('*').single();
+      if (error) throw error;
+      const saved = this.mapGuestFromSupabase(data);
+      const idx = this.data.guests.findIndex(g => g.id === id);
+      if (idx >= 0) this.data.guests[idx] = saved; else this.data.guests.unshift(saved);
+      this.persist();
+      return saved;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao atualizar guest; usando fallback JSON temporário:', err);
+      return this.updateGuest(id, updates);
+    }
+  }
+
+  public async deleteGuestPersistent(id: string): Promise<boolean> {
+    if (!this.supabase) return this.deleteGuest(id);
+    try {
+      const { error } = await this.supabase.from('guests').delete().eq('id', id);
+      if (error) throw error;
+      this.data.guests = this.data.guests.filter(g => g.id !== id);
+      this.persist();
+      return true;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao excluir guest; usando fallback JSON temporário:', err);
+      return this.deleteGuest(id);
+    }
+  }
+
   // --- Rooms ---
+  private mapRoomFromSupabase(row: any): Room {
+    return {
+      id: row.id, number: row.number, typeId: row.type_id, typeName: row.type_name,
+      floor: Number(row.floor || 1), status: row.status, pricePerNight: Number(row.price_per_night || 0),
+      capacity: Number(row.capacity || 1), currentReservationId: row.current_reservation_id || undefined,
+      currentGuestName: row.current_guest_name || undefined, amenities: Array.isArray(row.amenities) ? row.amenities : [],
+      notes: row.notes || undefined
+    } as Room;
+  }
+
+  private mapRoomToSupabase(room: Room) {
+    return {
+      id: room.id, number: room.number, type_id: room.typeId, type_name: room.typeName, floor: Number(room.floor || 1),
+      status: room.status, price_per_night: Number(room.pricePerNight || 0), capacity: Number(room.capacity || 1),
+      current_reservation_id: room.currentReservationId || null, current_guest_name: room.currentGuestName || null,
+      amenities: room.amenities || [], notes: room.notes || null
+    };
+  }
+
   public getRooms(): Room[] {
     return this.data.rooms;
+  }
+
+  public async getRoomsPersistent(): Promise<Room[]> {
+    if (!this.supabase) return this.getRooms();
+    try {
+      const { data, error } = await this.supabase.from('rooms').select('*').order('number', { ascending: true });
+      if (error) throw error;
+      const rooms = (data || []).map(row => this.mapRoomFromSupabase(row)).sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+      this.data.rooms = rooms;
+      this.persist();
+      return rooms;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao ler rooms; usando fallback JSON temporário:', err);
+      return this.getRooms();
+    }
   }
 
   public createRoom(roomData: Omit<Room, 'id'>): Room {
@@ -638,6 +782,86 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
     this.data.rooms.splice(idx, 1);
     this.persist();
     return true;
+  }
+
+  public async createRoomPersistent(roomData: Omit<Room, 'id'>): Promise<Room> {
+    if (!this.supabase) return this.createRoom(roomData);
+    try {
+      const { data: existing, error: checkError } = await this.supabase.from('rooms').select('id').eq('number', roomData.number.trim()).maybeSingle();
+      if (checkError) throw checkError;
+      if (existing) throw new Error(`Já existe um quarto cadastrado com o número ${roomData.number}`);
+      const room: Room = { ...roomData, id: `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`, amenities: roomData.amenities || ['Wi-Fi 500Mbps', 'Ar Condicionado', 'Smart TV', 'Frigobar'] };
+      const { data, error } = await this.supabase.from('rooms').insert(this.mapRoomToSupabase(room)).select('*').single();
+      if (error) throw error;
+      const saved = this.mapRoomFromSupabase(data);
+      this.data.rooms = [...this.data.rooms.filter(r => r.id !== saved.id), saved].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+      this.persist();
+      return saved;
+    } catch (err: any) {
+      if (String(err?.message || '').includes('Já existe um quarto')) throw err;
+      console.warn('[Supabase] Falha ao criar room; usando fallback JSON temporário:', err);
+      return this.createRoom(roomData);
+    }
+  }
+
+  public async updateRoomPersistent(id: string, updates: Partial<Room>): Promise<Room | null> {
+    if (!this.supabase) return this.updateRoom(id, updates);
+    try {
+      const { data: currentRow, error: readError } = await this.supabase.from('rooms').select('*').eq('id', id).maybeSingle();
+      if (readError) throw readError;
+      if (!currentRow) return null;
+      const merged = { ...this.mapRoomFromSupabase(currentRow), ...updates, id } as Room;
+      const { data, error } = await this.supabase.from('rooms').update(this.mapRoomToSupabase(merged)).eq('id', id).select('*').single();
+      if (error) throw error;
+      const saved = this.mapRoomFromSupabase(data);
+      const idx = this.data.rooms.findIndex(r => r.id === id);
+      if (idx >= 0) this.data.rooms[idx] = saved; else this.data.rooms.push(saved);
+      this.data.rooms.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+      this.persist();
+      return saved;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao atualizar room; usando fallback JSON temporário:', err);
+      return this.updateRoom(id, updates);
+    }
+  }
+
+  public async updateRoomStatusPersistent(id: string, status: Room['status'], notes?: string): Promise<Room | null> {
+    if (!this.supabase) return this.updateRoomStatus(id, status, notes);
+    try {
+      await this.getRoomsPersistent();
+      const updated = this.updateRoomStatus(id, status, notes);
+      if (!updated) return null;
+      const { data, error } = await this.supabase.from('rooms').update(this.mapRoomToSupabase(updated)).eq('id', id).select('*').single();
+      if (error) throw error;
+      const saved = this.mapRoomFromSupabase(data);
+      const idx = this.data.rooms.findIndex(r => r.id === id);
+      if (idx >= 0) this.data.rooms[idx] = saved;
+      this.persist();
+      return saved;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao atualizar status do room; usando fallback JSON temporário:', err);
+      return this.updateRoomStatus(id, status, notes);
+    }
+  }
+
+  public async deleteRoomPersistent(id: string): Promise<boolean> {
+    if (!this.supabase) return this.deleteRoom(id);
+    try {
+      const { data: currentRow, error: readError } = await this.supabase.from('rooms').select('*').eq('id', id).maybeSingle();
+      if (readError) throw readError;
+      if (!currentRow) return false;
+      const current = this.mapRoomFromSupabase(currentRow);
+      if (current.status === 'Ocupado') throw new Error('Não é possível excluir um quarto com hóspede instalado.');
+      const { error } = await this.supabase.from('rooms').delete().eq('id', id);
+      if (error) throw error;
+      this.data.rooms = this.data.rooms.filter(r => r.id !== id);
+      this.persist();
+      return true;
+    } catch (err: any) {
+      if (String(err?.message || '').includes('Não é possível excluir')) throw err;
+      console.warn('[Supabase] Falha ao excluir room; usando fallback JSON temporário:', err);
+      return this.deleteRoom(id);
+    }
   }
 
   // --- Reservations & Online Booking ---
