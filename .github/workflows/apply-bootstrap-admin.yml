@@ -1,0 +1,161 @@
+name: Apply bootstrap admin
+on:
+  push:
+    branches: [refactor/fase-01-bootstrap-admin]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/fase-01-bootstrap-admin
+      - name: Patch bootstrap admin flow
+        shell: python {0}
+        run: |
+          from pathlib import Path
+
+          # supabase.ts
+          p = Path('src/services/supabase.ts')
+          s = p.read_text()
+          if "DEFAULT_SUPABASE_URL" not in s:
+              s = s.replace("let clientInstance: SupabaseClient | null = null;", "const DEFAULT_SUPABASE_URL = 'https://izuymcuzbggrdkezwxyu.supabase.co';\nconst DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';\n\nlet clientInstance: SupabaseClient | null = null;")
+              s = s.replace("  const targetUrl = url || (import.meta as any).env?.VITE_SUPABASE_URL;\n  const targetKey = anonKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;", "  const targetUrl = url || (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;\n  const targetKey = anonKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_PUBLISHABLE_KEY;")
+          if "getSupabaseStaffProfile" not in s:
+              anchor = "/**\n * Subscribes to Realtime updates on the 'staff_users' table in Supabase\n */"
+              helper = r'''export async function getSupabaseStaffProfile(userId?: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const uid = userId || (await supabase.auth.getUser()).data.user?.id;
+  if (!uid) return null;
+  const { data, error } = await supabase.from('staff_users').select('*').eq('id', uid).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email,
+    fullName: data.full_name,
+    role: data.role,
+    sector: data.sector,
+    permissions: data.permissions || [],
+    active: data.active,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  } as StaffUser;
+}
+
+export async function bootstrapFirstAdmin(email: string, password: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  if (!data.user) throw new Error('Não foi possível criar o usuário administrador.');
+  if (!data.session) {
+    return { requiresEmailConfirmation: true, user: data.user, profile: null };
+  }
+  const { error: profileError } = await supabase.from('staff_users').insert({
+    id: data.user.id,
+    email,
+    full_name: 'Administrador NovoHotel',
+    role: 'admin',
+    sector: 'Geral',
+    active: true
+  });
+  if (profileError) throw profileError;
+  const profile = await getSupabaseStaffProfile(data.user.id);
+  return { requiresEmailConfirmation: false, user: data.user, profile };
+}
+
+'''
+              s = s.replace(anchor, helper + anchor)
+          p.write_text(s)
+
+          # HotelContext.tsx
+          p = Path('src/context/HotelContext.tsx')
+          s = p.read_text()
+          s = s.replace("  subscribeToStaffUsersRealtime\n} from '../services/supabase.ts';", "  subscribeToStaffUsersRealtime,\n  getSupabaseStaffProfile,\n  bootstrapFirstAdmin\n} from '../services/supabase.ts';")
+          s = s.replace("  login: (email: string, password?: string) => Promise<StaffUser>;", "  login: (email: string, password?: string) => Promise<StaffUser>;\n  bootstrapAdmin: (email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean; user: any; profile: StaffUser | null }>;")
+
+          old_login = """      // 1. Try Supabase Auth first if configured\n      let supabaseAuthId: string | undefined = undefined;\n      if (supabaseStatus?.connected) {\n        try {\n          const { data, error: supaErr } = await supabaseSignIn(email, password, {\n            url: supabaseStatus.supabaseUrl,\n            anonKey: supabaseStatus.supabaseAnonKey\n          });\n          if (data?.user) {\n            supabaseAuthId = data.user.id;\n          }\n        } catch (e) {\n          console.warn('[Supabase Auth] Fallback para login de perfil local:', e);\n        }\n      }\n\n      // 2. Validate/update session in backend\n      const result = await api.login({ email, password, supabaseAuthId });\n      setApiAccessToken(result.token);\n      setCurrentUser(result.user);"""
+          new_login = """      const { data, error: supaErr } = await supabaseSignIn(email, password, {\n        url: supabaseStatus?.supabaseUrl,\n        anonKey: supabaseStatus?.supabaseAnonKey\n      });\n      if (supaErr || !data?.session || !data.user) {\n        throw supaErr || new Error('Credenciais inválidas.');\n      }\n\n      setApiAccessToken(data.session.access_token);\n      let staff: StaffUser | null = null;\n      try {\n        const result = await api.login({ email, password, supabaseAuthId: data.user.id });\n        staff = result.user;\n      } catch {\n        staff = await getSupabaseStaffProfile(data.user.id);\n      }\n      if (!staff || !staff.active) {\n        throw new Error('Usuário autenticado, mas sem perfil de colaborador ativo.');\n      }\n      setCurrentUser(staff);"""
+          s = s.replace(old_login, new_login)
+          s = s.replace("        localStorage.setItem('hotel_auth_user_id', result.user.id);", "        localStorage.setItem('hotel_auth_user_id', staff.id);")
+          s = s.replace("      const defaultTab = getDefaultTabForUser(result.user);", "      const defaultTab = getDefaultTabForUser(staff);")
+          s = s.replace("      return result.user;", "      return staff;")
+
+          if "const bootstrapAdmin = async" not in s:
+              anchor = "  const registerStaff = async (data: {"
+              fn = r'''  const bootstrapAdmin = async (email: string, password: string) => {
+    const result = await bootstrapFirstAdmin(email, password);
+    if (result.profile) {
+      const session = await getSupabaseAuthSession();
+      if (session?.access_token) setApiAccessToken(session.access_token);
+      setCurrentUser(result.profile);
+      setActiveAdminTab('overview');
+      setMode('admin');
+    }
+    return result;
+  };
+
+'''
+              s = s.replace(anchor, fn + anchor)
+
+          restore_old = """        setApiAccessToken(session.access_token);\n        const staff = await api.me();\n        if (cancelled) return;"""
+          restore_new = """        setApiAccessToken(session.access_token);\n        let staff: StaffUser | null = null;\n        try {\n          staff = await api.me();\n        } catch {\n          staff = await getSupabaseStaffProfile(session.user.id);\n        }\n        if (!staff || cancelled) return;"""
+          s = s.replace(restore_old, restore_new)
+          s = s.replace("        login,\n        registerStaff,", "        login,\n        bootstrapAdmin,\n        registerStaff,")
+          p.write_text(s)
+
+          # StaffLogin.tsx
+          p = Path('src/components/StaffLogin.tsx')
+          s = p.read_text()
+          s = s.replace("  const { login, settings, supabaseStatus } = useHotel();", "  const { login, bootstrapAdmin, settings, supabaseStatus } = useHotel();")
+          if "handleBootstrap" not in s:
+              marker = "\n\n  return ("
+              fn = r'''
+  const handleBootstrap = async () => {
+    if (!email || !password) {
+      setErrorMessage('Informe o e-mail e a senha desejados para o primeiro administrador.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const result = await bootstrapAdmin(email.trim(), password);
+      if (result.requiresEmailConfirmation) {
+        setErrorMessage('Conta criada. Confirme o e-mail no Supabase e depois use o botão de login.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Não foi possível criar o administrador inicial.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+'''
+              s = s.replace(marker, fn + marker)
+          button_anchor = "            </form>\n\n            <div className=\"p-3 bg-[#F4F1EA]"
+          bootstrap_button = r'''            </form>
+
+            <button
+              type="button"
+              onClick={handleBootstrap}
+              disabled={submitting}
+              className="w-full py-2.5 px-4 bg-white hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#CCD5AE] disabled:opacity-50"
+            >
+              Criar primeiro administrador
+            </button>
+
+            <div className="p-3 bg-[#F4F1EA]'''
+          s = s.replace(button_anchor, bootstrap_button)
+          p.write_text(s)
+
+          Path('docs/FASE-01-05-1-BOOTSTRAP-ADMIN.md').write_text("# Checkpoint 1.5.1 — Bootstrap do primeiro administrador\n\n- Supabase do projeto novo hotel configurado como fallback seguro usando publishable key.\n- Primeiro usuário pode criar o próprio perfil admin somente enquanto staff_users estiver vazio.\n- Login no GitHub Pages autentica diretamente via Supabase Auth e usa staff_users como fallback quando o backend Express não estiver hospedado.\n- Nenhuma senha é gravada em código.\n")
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/services/supabase.ts src/context/HotelContext.tsx src/components/StaffLogin.tsx docs/FASE-01-05-1-BOOTSTRAP-ADMIN.md
+          git commit -m "feat: add secure first-admin bootstrap via Supabase" || exit 0
+          git push
