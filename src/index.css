@@ -57,15 +57,72 @@ body {
   background: #A3B18A;
 }
 
-/* Inventory sector navigation: keep every sector visible instead of hiding options in an invisible horizontal scroll. */
+/* Inventory sector navigation: all six sectors must be visible and readable. */
 #integrated-inventory-manager .scrollbar-none {
-  flex-wrap: wrap !important;
-  overflow-x: visible !important;
-  row-gap: 0.5rem;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem !important;
+  overflow: visible !important;
   padding-bottom: 0 !important;
 }
 
-#integrated-inventory-manager .scrollbar-none > button {
-  flex: 1 1 auto;
-  min-width: max-content;
+#integrated-inventory-manager [id^="sector-pill-"] {
+  width: 100%;
+  min-width: 0 !important;
+  justify-content: center;
+  white-space: normal !important;
+  text-align: center;
+  line-height: 1.15;
+}
+
+#integrated-inventory-manager [id^="sector-pill-"] > span:first-of-type {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+@media (min-width: 1180px) {
+  #integrated-inventory-manager .scrollbar-none {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  #integrated-inventory-manager [id^="sector-pill-"] {
+    font-size: 0.78rem;
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+}
+
+@media (max-width: 700px) {
+  #integrated-inventory-manager .scrollbar-none {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Kardex: replace the literal LaTeX token "$\\rightarrow$" with a real visual arrow. */
+#integrated-inventory-manager table th:nth-child(5) {
+  font-size: 0 !important;
+}
+
+#integrated-inventory-manager table th:nth-child(5)::after {
+  content: "Saldo ant. → novo";
+  font-size: 11px;
+}
+
+#integrated-inventory-manager table tbody td:nth-child(5) {
+  font-size: 0 !important;
+}
+
+#integrated-inventory-manager table tbody td:nth-child(5) > span {
+  font-size: 12px !important;
+}
+
+#integrated-inventory-manager table tbody td:nth-child(5)::before {
+  content: "";
+}
+
+#integrated-inventory-manager table tbody td:nth-child(5) > span:first-child::after {
+  content: " → ";
+  color: #6B705C;
+  font-weight: 400;
+  margin: 0 0.25rem;
 }
