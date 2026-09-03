@@ -12,7 +12,7 @@ import {
   AdminTab,
   PermissionKey
 } from '../types.ts';
-import { api } from '../services/api.ts';
+import { api, setApiAccessToken } from '../services/api.ts';
 import {
   hasPermission as checkHasPermission,
   canAccessTab as checkCanAccessTab,
@@ -183,6 +183,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // 2. Validate/update session in backend
       const result = await api.login({ email, password, supabaseAuthId });
+      setApiAccessToken(result.token);
       setCurrentUser(result.user);
       setIsImpersonating(false);
       setOriginalAdminUser(null);
@@ -253,6 +254,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.removeItem('hotel_auth_user_id');
     } catch {}
+
+    setApiAccessToken(null);
 
     // Fallback to first user or prompt
     setIsImpersonating(false);

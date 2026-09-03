@@ -20,6 +20,19 @@ import {
 
 const BASE_URL = '/api';
 
+let apiAccessToken: string | null = null;
+
+export function setApiAccessToken(token?: string | null) {
+  apiAccessToken = token || null;
+}
+
+function protectedHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    ...(apiAccessToken ? { Authorization: `Bearer ${apiAccessToken}` } : {})
+  };
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let errorMsg = `Erro ${res.status}: ${res.statusText}`;
@@ -40,7 +53,7 @@ export const api = {
   updateSettings: (settings: Partial<HotelSettings>) =>
     fetch(`${BASE_URL}/settings`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(settings),
     }).then(r => handleResponse<HotelSettings>(r)),
 
@@ -48,7 +61,7 @@ export const api = {
   getSupabaseStatus: () => fetch(`${BASE_URL}/supabase/status`).then(r => handleResponse<SupabaseConfigStatus>(r)),
   getSupabaseSQL: () => fetch(`${BASE_URL}/supabase/schema-sql`).then(r => r.text()),
   reconnectSupabase: () =>
-    fetch(`${BASE_URL}/supabase/reconnect`, { method: 'POST' }).then(r => handleResponse<SupabaseConfigStatus>(r)),
+    fetch(`${BASE_URL}/supabase/reconnect`, { method: 'POST', headers: protectedHeaders() }).then(r => handleResponse<SupabaseConfigStatus>(r)),
 
   // Guests
   getGuests: () => fetch(`${BASE_URL}/guests`).then(r => handleResponse<Guest[]>(r)),
@@ -324,17 +337,17 @@ export const api = {
   createUser: (user: Omit<StaffUser, 'id' | 'createdAt' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/users`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(user),
     }).then(r => handleResponse<StaffUser>(r)),
   updateUser: (id: string, updates: Partial<StaffUser>) =>
     fetch(`${BASE_URL}/users/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(updates),
     }).then(r => handleResponse<StaffUser>(r)),
   deleteUser: (id: string) =>
-    fetch(`${BASE_URL}/users/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/users/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
   login: (data: { email: string; password?: string; supabaseAuthId?: string }) =>
     fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -352,7 +365,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<{ user: StaffUser; token: string }>(r)),
 };
