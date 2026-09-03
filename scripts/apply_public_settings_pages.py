@@ -45,4 +45,4 @@ s=s.replace("createKanbanTaskInSupabase, createKitchenOrderInSupabase, createRes
 s=s.replace("getPublicSettings: () => fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),", "getPublicSettings: () => isGitHubPagesRuntime() ? loadPublicSettingsFromSupabase() : fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),")
 p.write_text(s)
 
-# trigger
+# trigger-2
