@@ -360,28 +360,28 @@ app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_room
 });
 
 // Reservations (Online Booking Engine & Internal)
-app.get('/api/reservations', requireSupabaseAuth, requirePermission('view_checkinout'), (req: Request, res: Response) => {
+app.get('/api/reservations', requireSupabaseAuth, requirePermission('view_checkinout'), async (req: Request, res: Response) => {
   try {
-    const reservations = dbManager.getReservations();
+    const reservations = await dbManager.getReservationsPersistent();
     res.json(reservations);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/reservations', publicReservationLimiter, (req: Request, res: Response) => {
+app.post('/api/reservations', publicReservationLimiter, async (req: Request, res: Response) => {
   try {
     const payload = sanitizePublicReservation(req.body);
-    const reservation = dbManager.createReservation(payload as any);
+    const reservation = await dbManager.createReservationPersistent(payload as any);
     res.status(201).json(reservation);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.put('/api/reservations/:id', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
+app.put('/api/reservations/:id', requireSupabaseAuth, requirePermission('manage_checkinout'), async (req: Request, res: Response) => {
   try {
-    const reservation = dbManager.updateReservation(req.params.id, req.body);
+    const reservation = await dbManager.updateReservationPersistent(req.params.id, req.body);
     if (!reservation) return res.status(404).json({ error: 'Reserva não encontrada.' });
     res.json(reservation);
   } catch (err: any) {
