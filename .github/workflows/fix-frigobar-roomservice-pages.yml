@@ -1,12 +1,12 @@
 name: Fix frigobar and room service Pages
 on:
   push:
-    branches: [fix/frigobar-roomservice-pages]
+    branches:
+      - fix/frigobar-roomservice-pages
 permissions:
   contents: write
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,97 +14,17 @@ jobs:
           ref: fix/frigobar-roomservice-pages
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Patch Pages writes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          # 1) Frigobar: only persist a reservation FK when that reservation really exists in cloud.
-          p = Path('src/services/financeInventoryPages.ts')
-          s = p.read_text()
-          old = "const total=num(item.price)*qty;const now=new Date().toISOString();const row={id:`cons_${Date.now()}_${Math.floor(Math.random()*1000)}`,room_id:room.id,room_number:room.number,reservation_id:room.current_reservation_id||null,guest_name:room.current_guest_name||null,item_id:item.id,item_name:item.name,quantity:qty,unit_price:num(item.price),total_price:total,registered_by:input.registeredBy,registered_at:now,status:'Lançado'};"
-          new = "const total=num(item.price)*qty;const now=new Date().toISOString();let validReservationId:string|null=null;if(room.current_reservation_id){const{data:reservation}=await s.from('reservations').select('id').eq('id',room.current_reservation_id).maybeSingle();validReservationId=reservation?.id||null;}const row={id:`cons_${Date.now()}_${Math.floor(Math.random()*1000)}`,room_id:room.id,room_number:room.number,reservation_id:validReservationId,guest_name:room.current_guest_name||null,item_id:item.id,item_name:item.name,quantity:qty,unit_price:num(item.price),total_price:total,registered_by:input.registeredBy,registered_at:now,status:'Lançado'};"
-          if old not in s: raise SystemExit('consumption row block not found')
-          s=s.replace(old,new)
-          s=s.replace("reservation_id:room.current_reservation_id||null,room_number:room.number", "reservation_id:validReservationId,room_number:room.number")
-          s=s.replace("related_reservation_id:room.current_reservation_id||null,operator:input.registeredBy", "related_reservation_id:validReservationId,operator:input.registeredBy")
-          p.write_text(s)
-
-          # 2) Pages data: direct kitchen order create/update with authenticated RLS.
-          p=Path('src/services/pagesData.ts')
-          s=p.read_text()
-          marker="export async function loadKanbanTasksFromSupabase(sector?: string): Promise<KanbanTask[]> {"
-          insert=r'''
-function mapKitchenOrderRow(r:any): KitchenOrder {
-  return {id:r.id,orderNumber:r.order_number,roomId:r.room_id||'',roomNumber:r.room_number,reservationId:r.reservation_id||'',guestName:r.guest_name||'',items:Array.isArray(r.items)?r.items:[],totalAmount:Number(r.total_amount||0),deliveryFee:Number(r.delivery_fee||0),destination:r.destination,deliverySector:r.delivery_sector,status:r.status,specialInstructions:r.special_instructions||'',createdAt:r.created_at,completedAt:r.completed_at||undefined} as KitchenOrder;
-}
-
-export async function createKitchenOrderInSupabase(input:{roomId:string;items:{menuItemId:string;quantity:number;notes?:string}[];destination:'Quarto'|'Restaurante'|'Piscina';deliverySector:'Cozinha'|'Room Service';specialInstructions?:string}):Promise<KitchenOrder>{
-  const supabase=getSupabaseClient(); if(!supabase) throw new Error('Supabase não configurado.');
-  const {data:room,error:roomError}=await supabase.from('rooms').select('*').eq('id',input.roomId).single(); if(roomError) throw roomError;
-  const ids=[...new Set(input.items.map(i=>i.menuItemId))];
-  const {data:menu,error:menuError}=await supabase.from('menu_items').select('*').in('id',ids); if(menuError) throw menuError;
-  const byId=new Map((menu||[]).map((m:any)=>[m.id,m]));
-  const normalized=input.items.filter(i=>Number(i.quantity)>0).map(i=>{const m:any=byId.get(i.menuItemId);if(!m)throw new Error('Item de cardápio inválido.');return{menuItemId:m.id,name:m.name,price:Number(m.price||0),quantity:Number(i.quantity),notes:i.notes||''};});
-  if(!normalized.length) throw new Error('Selecione ao menos um item.');
-  const itemsTotal=normalized.reduce((sum:any,i:any)=>sum+i.price*i.quantity,0);
-  const deliveryFee=input.destination==='Quarto'?15:0;
-  let validReservationId:string|null=null;
-  if(room.current_reservation_id){const{data:r}=await supabase.from('reservations').select('id').eq('id',room.current_reservation_id).maybeSingle();validReservationId=r?.id||null;}
-  const now=new Date().toISOString();
-  const id=`ord_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-  const row={id,order_number:`RS-${String(Date.now()).slice(-6)}`,room_id:room.id,room_number:room.number,reservation_id:validReservationId,guest_name:room.current_guest_name||null,items:normalized,total_amount:itemsTotal+deliveryFee,delivery_fee:deliveryFee,destination:input.destination,delivery_sector:input.deliverySector,status:'Recebido',special_instructions:input.specialInstructions||null,created_at:now,completed_at:null};
-  const {data,error}=await supabase.from('kitchen_orders').insert(row).select('*').single(); if(error) throw error;
-  // Keep the operational financial integration without depending on Express.
-  const {error:finError}=await supabase.from('financial_transactions').insert({id:`tx_${Date.now()}_${Math.floor(Math.random()*1000)}`,type:'Receita',category:'Room Service',description:`Room Service ${row.order_number} - Quarto ${room.number}`,amount:row.total_amount,payment_method:'Faturado',status:'Pendente',reservation_id:validReservationId,room_number:room.number,guest_name:room.current_guest_name||null,date:now.slice(0,10),created_at:now});
-  if(finError){await supabase.from('kitchen_orders').delete().eq('id',id);throw finError;}
-  return mapKitchenOrderRow(data);
-}
-
-export async function updateKitchenOrderStatusInSupabase(id:string,status:KitchenOrder['status']):Promise<KitchenOrder>{
-  const supabase=getSupabaseClient(); if(!supabase) throw new Error('Supabase não configurado.');
-  const payload:any={status}; if(status==='Entregue'||status==='Cancelado')payload.completed_at=new Date().toISOString();
-  const {data,error}=await supabase.from('kitchen_orders').update(payload).eq('id',id).select('*').single(); if(error) throw error;
-  return mapKitchenOrderRow(data);
-}
-
-'''
-          if marker not in s: raise SystemExit('pagesData marker not found')
-          s=s.replace(marker,insert+marker)
-          p.write_text(s)
-
-          # 3) API fallback for the writes that were missing on static Pages.
-          p=Path('src/services/api.ts')
-          s=p.read_text()
-          s=s.replace("createKanbanTaskInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase", "createKanbanTaskInSupabase, createKitchenOrderInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase")
-          old="""    })
-      .then(r => handleResponse<KitchenOrder>(r))
-      .then(order => {"""
-          new="""    })
-      .then(r => handleResponse<KitchenOrder>(r))
-      .catch(() => createKitchenOrderInSupabase(data))
-      .then(order => {"""
-          if old not in s: raise SystemExit('createOrder chain not found')
-          s=s.replace(old,new,1)
-          old2="""    }).then(r => handleResponse<KitchenOrder>(r)),
-
-  // Kanban Tasks"""
-          new2="""    }).then(r => handleResponse<KitchenOrder>(r)).catch(() => updateKitchenOrderStatusInSupabase(id, status)),
-
-  // Kanban Tasks"""
-          if old2 not in s: raise SystemExit('updateOrderStatus chain not found')
-          s=s.replace(old2,new2,1)
-          p.write_text(s)
-          PY
-      - name: Validate
-        run: |
-          npm install
-          npm run build
+          node-version: '22'
+      - name: Apply patch
+        run: python .github/patches/fix-frigobar-roomservice-pages.py
+      - name: Install
+        run: npm install
+      - name: Build
+        run: npm run build
       - name: Commit
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add src/services/financeInventoryPages.ts src/services/pagesData.ts src/services/api.ts
-          git commit -m "fix: integrar frigobar e room service no GitHub Pages"
+          git diff --cached --quiet || git commit -m "fix: integrar frigobar e room service no GitHub Pages"
           git push
