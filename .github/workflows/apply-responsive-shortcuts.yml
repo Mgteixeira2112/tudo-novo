@@ -1,0 +1,42 @@
+name: Apply responsive shortcuts
+on:
+  push:
+    branches: [fix/atalhos-responsivos]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/atalhos-responsivos
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch responsive admin navigation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/Navbar.tsx')
+          s = p.read_text()
+          old = 'className="flex space-x-1 sm:space-x-3 overflow-x-auto py-2 text-xs sm:text-sm font-medium scrollbar-none"'
+          new = 'className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto py-2 text-xs sm:text-sm font-medium scrollbar-none xl:flex-wrap xl:overflow-x-visible"'
+          if old not in s:
+              raise SystemExit('admin nav class not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${', 'className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${')
+          p.write_text(s)
+          PY
+      - name: Validate build
+        run: |
+          npm install
+          npm run build
+      - name: Commit fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/Navbar.tsx
+          git commit -m "fix: ajustar atalhos administrativos responsivos" || exit 0
+          git push
