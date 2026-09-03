@@ -865,8 +865,50 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   // --- Reservations & Online Booking ---
+  private mapReservationFromSupabase(row: any): Reservation {
+    return {
+      id: row.id, code: row.code, guestId: row.guest_id || '', guestName: row.guest_name,
+      guestEmail: row.guest_email, guestPhone: row.guest_phone || '', roomId: row.room_id || '',
+      roomNumber: row.room_number || '', roomTypeName: row.room_type_name, checkInDate: row.check_in_date,
+      checkOutDate: row.check_out_date, nights: Number(row.nights || 0), adults: Number(row.adults || 0),
+      children: Number(row.children || 0), pricePerNight: Number(row.price_per_night || 0),
+      totalNightsAmount: Number(row.total_nights_amount || 0), status: row.status, paymentStatus: row.payment_status,
+      paymentMethod: row.payment_method || undefined, notes: row.notes || undefined, createdAt: row.created_at,
+      checkedInAt: row.checked_in_at || undefined, checkedOutAt: row.checked_out_at || undefined
+    } as Reservation;
+  }
+
+  private mapReservationToSupabase(reservation: Reservation) {
+    return {
+      id: reservation.id, code: reservation.code, guest_id: reservation.guestId || null, guest_name: reservation.guestName,
+      guest_email: reservation.guestEmail, guest_phone: reservation.guestPhone || null, room_id: reservation.roomId || null,
+      room_number: reservation.roomNumber || null, room_type_name: reservation.roomTypeName, check_in_date: reservation.checkInDate,
+      check_out_date: reservation.checkOutDate, nights: Number(reservation.nights || 0), adults: Number(reservation.adults || 0),
+      children: Number(reservation.children || 0), price_per_night: Number(reservation.pricePerNight || 0),
+      total_nights_amount: Number(reservation.totalNightsAmount || 0), status: reservation.status,
+      payment_status: reservation.paymentStatus, payment_method: reservation.paymentMethod || null, notes: reservation.notes || null,
+      created_at: reservation.createdAt || new Date().toISOString(), checked_in_at: reservation.checkedInAt || null,
+      checked_out_at: reservation.checkedOutAt || null
+    };
+  }
+
   public getReservations(): Reservation[] {
     return this.data.reservations;
+  }
+
+  public async getReservationsPersistent(): Promise<Reservation[]> {
+    if (!this.supabase) return this.getReservations();
+    try {
+      const { data, error } = await this.supabase.from('reservations').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const reservations = (data || []).map(row => this.mapReservationFromSupabase(row));
+      this.data.reservations = reservations;
+      this.persist();
+      return reservations;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao ler reservations; usando fallback JSON temporário:', err);
+      return this.getReservations();
+    }
   }
 
   public createReservation(data: {
@@ -924,9 +966,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       r => r.typeId === roomType.id && r.status === 'Disponivel' && !occupiedRoomIds.includes(r.id)
     );
 
-    // If none found with strict match, fallback to any available room of that type
     if (!assignedRoom) {
-      assignedRoom = this.data.rooms.find(r => r.typeId === roomType.id) || this.data.rooms[0];
+      throw new Error('Não há quarto disponível para o tipo e período selecionados.');
     }
 
     // 4. Calculate nights
@@ -1004,6 +1045,49 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
     this.data.reservations[idx] = { ...this.data.reservations[idx], ...updates };
     this.persist();
     return this.data.reservations[idx];
+  }
+
+  public async createReservationPersistent(data: { guestName: string; guestEmail: string; guestPhone: string; document?: string; roomTypeId: string; checkInDate: string; checkOutDate: string; adults: number; children: number; paymentMethod: Reservation['paymentMethod']; notes?: string; }): Promise<Reservation> {
+    if (!this.supabase) return this.createReservation(data);
+    try {
+      await Promise.all([this.getSettingsPersistent(), this.getRoomsPersistent(), this.getGuestsPersistent(), this.getReservationsPersistent()]);
+      const reservation = this.createReservation(data);
+      const guest = this.data.guests.find(g => g.id === reservation.guestId);
+      if (guest) {
+        const { error: guestError } = await this.supabase.from('guests').upsert(this.mapGuestToSupabase(guest), { onConflict: 'id' });
+        if (guestError) throw guestError;
+      }
+      const { data: savedRow, error } = await this.supabase.from('reservations').insert(this.mapReservationToSupabase(reservation)).select('*').single();
+      if (error) throw error;
+      const saved = this.mapReservationFromSupabase(savedRow);
+      this.data.reservations = [saved, ...this.data.reservations.filter(r => r.id !== saved.id)];
+      this.persist();
+      return saved;
+    } catch (err: any) {
+      if (String(err?.message || '').includes('Não há quarto disponível')) throw err;
+      console.warn('[Supabase] Falha ao criar reservation; usando fallback JSON temporário:', err);
+      return this.createReservation(data);
+    }
+  }
+
+  public async updateReservationPersistent(id: string, updates: Partial<Reservation>): Promise<Reservation | null> {
+    if (!this.supabase) return this.updateReservation(id, updates);
+    try {
+      const { data: currentRow, error: readError } = await this.supabase.from('reservations').select('*').eq('id', id).maybeSingle();
+      if (readError) throw readError;
+      if (!currentRow) return null;
+      const merged = { ...this.mapReservationFromSupabase(currentRow), ...updates, id } as Reservation;
+      const { data, error } = await this.supabase.from('reservations').update(this.mapReservationToSupabase(merged)).eq('id', id).select('*').single();
+      if (error) throw error;
+      const saved = this.mapReservationFromSupabase(data);
+      const idx = this.data.reservations.findIndex(r => r.id === id);
+      if (idx >= 0) this.data.reservations[idx] = saved; else this.data.reservations.unshift(saved);
+      this.persist();
+      return saved;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao atualizar reservation; usando fallback JSON temporário:', err);
+      return this.updateReservation(id, updates);
+    }
   }
 
   // --- Complete Check-In Flow ---

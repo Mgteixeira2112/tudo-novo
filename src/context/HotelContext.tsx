@@ -13,7 +13,7 @@ import {
   PermissionKey
 } from '../types.ts';
 import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';
-import { loadRoomsFromSupabase } from '../services/pagesData.ts';
+import { loadReservationsFromSupabase, loadRoomsFromSupabase } from '../services/pagesData.ts';
 import {
   hasPermission as checkHasPermission,
   canAccessTab as checkCanAccessTab,
@@ -114,8 +114,12 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setSettings(fetchedSettings); setRooms(fetchedRooms); setGuests(fetchedGuests); setReservations(fetchedReservations); setTasks(fetchedTasks); setTransactions(fetchedTransactions); setStats(fetchedStats); setSupabaseStatus(fetchedSupabase); setAllUsers(fetchedUsers); setError(null);
     } catch (err: any) {
       console.error('Error fetching hotel data:', err);
-      const directRooms = await loadRoomsFromSupabase().catch(() => []);
+      const [directRooms, directReservations] = await Promise.all([
+        loadRoomsFromSupabase().catch(() => []),
+        loadReservationsFromSupabase().catch(() => [])
+      ]);
       setRooms(directRooms);
+      setReservations(directReservations);
       setError(err.message || 'Erro ao carregar dados do servidor.');
     } finally { setLoading(false); }
   }, [clearPrivateData]);
@@ -348,7 +352,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(() => {
       Promise.all([
         api.getRooms().then(setRooms).catch(() => {}),
-        api.getReservations().then(setReservations).catch(() => {}),
+        api.getReservations().then(setReservations).catch(() => loadReservationsFromSupabase().then(setReservations).catch(() => {})),
         api.getTasks().then(setTasks).catch(() => {}),
         api.getFinancialStats().then(setStats).catch(() => {}),
         api.getTransactions().then(setTransactions).catch(() => {}),
