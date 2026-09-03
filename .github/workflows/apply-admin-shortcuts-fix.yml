@@ -1,0 +1,41 @@
+name: Apply admin shortcuts fix
+on:
+  push:
+    branches: [fix/restaurar-atalhos-admin]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/restaurar-atalhos-admin
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch RBAC compatibility
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/services/rbac.ts')
+          s = p.read_text()
+          anchor = "/**\n * Checks whether a user possesses a specific permission\n */\n"
+          helper = """/**\n * Normalizes legacy JSON staff status and Supabase staff active flag.\n * Supabase profiles use `active`; legacy profiles use `status`.\n */\nfunction isActiveStaffUser(user: StaffUser | null): boolean {\n  if (!user) return false;\n  const status = (user as any).status;\n  if (status !== undefined && status !== null) return status === 'Ativo';\n  const active = (user as any).active;\n  if (typeof active === 'boolean') return active;\n  return false;\n}\n\n"""
+          if 'function isActiveStaffUser' not in s:
+              s = s.replace(anchor, helper + anchor)
+          s = s.replace("  if (user.status !== 'Ativo') return false;", "  if (!isActiveStaffUser(user)) return false;")
+          p.write_text(s)
+          PY
+      - name: Validate build
+        run: |
+          npm install
+          npm run build
+      - name: Commit fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/services/rbac.ts
+          git commit -m "fix: restaurar atalhos administrativos para perfis Supabase" || exit 0
+          git push
