@@ -10,7 +10,109 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
+
+// -------------------------------------------------------
+// Public endpoint safety: rate limiting + strict payloads
+// -------------------------------------------------------
+type PublicRateEntry = { count: number; resetAt: number };
+const publicRateStore = new Map<string, PublicRateEntry>();
+
+function publicRateLimit(name: string, windowMs: number, maxRequests: number) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const now = Date.now();
+    const clientKey = `${name}:${req.ip || req.socket.remoteAddress || 'unknown'}`;
+    const current = publicRateStore.get(clientKey);
+    if (!current || current.resetAt <= now) {
+      publicRateStore.set(clientKey, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    if (current.count >= maxRequests) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
+    }
+    current.count += 1;
+    return next();
+  };
+}
+
+const publicReservationLimiter = publicRateLimit('reservation', 10 * 60 * 1000, 10);
+const publicRoomServiceLimiter = publicRateLimit('room-service', 10 * 60 * 1000, 30);
+
+function cleanText(value: unknown, field: string, maxLength: number, required = true): string {
+  if (value == null || value === '') {
+    if (required) throw new Error(`${field} é obrigatório.`);
+    return '';
+  }
+  if (typeof value !== 'string') throw new Error(`${field} inválido.`);
+  const cleaned = value.trim();
+  if (required && !cleaned) throw new Error(`${field} é obrigatório.`);
+  if (cleaned.length > maxLength) throw new Error(`${field} excede o tamanho permitido.`);
+  return cleaned;
+}
+
+function positiveInteger(value: unknown, field: string, min: number, max: number): number {
+  if (!Number.isInteger(value) || Number(value) < min || Number(value) > max) {
+    throw new Error(`${field} inválido.`);
+  }
+  return Number(value);
+}
+
+function strictDate(value: unknown, field: string): string {
+  const date = cleanText(value, field, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`${field} inválida.`);
+  const parsed = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    throw new Error(`${field} inválida.`);
+  }
+  return date;
+}
+
+function sanitizePublicReservation(body: any) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Dados da reserva inválidos.');
+  const guestName = cleanText(body.guestName, 'Nome do hóspede', 120);
+  const guestEmail = cleanText(body.guestEmail, 'E-mail', 254).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) throw new Error('E-mail inválido.');
+  const guestPhone = cleanText(body.guestPhone, 'Telefone', 40);
+  const document = cleanText(body.document, 'Documento', 80, false) || undefined;
+  const roomTypeId = cleanText(body.roomTypeId, 'Tipo de quarto', 80);
+  const checkInDate = strictDate(body.checkInDate, 'Data de check-in');
+  const checkOutDate = strictDate(body.checkOutDate, 'Data de check-out');
+  const checkIn = new Date(`${checkInDate}T12:00:00Z`);
+  const checkOut = new Date(`${checkOutDate}T12:00:00Z`);
+  const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000);
+  if (nights < 1 || nights > 60) throw new Error('O período da reserva deve ter entre 1 e 60 noites.');
+  const adults = positiveInteger(body.adults, 'Número de adultos', 1, 10);
+  const children = positiveInteger(body.children, 'Número de crianças', 0, 10);
+  const allowedPaymentMethods = ['PIX', 'Cartao_Credito', 'Cartao_Debito', 'Dinheiro'];
+  const paymentMethod = cleanText(body.paymentMethod, 'Forma de pagamento', 40);
+  if (!allowedPaymentMethods.includes(paymentMethod)) throw new Error('Forma de pagamento não permitida para reserva online.');
+  const notes = cleanText(body.notes, 'Observações', 1000, false) || undefined;
+  return { guestName, guestEmail, guestPhone, document, roomTypeId, checkInDate, checkOutDate, adults, children, paymentMethod, notes };
+}
+
+function sanitizePublicOrder(body: any) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Dados do pedido inválidos.');
+  const roomId = cleanText(body.roomId, 'Quarto', 80);
+  if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 20) {
+    throw new Error('O pedido deve conter entre 1 e 20 itens.');
+  }
+  const items = body.items.map((item: any) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Item do pedido inválido.');
+    return {
+      menuItemId: cleanText(item.menuItemId, 'Item do cardápio', 80),
+      quantity: positiveInteger(item.quantity, 'Quantidade', 1, 20),
+      notes: cleanText(item.notes, 'Observação do item', 300, false) || undefined
+    };
+  });
+  const destination = cleanText(body.destination, 'Destino', 30);
+  if (!['Quarto', 'Restaurante', 'Piscina'].includes(destination)) throw new Error('Destino inválido.');
+  const deliverySector = cleanText(body.deliverySector, 'Setor de entrega', 30);
+  if (!['Cozinha', 'Room Service'].includes(deliverySector)) throw new Error('Setor de entrega inválido.');
+  const specialInstructions = cleanText(body.specialInstructions, 'Instruções especiais', 1000, false) || undefined;
+  return { roomId, items, destination, deliverySector, specialInstructions };
+}
 
 // -------------------------------------------------------
 // Authentication middleware (Supabase Bearer token)
@@ -245,9 +347,10 @@ app.get('/api/reservations', requireSupabaseAuth, requirePermission('view_checki
   }
 });
 
-app.post('/api/reservations', (req: Request, res: Response) => {
+app.post('/api/reservations', publicReservationLimiter, (req: Request, res: Response) => {
   try {
-    const reservation = dbManager.createReservation(req.body);
+    const payload = sanitizePublicReservation(req.body);
+    const reservation = dbManager.createReservation(payload as any);
     res.status(201).json(reservation);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -371,9 +474,10 @@ app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'
   }
 });
 
-app.post('/api/kitchen/orders', (req: Request, res: Response) => {
+app.post('/api/kitchen/orders', publicRoomServiceLimiter, (req: Request, res: Response) => {
   try {
-    const order = dbManager.createOrder(req.body);
+    const payload = sanitizePublicOrder(req.body);
+    const order = dbManager.createOrder(payload as any);
     res.status(201).json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
