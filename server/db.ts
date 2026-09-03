@@ -36,6 +36,7 @@ import {
 } from './initialData.ts';
 
 const DB_FILE_PATH = path.join(process.cwd(), 'hotel_database.json');
+const ALLOW_LOCAL_JSON_FALLBACK = process.env.NODE_ENV !== 'production' && process.env.ALLOW_LOCAL_JSON_FALLBACK !== 'false';
 
 export interface HotelDatabase {
   settings: HotelSettings;
@@ -65,6 +66,15 @@ class DatabaseManager {
   }
 
   private loadDatabase(): HotelDatabase {
+    if (!ALLOW_LOCAL_JSON_FALLBACK) {
+      // Production must never bootstrap operational data from JSON/demo seeds.
+      return {
+        settings: defaultSettings,
+        guests: [], rooms: [], reservations: [], minibarItems: [], consumptions: [],
+        menuItems: [], orders: [], tasks: [], transactions: [], inventoryItems: [],
+        stockMovements: [], users: [], lastUpdated: new Date().toISOString()
+      };
+    }
     try {
       if (fs.existsSync(DB_FILE_PATH)) {
         const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
@@ -112,6 +122,7 @@ class DatabaseManager {
   }
 
   private persistToFile(dataToSave: HotelDatabase) {
+    if (!ALLOW_LOCAL_JSON_FALLBACK) return;
     try {
       fs.writeFileSync(DB_FILE_PATH, JSON.stringify(dataToSave, null, 2), 'utf-8');
     } catch (err) {
@@ -389,8 +400,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   // --- Settings ---
-  // Transitional repository: Supabase is preferred when the server has credentials;
-  // the local JSON object remains a temporary cache/fallback until Phase 2.7.
+  // Production source of truth: Supabase. JSON fallback is restricted to local development only.
   private mapSettingsFromSupabase(row: any): HotelSettings {
     return {
       id: row.id,
@@ -441,7 +451,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async getSettingsPersistent(): Promise<HotelSettings> {
-    if (!this.supabase) return this.getSettings();
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.getSettings(); }
     try {
       const { data, error } = await this.supabase
         .from('hotel_settings')
@@ -455,7 +465,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return settings;
     } catch (err) {
-      console.warn('[Supabase] Falha ao ler hotel_settings; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao ler hotel_settings; usando fallback JSON apenas em desenvolvimento:', err);
       return this.getSettings();
     }
   }
@@ -468,7 +479,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
 
   public async updateSettingsPersistent(updates: Partial<HotelSettings>): Promise<HotelSettings> {
     const merged = { ...this.data.settings, ...updates } as HotelSettings;
-    if (!this.supabase) return this.updateSettings(updates);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.updateSettings(updates); }
     try {
       const { data, error } = await this.supabase
         .from('hotel_settings')
@@ -481,7 +492,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return settings;
     } catch (err) {
-      console.warn('[Supabase] Falha ao gravar hotel_settings; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao gravar hotel_settings; usando fallback JSON apenas em desenvolvimento:', err);
       return this.updateSettings(updates);
     }
   }
@@ -536,7 +548,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async getGuestsPersistent(): Promise<Guest[]> {
-    if (!this.supabase) return this.getGuests();
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.getGuests(); }
     try {
       const { data, error } = await this.supabase.from('guests').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -545,7 +557,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return guests;
     } catch (err) {
-      console.warn('[Supabase] Falha ao ler guests; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao ler guests; usando fallback JSON apenas em desenvolvimento:', err);
       return this.getGuests();
     }
   }
@@ -589,7 +602,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async createGuestPersistent(guestData: Omit<Guest, 'id' | 'createdAt' | 'updatedAt' | 'totalStays' | 'totalSpent'>): Promise<Guest> {
-    if (!this.supabase) return this.createGuest(guestData);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.createGuest(guestData); }
     const now = new Date().toISOString();
     const guest: Guest = { ...guestData, id: `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`, totalStays: 0, totalSpent: 0, createdAt: now, updatedAt: now };
     try {
@@ -600,13 +613,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return saved;
     } catch (err) {
-      console.warn('[Supabase] Falha ao criar guest; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao criar guest; usando fallback JSON apenas em desenvolvimento:', err);
       return this.createGuest(guestData);
     }
   }
 
   public async updateGuestPersistent(id: string, updates: Partial<Guest>): Promise<Guest | null> {
-    if (!this.supabase) return this.updateGuest(id, updates);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.updateGuest(id, updates); }
     try {
       const { data: currentRow, error: readError } = await this.supabase.from('guests').select('*').eq('id', id).maybeSingle();
       if (readError) throw readError;
@@ -620,13 +634,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return saved;
     } catch (err) {
-      console.warn('[Supabase] Falha ao atualizar guest; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao atualizar guest; usando fallback JSON apenas em desenvolvimento:', err);
       return this.updateGuest(id, updates);
     }
   }
 
   public async deleteGuestPersistent(id: string): Promise<boolean> {
-    if (!this.supabase) return this.deleteGuest(id);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.deleteGuest(id); }
     try {
       const { error } = await this.supabase.from('guests').delete().eq('id', id);
       if (error) throw error;
@@ -634,7 +649,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return true;
     } catch (err) {
-      console.warn('[Supabase] Falha ao excluir guest; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao excluir guest; usando fallback JSON apenas em desenvolvimento:', err);
       return this.deleteGuest(id);
     }
   }
@@ -664,7 +680,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async getRoomsPersistent(): Promise<Room[]> {
-    if (!this.supabase) return this.getRooms();
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.getRooms(); }
     try {
       const { data, error } = await this.supabase.from('rooms').select('*').order('number', { ascending: true });
       if (error) throw error;
@@ -673,7 +689,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return rooms;
     } catch (err) {
-      console.warn('[Supabase] Falha ao ler rooms; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao ler rooms; usando fallback JSON apenas em desenvolvimento:', err);
       return this.getRooms();
     }
   }
@@ -785,7 +802,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async createRoomPersistent(roomData: Omit<Room, 'id'>): Promise<Room> {
-    if (!this.supabase) return this.createRoom(roomData);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.createRoom(roomData); }
     try {
       const { data: existing, error: checkError } = await this.supabase.from('rooms').select('id').eq('number', roomData.number.trim()).maybeSingle();
       if (checkError) throw checkError;
@@ -799,13 +816,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       return saved;
     } catch (err: any) {
       if (String(err?.message || '').includes('Já existe um quarto')) throw err;
-      console.warn('[Supabase] Falha ao criar room; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao criar room; usando fallback JSON apenas em desenvolvimento:', err);
       return this.createRoom(roomData);
     }
   }
 
   public async updateRoomPersistent(id: string, updates: Partial<Room>): Promise<Room | null> {
-    if (!this.supabase) return this.updateRoom(id, updates);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.updateRoom(id, updates); }
     try {
       const { data: currentRow, error: readError } = await this.supabase.from('rooms').select('*').eq('id', id).maybeSingle();
       if (readError) throw readError;
@@ -820,13 +838,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return saved;
     } catch (err) {
-      console.warn('[Supabase] Falha ao atualizar room; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao atualizar room; usando fallback JSON apenas em desenvolvimento:', err);
       return this.updateRoom(id, updates);
     }
   }
 
   public async updateRoomStatusPersistent(id: string, status: Room['status'], notes?: string): Promise<Room | null> {
-    if (!this.supabase) return this.updateRoomStatus(id, status, notes);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.updateRoomStatus(id, status, notes); }
     try {
       await this.getRoomsPersistent();
       const updated = this.updateRoomStatus(id, status, notes);
@@ -839,13 +858,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return saved;
     } catch (err) {
-      console.warn('[Supabase] Falha ao atualizar status do room; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao atualizar status do room; usando fallback JSON apenas em desenvolvimento:', err);
       return this.updateRoomStatus(id, status, notes);
     }
   }
 
   public async deleteRoomPersistent(id: string): Promise<boolean> {
-    if (!this.supabase) return this.deleteRoom(id);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.deleteRoom(id); }
     try {
       const { data: currentRow, error: readError } = await this.supabase.from('rooms').select('*').eq('id', id).maybeSingle();
       if (readError) throw readError;
@@ -859,7 +879,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       return true;
     } catch (err: any) {
       if (String(err?.message || '').includes('Não é possível excluir')) throw err;
-      console.warn('[Supabase] Falha ao excluir room; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao excluir room; usando fallback JSON apenas em desenvolvimento:', err);
       return this.deleteRoom(id);
     }
   }
@@ -897,7 +918,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async getReservationsPersistent(): Promise<Reservation[]> {
-    if (!this.supabase) return this.getReservations();
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.getReservations(); }
     try {
       const { data, error } = await this.supabase.from('reservations').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -906,7 +927,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return reservations;
     } catch (err) {
-      console.warn('[Supabase] Falha ao ler reservations; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao ler reservations; usando fallback JSON apenas em desenvolvimento:', err);
       return this.getReservations();
     }
   }
@@ -1048,7 +1070,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   public async createReservationPersistent(data: { guestName: string; guestEmail: string; guestPhone: string; document?: string; roomTypeId: string; checkInDate: string; checkOutDate: string; adults: number; children: number; paymentMethod: Reservation['paymentMethod']; notes?: string; }): Promise<Reservation> {
-    if (!this.supabase) return this.createReservation(data);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.createReservation(data); }
     try {
       await Promise.all([this.getSettingsPersistent(), this.getRoomsPersistent(), this.getGuestsPersistent(), this.getReservationsPersistent()]);
       const reservation = this.createReservation(data);
@@ -1065,13 +1087,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       return saved;
     } catch (err: any) {
       if (String(err?.message || '').includes('Não há quarto disponível')) throw err;
-      console.warn('[Supabase] Falha ao criar reservation; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao criar reservation; usando fallback JSON apenas em desenvolvimento:', err);
       return this.createReservation(data);
     }
   }
 
   public async updateReservationPersistent(id: string, updates: Partial<Reservation>): Promise<Reservation | null> {
-    if (!this.supabase) return this.updateReservation(id, updates);
+    if (!this.supabase) { if (!ALLOW_LOCAL_JSON_FALLBACK) throw new Error('Supabase é obrigatório em produção.'); return this.updateReservation(id, updates); }
     try {
       const { data: currentRow, error: readError } = await this.supabase.from('reservations').select('*').eq('id', id).maybeSingle();
       if (readError) throw readError;
@@ -1085,7 +1108,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
       this.persist();
       return saved;
     } catch (err) {
-      console.warn('[Supabase] Falha ao atualizar reservation; usando fallback JSON temporário:', err);
+      if (!ALLOW_LOCAL_JSON_FALLBACK) throw err;
+      console.warn('[Supabase] Falha ao atualizar reservation; usando fallback JSON apenas em desenvolvimento:', err);
       return this.updateReservation(id, updates);
     }
   }

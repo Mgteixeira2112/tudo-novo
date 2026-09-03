@@ -206,6 +206,20 @@ function requirePermission(permission: string) {
 // API Endpoints
 // -------------------------------------------------------------
 
+// Phase 2.7: endpoints below this list still use the legacy in-memory/JSON DB on the Express server.
+// They are intentionally blocked in production so JSON can never become a second source of truth.
+// GitHub Pages uses authenticated direct Supabase repositories for these modules.
+function blockLegacyJsonPersistenceInProduction(req: Request, res: Response, next: NextFunction) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      error: 'Endpoint legado desabilitado em produção. Use a camada Supabase.'
+    });
+  }
+  return next();
+}
+
+app.use(['/api/minibar', '/api/financial', '/api/inventory'], blockLegacyJsonPersistenceInProduction);
+
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
