@@ -539,12 +539,23 @@ app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'
   }
 });
 
-app.post('/api/kitchen/orders', publicRoomServiceLimiter, async (req: Request, res: Response) => {
+app.post('/api/kitchen/orders', publicRoomServiceLimiter, requireSupabaseAuth, requirePermission('manage_fnb'), async (req: Request, res: Response) => {
   try {
     const payload = sanitizePublicOrder(req.body);
-    const order = dbManager.createOrder(payload as any);
-    await upsertOrderCloud(order).catch(err => console.warn('[Supabase] Falha ao persistir kitchen_order:', err));
-    await syncTasksCloud(dbManager.getTasks()).catch(err => console.warn('[Supabase] Falha ao sincronizar tarefas geradas:', err));
+    const authorization = req.header('authorization') || '';
+    const token = authorization.split(' ')[1];
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY;
+    if (!url || !key || !token) return res.status(503).json({ error: 'Supabase autenticado indisponível.' });
+    const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+    const { data: order, error } = await client.rpc('create_kitchen_order_atomic', {
+      p_room_id: payload.roomId,
+      p_items: payload.items,
+      p_destination: payload.destination,
+      p_delivery_sector: payload.deliverySector,
+      p_special_instructions: payload.specialInstructions || null
+    });
+    if (error) return res.status(400).json({ error: error.message });
     res.status(201).json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
