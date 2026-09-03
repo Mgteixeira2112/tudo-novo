@@ -1,0 +1,27 @@
+name: Apply Phase 3.2 CheckInOut
+on:
+  push:
+    branches: [phase3/checkinout-atomic]
+    paths:
+      - 'scripts/apply_phase32_checkinout.py'
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply patch
+        run: python scripts/apply_phase32_checkinout.py
+      - name: Install and build
+        run: npm install && npm run build
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/api.ts src/components/CheckInCheckOutModal.tsx server.ts
+          git commit -m "feat: tornar check-in e checkout transacionais" || exit 0
+          git push
