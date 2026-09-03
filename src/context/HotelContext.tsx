@@ -13,6 +13,7 @@ import {
   PermissionKey
 } from '../types.ts';
 import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';
+import { loadRoomsFromSupabase } from '../services/pagesData.ts';
 import {
   hasPermission as checkHasPermission,
   canAccessTab as checkCanAccessTab,
@@ -113,6 +114,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setSettings(fetchedSettings); setRooms(fetchedRooms); setGuests(fetchedGuests); setReservations(fetchedReservations); setTasks(fetchedTasks); setTransactions(fetchedTransactions); setStats(fetchedStats); setSupabaseStatus(fetchedSupabase); setAllUsers(fetchedUsers); setError(null);
     } catch (err: any) {
       console.error('Error fetching hotel data:', err);
+      const directRooms = await loadRoomsFromSupabase().catch(() => []);
+      setRooms(directRooms);
       setError(err.message || 'Erro ao carregar dados do servidor.');
     } finally { setLoading(false); }
   }, [clearPrivateData]);
