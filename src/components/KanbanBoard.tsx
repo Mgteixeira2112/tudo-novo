@@ -9,6 +9,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Trash2,
+  Pencil,
   UserCheck,
   DoorOpen,
   Filter,
@@ -32,6 +33,7 @@ export const KanbanBoard: React.FC = () => {
 
   const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>('Todos');
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   // New task form state
   const [taskTitle, setTaskTitle] = useState('');
@@ -41,6 +43,32 @@ export const KanbanBoard: React.FC = () => {
   const [taskRoomNumber, setTaskRoomNumber] = useState('');
   const [taskAssignedTo, setTaskAssignedTo] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const resetTaskForm = () => {
+    setTaskTitle('');
+    setTaskDescription('');
+    setTaskSector('Governanca');
+    setTaskPriority('Media');
+    setTaskRoomNumber('');
+    setTaskAssignedTo('');
+    setEditingTaskId(null);
+  };
+
+  const handleOpenNewTask = () => {
+    resetTaskForm();
+    setShowNewTaskModal(true);
+  };
+
+  const handleOpenEditTask = (task: KanbanTask) => {
+    setEditingTaskId(task.id);
+    setTaskTitle(task.title || '');
+    setTaskDescription(task.description || '');
+    setTaskSector(task.sector);
+    setTaskPriority(task.priority);
+    setTaskRoomNumber(task.roomNumber || '');
+    setTaskAssignedTo(task.assignedTo || '');
+    setShowNewTaskModal(true);
+  };
 
   // Filter tasks
   const filteredTasks = selectedSector === 'Todos'
@@ -77,24 +105,26 @@ export const KanbanBoard: React.FC = () => {
 
     try {
       setSubmitting(true);
-      await api.createTask({
-        title: taskTitle,
+      const payload = {
+        title: taskTitle.trim(),
         description: taskDescription,
         sector: taskSector,
-        status: 'A_Fazer',
         priority: taskPriority,
         roomNumber: taskRoomNumber || undefined,
         assignedTo: taskAssignedTo || undefined
-      });
+      };
 
-      setTaskTitle('');
-      setTaskDescription('');
-      setTaskRoomNumber('');
-      setTaskAssignedTo('');
+      if (editingTaskId) {
+        await api.updateTask(editingTaskId, payload);
+      } else {
+        await api.createTask({ ...payload, status: 'A_Fazer' });
+      }
+
+      resetTaskForm();
       setShowNewTaskModal(false);
       await refreshData();
     } catch (err) {
-      console.error('Error creating task:', err);
+      console.error(editingTaskId ? 'Error editing task:' : 'Error creating task:', err);
     } finally {
       setSubmitting(false);
     }
@@ -172,13 +202,24 @@ export const KanbanBoard: React.FC = () => {
           </h4>
         </div>
 
-        <button
-          onClick={() => handleDeleteTask(task.id)}
-          className="text-[#8E9280] hover:text-rose-700 transition p-1 opacity-0 group-hover:opacity-100"
-          title="Excluir tarefa"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
+          <button
+            onClick={() => handleOpenEditTask(task)}
+            className="text-[#8E9280] hover:text-[#2C3327] transition p-1"
+            title="Editar tarefa"
+            aria-label="Editar tarefa"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => handleDeleteTask(task.id)}
+            className="text-[#8E9280] hover:text-rose-700 transition p-1"
+            title="Excluir tarefa"
+            aria-label="Excluir tarefa"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {task.description && (
@@ -254,7 +295,7 @@ export const KanbanBoard: React.FC = () => {
 
         <button
           id="btn-new-kanban-task"
-          onClick={() => setShowNewTaskModal(true)}
+          onClick={handleOpenNewTask}
           className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition shrink-0"
         >
           <Plus className="w-4 h-4" />
