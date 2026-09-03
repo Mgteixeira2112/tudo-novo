@@ -119,7 +119,6 @@ new_tot="""  const nightsTotal = activeReservation ? activeReservation.totalNigh
 """
 if old_tot not in s: raise SystemExit('checkout total block not found')
 s=s.replace(old_tot,new_tot,1)
-# add prior payment row before discount section
 needle="""                  {/* Desconto */}
                   <div className=\"flex items-center justify-between p-2\">
 """
@@ -137,7 +136,7 @@ if needle not in s: raise SystemExit('discount block not found')
 s=s.replace(needle,insert,1)
 p.write_text(s)
 
-# server.ts: migrate protected endpoints from local dbManager to user-scoped Supabase RPC
+# server.ts
 p=Path('server.ts')
 s=p.read_text()
 old_checkin="""app.post('/api/checkin', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
@@ -207,3 +206,5 @@ app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkin
 if old_checkin not in s: raise SystemExit('server checkin/out block not found')
 s=s.replace(old_checkin,new_checkin,1)
 p.write_text(s)
+
+# trigger
