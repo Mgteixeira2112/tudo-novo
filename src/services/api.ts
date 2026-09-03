@@ -17,7 +17,7 @@ import {
   StockMovementType,
   StaffUser
 } from '../types.ts';
-import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
+import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, loadPublicSettingsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
 import { createInventoryItemCloud, createMinibarItemCloud, createTransactionCloud, deleteInventoryItemCloud, deleteMinibarItemCloud, loadConsumptionsCloud, loadFinancialStatsCloud, loadInventoryItemCloud, loadInventoryItemsCloud, loadInventoryStatsCloud, loadMinibarItemsCloud, loadStockMovementsCloud, loadTransactionsCloud, registerConsumptionCloud, registerStockMovementCloud, restockMinibarItemCloud, updateInventoryItemCloud, updateMinibarItemCloud } from './financeInventoryPages.ts';
 
 const BASE_URL = '/api';
@@ -59,7 +59,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 export const api = {
   // Settings
-  getPublicSettings: () => fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),
+  getPublicSettings: () => isGitHubPagesRuntime() ? loadPublicSettingsFromSupabase() : fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),
   getSettings: () => fetch(`${BASE_URL}/settings`, { headers: protectedHeaders() }).then(r => handleResponse<HotelSettings>(r)),
   updateSettings: (settings: Partial<HotelSettings>) =>
     fetch(`${BASE_URL}/settings`, {
