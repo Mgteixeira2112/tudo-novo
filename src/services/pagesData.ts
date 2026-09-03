@@ -66,6 +66,71 @@ export async function loadReservationsFromSupabase(): Promise<Reservation[]> {
   })) as Reservation[];
 }
 
+export async function createReservationAtomicInSupabase(data: {
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  document?: string;
+  roomTypeId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  paymentMethod: Reservation['paymentMethod'];
+  notes?: string;
+}): Promise<Reservation> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data: row, error } = await supabase.rpc('create_reservation_atomic', {
+    p_guest_name: data.guestName,
+    p_guest_email: data.guestEmail,
+    p_guest_phone: data.guestPhone,
+    p_room_type_id: data.roomTypeId,
+    p_check_in_date: data.checkInDate,
+    p_check_out_date: data.checkOutDate,
+    p_adults: data.adults,
+    p_children: data.children,
+    p_payment_method: data.paymentMethod,
+    p_notes: data.notes || null
+  });
+
+  if (error) {
+    const message = String(error.message || 'Erro ao criar reserva.');
+    if (message.includes('Não há quarto disponível')) {
+      throw new Error('Não há quarto disponível para este tipo e período.');
+    }
+    throw error;
+  }
+
+  const r: any = row;
+  return {
+    id: r.id,
+    code: r.code,
+    guestId: r.guest_id || '',
+    guestName: r.guest_name,
+    guestEmail: r.guest_email,
+    guestPhone: r.guest_phone || '',
+    roomId: r.room_id || '',
+    roomNumber: r.room_number || '',
+    roomTypeName: r.room_type_name,
+    checkInDate: r.check_in_date,
+    checkOutDate: r.check_out_date,
+    nights: Number(r.nights || 0),
+    adults: Number(r.adults || 0),
+    children: Number(r.children || 0),
+    pricePerNight: Number(r.price_per_night || 0),
+    totalNightsAmount: Number(r.total_nights_amount || 0),
+    status: r.status,
+    paymentStatus: r.payment_status,
+    paymentMethod: r.payment_method,
+    notes: r.notes || undefined,
+    createdAt: r.created_at,
+    checkedInAt: r.checked_in_at || undefined,
+    checkedOutAt: r.checked_out_at || undefined
+  } as Reservation;
+}
+
 export async function loadMenuItemsFromSupabase(): Promise<MenuItem[]> {
   const supabase = getSupabaseClient(); if (!supabase) return [];
   const { data, error } = await supabase.from('menu_items').select('*').eq('available', true).order('category').order('name');
