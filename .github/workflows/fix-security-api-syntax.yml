@@ -1,0 +1,38 @@
+name: Fix API security syntax
+
+on:
+  push:
+    branches:
+      - refactor/fase-01-seguranca-api
+    paths:
+      - '.github/workflows/fix-security-api-syntax.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/fase-01-seguranca-api
+
+      - name: Fix syntax
+        shell: bash
+        run: |
+          python3 -c "from pathlib import Path; p=Path('server.ts'); t=p.read_text(encoding='utf-8'); t=t.replace(\"} })).authUser = {\", \"} }).authUser = {\"); p.write_text(t, encoding='utf-8')"
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No syntax change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.ts
+          git commit -m "fix: correct auth middleware request cast syntax"
+          git push origin HEAD:refactor/fase-01-seguranca-api
