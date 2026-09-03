@@ -18,6 +18,7 @@ import {
   StaffUser
 } from '../types.ts';
 import { createKanbanTaskInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase } from './pagesData.ts';
+import { createInventoryItemCloud, createMinibarItemCloud, createTransactionCloud, deleteInventoryItemCloud, deleteMinibarItemCloud, loadConsumptionsCloud, loadFinancialStatsCloud, loadInventoryItemCloud, loadInventoryItemsCloud, loadInventoryStatsCloud, loadMinibarItemsCloud, loadStockMovementsCloud, loadTransactionsCloud, registerConsumptionCloud, registerStockMovementCloud, restockMinibarItemCloud, updateInventoryItemCloud, updateMinibarItemCloud } from './financeInventoryPages.ts';
 
 const BASE_URL = '/api';
 
@@ -180,30 +181,30 @@ export const api = {
     ),
 
   // Minibar
-  getMinibarItems: () => fetch(`${BASE_URL}/minibar/items`, { headers: protectedHeaders() }).then(r => handleResponse<MinibarItem[]>(r)),
+  getMinibarItems: () => fetch(`${BASE_URL}/minibar/items`, { headers: protectedHeaders() }).then(r => handleResponse<MinibarItem[]>(r)).catch(() => loadMinibarItemsCloud()),
   createMinibarItem: (item: Omit<MinibarItem, 'id'>) =>
     fetch(`${BASE_URL}/minibar/items`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(item),
-    }).then(r => handleResponse<MinibarItem>(r)),
+    }).then(r => handleResponse<MinibarItem>(r)).catch(() => createMinibarItemCloud(item)),
   updateMinibarItem: (id: string, updates: Partial<MinibarItem>) =>
     fetch(`${BASE_URL}/minibar/items/${id}`, {
       method: 'PUT',
       headers: protectedHeaders(),
       body: JSON.stringify(updates),
-    }).then(r => handleResponse<MinibarItem>(r)),
+    }).then(r => handleResponse<MinibarItem>(r)).catch(() => updateMinibarItemCloud(id, updates)),
   restockMinibarItem: (id: string, quantityToAdd: number) =>
     fetch(`${BASE_URL}/minibar/items/${id}/restock`, {
       method: 'PATCH',
       headers: protectedHeaders(),
       body: JSON.stringify({ quantityToAdd }),
-    }).then(r => handleResponse<MinibarItem>(r)),
+    }).then(r => handleResponse<MinibarItem>(r)).catch(() => restockMinibarItemCloud(id, quantityToAdd)),
   deleteMinibarItem: (id: string) =>
-    fetch(`${BASE_URL}/minibar/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/minibar/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)).catch(() => deleteMinibarItemCloud(id)),
   getRoomConsumptions: (roomId?: string) => {
     const url = roomId ? `${BASE_URL}/minibar/consumptions?roomId=${roomId}` : `${BASE_URL}/minibar/consumptions`;
-    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<RoomMinibarConsumption[]>(r));
+    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<RoomMinibarConsumption[]>(r)).catch(() => loadConsumptionsCloud(roomId));
   },
   registerMinibarConsumption: (data: {
     roomId: string;
@@ -215,7 +216,7 @@ export const api = {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(data),
-    }).then(r => handleResponse<RoomMinibarConsumption>(r)),
+    }).then(r => handleResponse<RoomMinibarConsumption>(r)).catch(() => registerConsumptionCloud(data)),
 
   // Kitchen & Room Service
   getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)).catch(() => loadMenuItemsFromSupabase()),
@@ -271,14 +272,14 @@ export const api = {
     fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)).catch(() => deleteKanbanTaskInSupabase(id)),
 
   // Financial Control
-  getTransactions: () => fetch(`${BASE_URL}/financial/transactions`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialTransaction[]>(r)),
+  getTransactions: () => fetch(`${BASE_URL}/financial/transactions`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialTransaction[]>(r)).catch(() => loadTransactionsCloud()),
   createTransaction: (tx: Omit<FinancialTransaction, 'id' | 'createdAt'>) =>
     fetch(`${BASE_URL}/financial/transactions`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(tx),
-    }).then(r => handleResponse<FinancialTransaction>(r)),
-  getFinancialStats: () => fetch(`${BASE_URL}/financial/stats`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialStats>(r)),
+    }).then(r => handleResponse<FinancialTransaction>(r)).catch(() => createTransactionCloud(tx)),
+  getFinancialStats: () => fetch(`${BASE_URL}/financial/stats`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialStats>(r)).catch(() => loadFinancialStatsCloud()),
 
   // Integrated Real-Time Inventory & Kardex
   getInventoryItems: (sector?: string, lowStock?: boolean) => {
@@ -286,23 +287,23 @@ export const api = {
     if (sector && sector !== 'ALL') params.append('sector', sector);
     if (lowStock) params.append('lowStock', 'true');
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetch(`${BASE_URL}/inventory/items${query}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem[]>(r));
+    return fetch(`${BASE_URL}/inventory/items${query}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem[]>(r)).catch(() => loadInventoryItemsCloud(sector, lowStock));
   },
-  getInventoryItem: (id: string) => fetch(`${BASE_URL}/inventory/items/${id}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem>(r)),
+  getInventoryItem: (id: string) => fetch(`${BASE_URL}/inventory/items/${id}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem>(r)).catch(() => loadInventoryItemCloud(id)),
   createInventoryItem: (item: Omit<InventoryItem, 'id' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/inventory/items`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(item),
-    }).then(r => handleResponse<InventoryItem>(r)),
+    }).then(r => handleResponse<InventoryItem>(r)).catch(() => createInventoryItemCloud(item)),
   updateInventoryItem: (id: string, updates: Partial<InventoryItem>) =>
     fetch(`${BASE_URL}/inventory/items/${id}`, {
       method: 'PUT',
       headers: protectedHeaders(),
       body: JSON.stringify(updates),
-    }).then(r => handleResponse<InventoryItem>(r)),
+    }).then(r => handleResponse<InventoryItem>(r)).catch(() => updateInventoryItemCloud(id, updates)),
   deleteInventoryItem: (id: string) =>
-    fetch(`${BASE_URL}/inventory/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/inventory/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)).catch(() => deleteInventoryItemCloud(id)),
   registerStockMovement: (data: {
     itemId: string;
     type: StockMovementType;
@@ -320,7 +321,7 @@ export const api = {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(data),
-    }).then(r => handleResponse<{ item: InventoryItem; movement: StockMovement }>(r)),
+    }).then(r => handleResponse<{ item: InventoryItem; movement: StockMovement }>(r)).catch(() => registerStockMovementCloud(data)),
   getStockMovements: (filters?: { itemId?: string; sector?: string; type?: string; limit?: number }) => {
     const params = new URLSearchParams();
     if (filters?.itemId) params.append('itemId', filters.itemId);
@@ -328,9 +329,9 @@ export const api = {
     if (filters?.type && filters.type !== 'ALL') params.append('type', filters.type);
     if (filters?.limit) params.append('limit', String(filters.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetch(`${BASE_URL}/inventory/movements${query}`, { headers: protectedHeaders() }).then(r => handleResponse<StockMovement[]>(r));
+    return fetch(`${BASE_URL}/inventory/movements${query}`, { headers: protectedHeaders() }).then(r => handleResponse<StockMovement[]>(r)).catch(() => loadStockMovementsCloud(filters));
   },
-  getInventoryStats: () => fetch(`${BASE_URL}/inventory/stats`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryStats>(r)),
+  getInventoryStats: () => fetch(`${BASE_URL}/inventory/stats`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryStats>(r)).catch(() => loadInventoryStatsCloud()),
   triggerReplenishmentOrder: (itemIds?: string[]) =>
     fetch(`${BASE_URL}/inventory/replenish-order`, {
       method: 'POST',
