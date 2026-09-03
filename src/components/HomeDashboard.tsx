@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BedDouble,
   CalendarDays,
@@ -58,6 +58,33 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
+
+  // While the home is visible, the global admin navigation must leave the home
+  // before rendering the selected module. This keeps the existing Navbar contract
+  // intact while preventing the home state from swallowing menu clicks.
+  useEffect(() => {
+    const tabByButtonId: Record<string, AdminTab> = {
+      'subnav-overview': 'overview',
+      'subnav-rooms-inventory': 'rooms_inventory',
+      'subnav-kanbans': 'kanbans',
+      'subnav-checkinout': 'checkinout',
+      'subnav-guests': 'guests',
+      'subnav-fnb': 'fnb',
+      'subnav-users': 'users',
+      'subnav-settings': 'settings'
+    };
+
+    const handleGlobalAdminNavigation = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const button = target?.closest('button[id^="subnav-"]') as HTMLButtonElement | null;
+      if (!button) return;
+      const tab = tabByButtonId[button.id];
+      if (tab) onNavigate(tab);
+    };
+
+    document.addEventListener('click', handleGlobalAdminNavigation, true);
+    return () => document.removeEventListener('click', handleGlobalAdminNavigation, true);
+  }, [onNavigate]);
 
   const today = toDateKey(new Date());
   const activeReservations = useMemo(
