@@ -23,7 +23,9 @@ import {
   supabaseSignUp,
   supabaseSignOut,
   getSupabaseAuthSession,
-  subscribeToStaffUsersRealtime
+  subscribeToStaffUsersRealtime,
+  getSupabaseStaffProfile,
+  bootstrapFirstAdmin
 } from '../services/supabase.ts';
 
 interface HotelContextType {
@@ -49,6 +51,7 @@ interface HotelContextType {
   allUsers: StaffUser[];
   isImpersonating: boolean;
   login: (email: string, password?: string) => Promise<StaffUser>;
+  bootstrapAdmin: (email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean; user: any; profile: StaffUser | null }>;
   registerStaff: (data: {
     email: string;
     password?: string;
@@ -129,41 +132,53 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // -------------------------------------------------------------
   const login = async (email: string, password?: string): Promise<StaffUser> => {
     try {
-      // 1. Try Supabase Auth first if configured
-      let supabaseAuthId: string | undefined = undefined;
-      if (supabaseStatus?.connected) {
-        try {
-          const { data, error: supaErr } = await supabaseSignIn(email, password, {
-            url: supabaseStatus.supabaseUrl,
-            anonKey: supabaseStatus.supabaseAnonKey
-          });
-          if (data?.user) {
-            supabaseAuthId = data.user.id;
-          }
-        } catch (e) {
-          console.warn('[Supabase Auth] Fallback para login de perfil local:', e);
-        }
+      const { data, error: supaErr } = await supabaseSignIn(email, password, {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      });
+      if (supaErr || !data?.session || !data.user) {
+        throw supaErr || new Error('Credenciais inválidas.');
       }
 
-      // 2. Validate/update session in backend
-      const result = await api.login({ email, password, supabaseAuthId });
-      setApiAccessToken(result.token);
-      setCurrentUser(result.user);
+      setApiAccessToken(data.session.access_token);
+      let staff: StaffUser | null = null;
+      try {
+        const result = await api.login({ email, password, supabaseAuthId: data.user.id });
+        staff = result.user;
+      } catch {
+        staff = await getSupabaseStaffProfile(data.user.id);
+      }
+      if (!staff || !staff.active) {
+        throw new Error('Usuário autenticado, mas sem perfil de colaborador ativo.');
+      }
+      setCurrentUser(staff);
       setIsImpersonating(false);
       setOriginalAdminUser(null);
       try {
-        localStorage.setItem('hotel_auth_user_id', result.user.id);
+        localStorage.setItem('hotel_auth_user_id', staff.id);
       } catch {}
 
       // Switch to the user's primary default tab
-      const defaultTab = getDefaultTabForUser(result.user);
+      const defaultTab = getDefaultTabForUser(staff);
       setActiveAdminTab(defaultTab);
       await refreshData();
-      return result.user;
+      return staff;
     } catch (err: any) {
       console.error('Login failed:', err);
       throw err;
     }
+  };
+
+  const bootstrapAdmin = async (email: string, password: string) => {
+    const result = await bootstrapFirstAdmin(email, password);
+    if (result.profile) {
+      const session = await getSupabaseAuthSession();
+      if (session?.access_token) setApiAccessToken(session.access_token);
+      setCurrentUser(result.profile);
+      setActiveAdminTab('overview');
+      setMode('admin');
+    }
+    return result;
   };
 
   const registerStaff = async (data: {
@@ -199,7 +214,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       setAllUsers(prev => [...prev, result.user]);
-      return result.user;
+      return staff;
     } catch (err: any) {
       console.error('Registration failed:', err);
       throw err;
@@ -303,8 +318,13 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!session?.access_token || cancelled) return;
 
         setApiAccessToken(session.access_token);
-        const staff = await api.me();
-        if (cancelled) return;
+        let staff: StaffUser | null = null;
+        try {
+          staff = await api.me();
+        } catch {
+          staff = await getSupabaseStaffProfile(session.user.id);
+        }
+        if (!staff || cancelled) return;
 
         setCurrentUser(staff);
         setIsImpersonating(false);
@@ -388,6 +408,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         allUsers,
         isImpersonating,
         login,
+        bootstrapAdmin,
         registerStaff,
         logout,
         switchUser,

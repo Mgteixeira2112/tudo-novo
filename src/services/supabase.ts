@@ -1,6 +1,9 @@
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { KitchenOrder, StaffUser } from '../types.ts';
 
+const DEFAULT_SUPABASE_URL = 'https://izuymcuzbggrdkezwxyu.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';
+
 let clientInstance: SupabaseClient | null = null;
 let currentUrl: string | null = null;
 let currentKey: string | null = null;
@@ -9,8 +12,8 @@ let currentKey: string | null = null;
  * Initializes or returns the singleton Supabase client
  */
 export function getSupabaseClient(url?: string, anonKey?: string): SupabaseClient | null {
-  const targetUrl = url || (import.meta as any).env?.VITE_SUPABASE_URL;
-  const targetKey = anonKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+  const targetUrl = url || (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const targetKey = anonKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
   if (!targetUrl || !targetKey || !targetUrl.startsWith('http')) {
     return null;
@@ -114,6 +117,49 @@ export async function getSupabaseAuthSession(config?: { url?: string; anonKey?: 
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   return data.session || null;
+}
+
+export async function getSupabaseStaffProfile(userId?: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const uid = userId || (await supabase.auth.getUser()).data.user?.id;
+  if (!uid) return null;
+  const { data, error } = await supabase.from('staff_users').select('*').eq('id', uid).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email,
+    fullName: data.full_name,
+    role: data.role,
+    sector: data.sector,
+    permissions: data.permissions || [],
+    active: data.active,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  } as StaffUser;
+}
+
+export async function bootstrapFirstAdmin(email: string, password: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  if (!data.user) throw new Error('Não foi possível criar o usuário administrador.');
+  if (!data.session) {
+    return { requiresEmailConfirmation: true, user: data.user, profile: null };
+  }
+  const { error: profileError } = await supabase.from('staff_users').insert({
+    id: data.user.id,
+    email,
+    full_name: 'Administrador NovoHotel',
+    role: 'admin',
+    sector: 'Geral',
+    active: true
+  });
+  if (profileError) throw profileError;
+  const profile = await getSupabaseStaffProfile(data.user.id);
+  return { requiresEmailConfirmation: false, user: data.user, profile };
 }
 
 /**
