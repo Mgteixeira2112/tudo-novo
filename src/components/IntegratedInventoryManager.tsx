@@ -45,7 +45,7 @@ const SECTORS: { id: InventorySector | 'ALL'; label: string; icon: any }[] = [
 ];
 
 export const IntegratedInventoryManager: React.FC = () => {
-  const { refreshData } = useHotel();
+  const { refreshData, currentUser } = useHotel();
 
   // Primary view tabs
   const [activeView, setActiveView] = useState<'items' | 'kardex' | 'replenishment'>('items');
@@ -126,20 +126,30 @@ export const IntegratedInventoryManager: React.FC = () => {
   const [kardexTypeFilter, setKardexTypeFilter] = useState<string>('ALL');
 
   useEffect(() => {
+    if (!currentUser) return;
     loadInventoryData();
-  }, [selectedSector, onlyLowStock]);
+  }, [selectedSector, onlyLowStock, currentUser?.id]);
 
   const loadInventoryData = async () => {
     try {
       setLoading(true);
-      const [fetchedItems, fetchedMovements, fetchedStats] = await Promise.all([
+      const [itemsResult, movementsResult, statsResult] = await Promise.allSettled([
         api.getInventoryItems(selectedSector, onlyLowStock),
         api.getStockMovements({ sector: selectedSector !== 'ALL' ? selectedSector : undefined }),
         api.getInventoryStats()
       ]);
-      setItems(fetchedItems);
-      setMovements(fetchedMovements);
-      setStats(fetchedStats);
+
+      let failed = 0;
+      if (itemsResult.status === 'fulfilled') setItems(itemsResult.value); else failed++;
+      if (movementsResult.status === 'fulfilled') setMovements(movementsResult.value); else failed++;
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value); else failed++;
+
+      if (itemsResult.status === 'rejected') {
+        throw itemsResult.reason;
+      }
+      if (failed > 0) {
+        showToast('Inventário carregado; alguns indicadores auxiliares serão atualizados novamente.', 'error');
+      }
     } catch (err: any) {
       console.error('Failed to load inventory data:', err);
       showToast('Erro ao carregar dados de inventário.', 'error');
