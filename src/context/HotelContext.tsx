@@ -191,30 +191,20 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     permissions?: PermissionKey[];
   }): Promise<StaffUser> => {
     try {
-      let supabaseAuthId: string | undefined = undefined;
-      if (supabaseStatus?.connected) {
-        try {
-          const { data: supaData } = await supabaseSignUp(
-            data.email,
-            data.password,
-            { full_name: data.fullName, role: data.role, sector: data.sector },
-            { url: supabaseStatus.supabaseUrl, anonKey: supabaseStatus.supabaseAnonKey }
-          );
-          if (supaData?.user) {
-            supabaseAuthId = supaData.user.id;
-          }
-        } catch (e) {
-          console.warn('[Supabase Auth SignUp] Fallback para criação local:', e);
-        }
+      // Do not create Supabase Auth users from the browser while logged in as an admin.
+      // That flow can replace the current session and leave Auth/profile records inconsistent.
+      // Staff provisioning must happen through the protected backend/service-role flow.
+      if (!hasApiAccessToken()) {
+        throw new Error('Criação de colaboradores requer uma sessão administrativa válida.');
       }
 
       const result = await api.register({
         ...data,
-        supabaseAuthId
+        supabaseAuthId: undefined
       });
 
       setAllUsers(prev => [...prev, result.user]);
-      return staff;
+      return result.user;
     } catch (err: any) {
       console.error('Registration failed:', err);
       throw err;
@@ -244,33 +234,16 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await refreshData().catch(() => {});
   };
 
-  // Impersonate / switch user to quickly test and review sectoral views
-  const switchUser = (userOrId: StaffUser | string) => {
-    if (currentUser?.role !== 'admin') return;
-    const targetUser = typeof userOrId === 'string' ? allUsers.find(u => u.id === userOrId) : userOrId;
-    if (!targetUser) return;
-
-    if (!isImpersonating && currentUser?.role === 'admin') {
-      setOriginalAdminUser(currentUser);
-    }
-
-    setCurrentUser(targetUser);
-    setIsImpersonating(true);
-
-    // If current tab is forbidden for target user, automatically switch to permitted tab
-    if (!checkCanAccessTab(targetUser, activeAdminTab)) {
-      const permittedTab = getDefaultTabForUser(targetUser);
-      setActiveAdminTab(permittedTab);
-    }
+  // Security: client-side impersonation is disabled.
+  // Changing only currentUser while keeping the administrator Bearer token would make
+  // server-side authorization continue to run with administrator privileges.
+  const switchUser = (_userOrId: StaffUser | string) => {
+    setError('Impersonação desativada por segurança. Use uma conta real do perfil para testar permissões.');
   };
 
   const revertToAdminUser = () => {
-    const adminUser = originalAdminUser || allUsers.find(u => u.role === 'admin') || allUsers[0];
-    if (adminUser) {
-      setCurrentUser(adminUser);
-      setIsImpersonating(false);
-      setOriginalAdminUser(null);
-    }
+    setIsImpersonating(false);
+    setOriginalAdminUser(null);
   };
 
   const createUser = async (userData: Omit<StaffUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<StaffUser> => {
@@ -292,8 +265,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await api.deleteUser(id);
     setAllUsers(prev => prev.filter(u => u.id !== id));
     if (currentUser?.id === id) {
-      const fallback = allUsers.find(u => u.id !== id && u.role === 'admin') || allUsers[0];
-      if (fallback) setCurrentUser(fallback);
+      await logout();
     }
   };
 

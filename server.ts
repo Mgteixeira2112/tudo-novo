@@ -696,6 +696,10 @@ app.put('/api/users/:id', requireSupabaseAuth, requirePermission('manage_users')
 
 app.delete('/api/users/:id', requireSupabaseAuth, requirePermission('manage_users'), (req: Request, res: Response) => {
   try {
+    const authUser = (req as Request & { authUser?: { staffUser?: any } }).authUser;
+    if (authUser?.staffUser?.id === req.params.id) {
+      return res.status(400).json({ error: 'Não é permitido excluir o próprio usuário autenticado.' });
+    }
     const success = dbManager.deleteUser(req.params.id);
     if (!success) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
