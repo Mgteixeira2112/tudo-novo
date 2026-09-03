@@ -131,6 +131,7 @@ const AppContent: React.FC = () => {
 
   // 1. Initial load to populate existing order IDs (so we don't alert old historical orders)
   useEffect(() => {
+    if (!currentUser) return;
     api
       .getOrders()
       .then(orders => {
@@ -140,10 +141,11 @@ const AppContent: React.FC = () => {
       .catch(() => {
         initialLoadedRef.current = true;
       });
-  }, []);
+  }, [currentUser?.id]);
 
   // 2. Supabase Realtime channel subscription for kitchen_orders
   useEffect(() => {
+    if (!currentUser) return;
     const unsubscribe = subscribeToKitchenOrdersRealtime(
       (order, source) => {
         console.log('[App] Supabase Realtime detectou novo pedido de room service:', order.orderNumber);
@@ -159,7 +161,7 @@ const AppContent: React.FC = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);
 
   // 3. Custom event listener from local UI actions
   useEffect(() => {
@@ -178,6 +180,7 @@ const AppContent: React.FC = () => {
 
   // 4. Fallback polling check every 4 seconds to sync orders across multi-device sessions
   useEffect(() => {
+    if (!currentUser) return;
     const interval = setInterval(async () => {
       if (!initialLoadedRef.current) return;
       try {
@@ -196,7 +199,7 @@ const AppContent: React.FC = () => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [triggerRoomServiceToast, supabaseStatus?.connected]);
+  }, [currentUser?.id, triggerRoomServiceToast, supabaseStatus?.connected]);
 
   // Handle dismiss single toast
   const handleDismissToast = (id: string) => {
@@ -355,8 +358,6 @@ const AppContent: React.FC = () => {
               <Database className="w-3.5 h-3.5" />
               <span>Persistência SQL Backend (Sem LocalStorage)</span>
             </span>
-            <span className="text-[#E6E3D8]">|</span>
-            <span>Wi-Fi: <strong className="text-[#3D4035]">{settings?.wifiPassword || 'Horizonte@2025'}</strong></span>
           </div>
         </div>
       </footer>

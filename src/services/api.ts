@@ -26,6 +26,10 @@ export function setApiAccessToken(token?: string | null) {
   apiAccessToken = token || null;
 }
 
+export function hasApiAccessToken() {
+  return Boolean(apiAccessToken);
+}
+
 function protectedHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -49,7 +53,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 export const api = {
   // Settings
-  getSettings: () => fetch(`${BASE_URL}/settings`).then(r => handleResponse<HotelSettings>(r)),
+  getPublicSettings: () => fetch(`${BASE_URL}/public/settings`).then(r => handleResponse<HotelSettings>(r)),
+  getSettings: () => fetch(`${BASE_URL}/settings`, { headers: protectedHeaders() }).then(r => handleResponse<HotelSettings>(r)),
   updateSettings: (settings: Partial<HotelSettings>) =>
     fetch(`${BASE_URL}/settings`, {
       method: 'PUT',
@@ -58,13 +63,13 @@ export const api = {
     }).then(r => handleResponse<HotelSettings>(r)),
 
   // Supabase Status & SQL
-  getSupabaseStatus: () => fetch(`${BASE_URL}/supabase/status`).then(r => handleResponse<SupabaseConfigStatus>(r)),
+  getSupabaseStatus: () => fetch(`${BASE_URL}/supabase/status`, { headers: protectedHeaders() }).then(r => handleResponse<SupabaseConfigStatus>(r)),
   getSupabaseSQL: () => fetch(`${BASE_URL}/supabase/schema-sql`, { headers: protectedHeaders() }).then(r => r.text()),
   reconnectSupabase: () =>
     fetch(`${BASE_URL}/supabase/reconnect`, { method: 'POST', headers: protectedHeaders() }).then(r => handleResponse<SupabaseConfigStatus>(r)),
 
   // Guests
-  getGuests: () => fetch(`${BASE_URL}/guests`).then(r => handleResponse<Guest[]>(r)),
+  getGuests: () => fetch(`${BASE_URL}/guests`, { headers: protectedHeaders() }).then(r => handleResponse<Guest[]>(r)),
   createGuest: (guest: Omit<Guest, 'id' | 'createdAt' | 'updatedAt' | 'totalStays' | 'totalSpent'>) =>
     fetch(`${BASE_URL}/guests`, {
       method: 'POST',
@@ -81,7 +86,7 @@ export const api = {
     fetch(`${BASE_URL}/guests/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Rooms
-  getRooms: () => fetch(`${BASE_URL}/rooms`).then(r => handleResponse<Room[]>(r)),
+  getRooms: () => fetch(`${BASE_URL}/rooms`, { headers: protectedHeaders() }).then(r => handleResponse<Room[]>(r)),
   createRoom: (room: Omit<Room, 'id'>) =>
     fetch(`${BASE_URL}/rooms`, {
       method: 'POST',
@@ -104,7 +109,7 @@ export const api = {
     fetch(`${BASE_URL}/rooms/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Reservations
-  getReservations: () => fetch(`${BASE_URL}/reservations`).then(r => handleResponse<Reservation[]>(r)),
+  getReservations: () => fetch(`${BASE_URL}/reservations`, { headers: protectedHeaders() }).then(r => handleResponse<Reservation[]>(r)),
   createReservation: (data: {
     guestName: string;
     guestEmail: string;
@@ -174,7 +179,7 @@ export const api = {
     ),
 
   // Minibar
-  getMinibarItems: () => fetch(`${BASE_URL}/minibar/items`).then(r => handleResponse<MinibarItem[]>(r)),
+  getMinibarItems: () => fetch(`${BASE_URL}/minibar/items`, { headers: protectedHeaders() }).then(r => handleResponse<MinibarItem[]>(r)),
   createMinibarItem: (item: Omit<MinibarItem, 'id'>) =>
     fetch(`${BASE_URL}/minibar/items`, {
       method: 'POST',
@@ -197,7 +202,7 @@ export const api = {
     fetch(`${BASE_URL}/minibar/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
   getRoomConsumptions: (roomId?: string) => {
     const url = roomId ? `${BASE_URL}/minibar/consumptions?roomId=${roomId}` : `${BASE_URL}/minibar/consumptions`;
-    return fetch(url).then(r => handleResponse<RoomMinibarConsumption[]>(r));
+    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<RoomMinibarConsumption[]>(r));
   },
   registerMinibarConsumption: (data: {
     roomId: string;
@@ -213,7 +218,7 @@ export const api = {
 
   // Kitchen & Room Service
   getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)),
-  getOrders: () => fetch(`${BASE_URL}/kitchen/orders`).then(r => handleResponse<KitchenOrder[]>(r)),
+  getOrders: () => fetch(`${BASE_URL}/kitchen/orders`, { headers: protectedHeaders() }).then(r => handleResponse<KitchenOrder[]>(r)),
   createOrder: (data: {
     roomId: string;
     items: { menuItemId: string; quantity: number; notes?: string }[];
@@ -247,7 +252,7 @@ export const api = {
   // Kanban Tasks
   getTasks: (sector?: string) => {
     const url = sector ? `${BASE_URL}/tasks?sector=${sector}` : `${BASE_URL}/tasks`;
-    return fetch(url).then(r => handleResponse<KanbanTask[]>(r));
+    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<KanbanTask[]>(r));
   },
   createTask: (task: Omit<KanbanTask, 'id' | 'createdAt' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/tasks`, {
@@ -265,14 +270,14 @@ export const api = {
     fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Financial Control
-  getTransactions: () => fetch(`${BASE_URL}/financial/transactions`).then(r => handleResponse<FinancialTransaction[]>(r)),
+  getTransactions: () => fetch(`${BASE_URL}/financial/transactions`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialTransaction[]>(r)),
   createTransaction: (tx: Omit<FinancialTransaction, 'id' | 'createdAt'>) =>
     fetch(`${BASE_URL}/financial/transactions`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(tx),
     }).then(r => handleResponse<FinancialTransaction>(r)),
-  getFinancialStats: () => fetch(`${BASE_URL}/financial/stats`).then(r => handleResponse<FinancialStats>(r)),
+  getFinancialStats: () => fetch(`${BASE_URL}/financial/stats`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialStats>(r)),
 
   // Integrated Real-Time Inventory & Kardex
   getInventoryItems: (sector?: string, lowStock?: boolean) => {

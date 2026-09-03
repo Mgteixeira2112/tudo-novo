@@ -12,7 +12,7 @@ import {
   AdminTab,
   PermissionKey
 } from '../types.ts';
-import { api, setApiAccessToken } from '../services/api.ts';
+import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';
 import {
   hasPermission as checkHasPermission,
   canAccessTab as checkCanAccessTab,
@@ -91,59 +91,28 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [originalAdminUser, setOriginalAdminUser] = useState<StaffUser | null>(null);
 
+  const clearPrivateData = useCallback(() => {
+    setRooms([]); setGuests([]); setReservations([]); setTasks([]); setTransactions([]); setStats(null); setSupabaseStatus(null); setAllUsers([]);
+  }, []);
+
   const refreshData = useCallback(async () => {
     try {
-      const [
-        fetchedSettings,
-        fetchedRooms,
-        fetchedGuests,
-        fetchedReservations,
-        fetchedTasks,
-        fetchedTransactions,
-        fetchedStats,
-        fetchedSupabase,
-        fetchedUsers
-      ] = await Promise.all([
-        api.getSettings(),
-        api.getRooms(),
-        api.getGuests(),
-        api.getReservations(),
-        api.getTasks(),
-        api.getTransactions(),
-        api.getFinancialStats(),
-        api.getSupabaseStatus(),
-        api.getUsers().catch(() => [])
+      if (!hasApiAccessToken()) {
+        const publicSettings = await api.getPublicSettings();
+        setSettings(publicSettings);
+        clearPrivateData();
+        setError(null);
+        return;
+      }
+      const [fetchedSettings, fetchedRooms, fetchedGuests, fetchedReservations, fetchedTasks, fetchedTransactions, fetchedStats, fetchedSupabase, fetchedUsers] = await Promise.all([
+        api.getSettings(), api.getRooms(), api.getGuests(), api.getReservations(), api.getTasks(), api.getTransactions(), api.getFinancialStats(), api.getSupabaseStatus().catch(() => null), api.getUsers().catch(() => [])
       ]);
-
-      setSettings(fetchedSettings);
-      setRooms(fetchedRooms);
-      setGuests(fetchedGuests);
-      setReservations(fetchedReservations);
-      setTasks(fetchedTasks);
-      setTransactions(fetchedTransactions);
-      setStats(fetchedStats);
-      setSupabaseStatus(fetchedSupabase);
-      setAllUsers(fetchedUsers);
-
-      // Set initial active user
-      setCurrentUser(prev => {
-        if (prev) {
-          const updated = fetchedUsers.find(u => u.id === prev.id);
-          return updated || prev;
-        }
-        // Never authenticate from a local user id alone.
-        // Session restoration is handled separately through Supabase Auth.
-        return null;
-      });
-
-      setError(null);
+      setSettings(fetchedSettings); setRooms(fetchedRooms); setGuests(fetchedGuests); setReservations(fetchedReservations); setTasks(fetchedTasks); setTransactions(fetchedTransactions); setStats(fetchedStats); setSupabaseStatus(fetchedSupabase); setAllUsers(fetchedUsers); setError(null);
     } catch (err: any) {
       console.error('Error fetching hotel data:', err);
       setError(err.message || 'Erro ao carregar dados do servidor.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    } finally { setLoading(false); }
+  }, [clearPrivateData]);
 
   const updateSettings = async (updates: Partial<HotelSettings>) => {
     try {
@@ -189,6 +158,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Switch to the user's primary default tab
       const defaultTab = getDefaultTabForUser(result.user);
       setActiveAdminTab(defaultTab);
+      await refreshData();
       return result.user;
     } catch (err: any) {
       console.error('Login failed:', err);
@@ -254,7 +224,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsImpersonating(false);
     setOriginalAdminUser(null);
     setCurrentUser(null);
+    clearPrivateData();
     setMode('booking');
+    await refreshData().catch(() => {});
   };
 
   // Impersonate / switch user to quickly test and review sectoral views
@@ -339,6 +311,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOriginalAdminUser(null);
         const defaultTab = getDefaultTabForUser(staff);
         setActiveAdminTab(defaultTab);
+        await refreshData();
       } catch {
         setApiAccessToken(null);
         if (!cancelled) setCurrentUser(null);
@@ -358,6 +331,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Supabase Realtime subscription for staff_users updates
   useEffect(() => {
+    if (!currentUser) return;
     const unsub = subscribeToStaffUsersRealtime(
       () => {
         api.getUsers().then(setAllUsers).catch(() => {});
@@ -371,10 +345,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       if (unsub) unsub();
     };
-  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
   // Real-time polling every 6 seconds to keep Kanbans, Room status, and financial counters synced across all screens
   useEffect(() => {
+    if (!currentUser) return;
     const interval = setInterval(() => {
       Promise.all([
         api.getRooms().then(setRooms).catch(() => {}),
@@ -388,7 +363,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 6000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser?.id]);
 
   return (
     <HotelContext.Provider
