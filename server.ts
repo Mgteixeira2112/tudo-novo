@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
@@ -11,6 +11,50 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+// -------------------------------------------------------
+// Authentication middleware (Supabase Bearer token)
+// -------------------------------------------------------
+async function requireSupabaseAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const authorization = req.header('authorization') || '';
+    const [scheme, token] = authorization.split(' ');
+
+    if (scheme?.toLowerCase() !== 'bearer' || !token) {
+      return res.status(401).json( { error: 'Autenticação obrigatória.' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return res.status(503).json({
+        error: 'Autenticação segura indisponível: Supabase não configurado no servidor.'
+      });
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
+
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user) {
+      return res.status(401).json({ error: 'Sessão inválida ou expirada.' });
+    }
+
+    (req as Request & { authUser?: { id: string; email?: string } })).authUser = {
+      id: data.user.id,
+      email: data.user.email
+    };
+
+    next();
+  } catch (err) {
+    console.error('[Auth] Bearer validation failure:', err);
+    return res.status(401).json({ error: 'Não foi possível validar a sessão.' });
+  }
+}
 
 // -------------------------------------------------------------
 // API Endpoints
@@ -31,7 +75,7 @@ app.get('/api/settings', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/settings', (req: Request, res: Response) => {
+app.put('/api/settings', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const updated = dbManager.updateSettings(req.body);
     res.json(updated);
@@ -60,7 +104,7 @@ app.get('/api/supabase/schema-sql', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/supabase/reconnect', (req: Request, res: Response) => {
+app.post('/api/supabase/reconnect', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     dbManager.initSupabaseClient();
     const status = dbManager.getSupabaseStatus();
@@ -491,7 +535,7 @@ app.get('/api/users', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/users', (req: Request, res: Response) => {
+app.post('/api/users', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const newUser = dbManager.createUser(req.body);
     res.status(201).json(newUser);
@@ -500,7 +544,7 @@ app.post('/api/users', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/users/:id', (req: Request, res: Response) => {
+app.put('/api/users/:id', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const updated = dbManager.updateUser(req.params.id, req.body);
     res.json(updated);
@@ -509,7 +553,7 @@ app.put('/api/users/:id', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/users/:id', (req: Request, res: Response) => {
+app.delete('/api/users/:id', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const success = dbManager.deleteUser(req.params.id);
     if (!success) {
@@ -592,7 +636,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/auth/register', (req: Request, res: Response) => {
+app.post('/api/auth/register', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const { email, fullName, role, sector, phone, permissions, supabaseAuthId } = req.body;
     if (!email || !fullName) {
