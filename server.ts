@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { createServer as createViteServer } from 'vite';
 import { dbManager } from './server/db.ts';
+import { deleteTaskCloud, getMenuItemsCloud, getOrdersCloud, getTasksCloud, syncTasksCloud, upsertOrderCloud, upsertTaskCloud } from './server/operationalSupabase.ts';
 
 dotenv.config();
 
@@ -478,39 +479,42 @@ app.post('/api/minibar/consumptions', requireSupabaseAuth, requirePermission('ma
 });
 
 // Kitchen & Room Service (Cozinha & Room Service)
-app.get('/api/kitchen/menu', (req: Request, res: Response) => {
+app.get('/api/kitchen/menu', async (req: Request, res: Response) => {
   try {
-    const menu = dbManager.getMenuItems();
+    const menu = (await getMenuItemsCloud()) ?? dbManager.getMenuItems();
     res.json(menu);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {
+app.get('/api/kitchen/orders', requireSupabaseAuth, requirePermission('view_fnb'), async (req: Request, res: Response) => {
   try {
-    const orders = dbManager.getOrders();
+    const orders = (await getOrdersCloud()) ?? dbManager.getOrders();
     res.json(orders);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/kitchen/orders', publicRoomServiceLimiter, (req: Request, res: Response) => {
+app.post('/api/kitchen/orders', publicRoomServiceLimiter, async (req: Request, res: Response) => {
   try {
     const payload = sanitizePublicOrder(req.body);
     const order = dbManager.createOrder(payload as any);
+    await upsertOrderCloud(order).catch(err => console.warn('[Supabase] Falha ao persistir kitchen_order:', err));
+    await syncTasksCloud(dbManager.getTasks()).catch(err => console.warn('[Supabase] Falha ao sincronizar tarefas geradas:', err));
     res.status(201).json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
+app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermission('manage_fnb'), async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     const order = dbManager.updateOrderStatus(req.params.id, status);
     if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });
+    await upsertOrderCloud(order).catch(err => console.warn('[Supabase] Falha ao atualizar kitchen_order:', err));
     res.json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -518,39 +522,42 @@ app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermissi
 });
 
 // Kanbans por Setor em Tempo Real
-app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), (req: Request, res: Response) => {
+app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), async (req: Request, res: Response) => {
   try {
     const sector = req.query.sector as any;
-    const tasks = dbManager.getTasks(sector);
+    const tasks = (await getTasksCloud(sector)) ?? dbManager.getTasks(sector);
     res.json(tasks);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/tasks', requireSupabaseAuth, (req: Request, res: Response) => {
+app.post('/api/tasks', requireSupabaseAuth, async (req: Request, res: Response) => {
   try {
     const task = dbManager.createTask(req.body);
+    await upsertTaskCloud(task).catch(err => console.warn('[Supabase] Falha ao criar kanban_task:', err));
     res.status(201).json(task);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.patch('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {
+app.patch('/api/tasks/:id', requireSupabaseAuth, async (req: Request, res: Response) => {
   try {
     const task = dbManager.updateTask(req.params.id, req.body);
     if (!task) return res.status(404).json({ error: 'Tarefa não encontrada.' });
+    await upsertTaskCloud(task).catch(err => console.warn('[Supabase] Falha ao atualizar kanban_task:', err));
     res.json(task);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.delete('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {
+app.delete('/api/tasks/:id', requireSupabaseAuth, async (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteTask(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Tarefa não encontrada.' });
+    await deleteTaskCloud(req.params.id).catch(err => console.warn('[Supabase] Falha ao excluir kanban_task:', err));
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

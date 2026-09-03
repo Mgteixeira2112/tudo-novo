@@ -65,3 +65,24 @@ export async function loadReservationsFromSupabase(): Promise<Reservation[]> {
     checkedOutAt: row.checked_out_at || undefined
   })) as Reservation[];
 }
+
+export async function loadMenuItemsFromSupabase(): Promise<MenuItem[]> {
+  const supabase = getSupabaseClient(); if (!supabase) return [];
+  const { data, error } = await supabase.from('menu_items').select('*').eq('available', true).order('category').order('name');
+  if (error) throw error;
+  return (data || []).map((r:any) => ({ id:r.id,name:r.name,category:r.category,price:Number(r.price||0),description:r.description||'',prepTimeMinutes:Number(r.prep_time_minutes||0),available:r.available!==false })) as MenuItem[];
+}
+
+export async function loadKitchenOrdersFromSupabase(): Promise<KitchenOrder[]> {
+  const supabase = getSupabaseClient(); if (!supabase) return [];
+  const { data, error } = await supabase.from('kitchen_orders').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((r:any)=>({id:r.id,orderNumber:r.order_number,roomId:r.room_id||'',roomNumber:r.room_number,reservationId:r.reservation_id||'',guestName:r.guest_name||'',items:Array.isArray(r.items)?r.items:[],totalAmount:Number(r.total_amount||0),deliveryFee:Number(r.delivery_fee||0),destination:r.destination,deliverySector:r.delivery_sector,status:r.status,specialInstructions:r.special_instructions||'',createdAt:r.created_at,completedAt:r.completed_at||undefined})) as KitchenOrder[];
+}
+
+export async function loadKanbanTasksFromSupabase(sector?: string): Promise<KanbanTask[]> {
+  const supabase = getSupabaseClient(); if (!supabase) return [];
+  let q = supabase.from('kanban_tasks').select('*').order('created_at',{ascending:false}); if (sector) q=q.eq('sector',sector);
+  const { data,error }=await q; if(error) throw error;
+  return (data||[]).map((r:any)=>({id:r.id,title:r.title,description:r.description||'',sector:r.sector,status:r.status,priority:r.priority,roomNumber:r.room_number||undefined,guestName:r.guest_name||undefined,assignedTo:r.assigned_to||undefined,relatedType:r.related_type||undefined,relatedId:r.related_id||undefined,createdAt:r.created_at,updatedAt:r.updated_at})) as KanbanTask[];
+}

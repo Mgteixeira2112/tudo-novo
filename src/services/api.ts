@@ -17,6 +17,7 @@ import {
   StockMovementType,
   StaffUser
 } from '../types.ts';
+import { loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase } from './pagesData.ts';
 
 const BASE_URL = '/api';
 
@@ -217,8 +218,8 @@ export const api = {
     }).then(r => handleResponse<RoomMinibarConsumption>(r)),
 
   // Kitchen & Room Service
-  getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)),
-  getOrders: () => fetch(`${BASE_URL}/kitchen/orders`, { headers: protectedHeaders() }).then(r => handleResponse<KitchenOrder[]>(r)),
+  getMenuItems: () => fetch(`${BASE_URL}/kitchen/menu`).then(r => handleResponse<MenuItem[]>(r)).catch(() => loadMenuItemsFromSupabase()),
+  getOrders: () => fetch(`${BASE_URL}/kitchen/orders`, { headers: protectedHeaders() }).then(r => handleResponse<KitchenOrder[]>(r)).catch(() => loadKitchenOrdersFromSupabase()),
   createOrder: (data: {
     roomId: string;
     items: { menuItemId: string; quantity: number; notes?: string }[];
@@ -252,7 +253,7 @@ export const api = {
   // Kanban Tasks
   getTasks: (sector?: string) => {
     const url = sector ? `${BASE_URL}/tasks?sector=${sector}` : `${BASE_URL}/tasks`;
-    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<KanbanTask[]>(r));
+    return fetch(url, { headers: protectedHeaders() }).then(r => handleResponse<KanbanTask[]>(r)).catch(() => loadKanbanTasksFromSupabase(sector));
   },
   createTask: (task: Omit<KanbanTask, 'id' | 'createdAt' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/tasks`, {
