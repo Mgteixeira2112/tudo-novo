@@ -44,7 +44,7 @@ async function requireSupabaseAuth(req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'Sessão inválida ou expirada.' });
     }
 
-    (req as Request & { authUser?: { id: string; email?: string } })).authUser = {
+    (req as Request & { authUser?: { id: string; email?: string } }).authUser = {
       id: data.user.id,
       email: data.user.email
     };
