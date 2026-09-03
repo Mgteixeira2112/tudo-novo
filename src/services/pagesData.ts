@@ -1,4 +1,4 @@
-import { Reservation, Room } from '../types.ts';
+import { KanbanTask, KitchenOrder, MenuItem, Reservation, Room } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
 
 export async function loadRoomsFromSupabase(): Promise<Room[]> {
@@ -85,4 +85,59 @@ export async function loadKanbanTasksFromSupabase(sector?: string): Promise<Kanb
   let q = supabase.from('kanban_tasks').select('*').order('created_at',{ascending:false}); if (sector) q=q.eq('sector',sector);
   const { data,error }=await q; if(error) throw error;
   return (data||[]).map((r:any)=>({id:r.id,title:r.title,description:r.description||'',sector:r.sector,status:r.status,priority:r.priority,roomNumber:r.room_number||undefined,guestName:r.guest_name||undefined,assignedTo:r.assigned_to||undefined,relatedType:r.related_type||undefined,relatedId:r.related_id||undefined,createdAt:r.created_at,updatedAt:r.updated_at})) as KanbanTask[];
+}
+
+
+function mapKanbanRow(r: any): KanbanTask {
+  return {
+    id: r.id, title: r.title, description: r.description || '', sector: r.sector,
+    status: r.status, priority: r.priority, roomNumber: r.room_number || undefined,
+    guestName: r.guest_name || undefined, assignedTo: r.assigned_to || undefined,
+    relatedType: r.related_type || undefined, relatedId: r.related_id || undefined,
+    createdAt: r.created_at, updatedAt: r.updated_at
+  } as KanbanTask;
+}
+
+function kanbanPayload(task: Partial<KanbanTask>) {
+  const payload: Record<string, any> = {};
+  const map: Record<string, string> = {
+    title: 'title', description: 'description', sector: 'sector', status: 'status', priority: 'priority',
+    roomNumber: 'room_number', guestName: 'guest_name', assignedTo: 'assigned_to',
+    relatedType: 'related_type', relatedId: 'related_id'
+  };
+  for (const [key, column] of Object.entries(map)) {
+    if (Object.prototype.hasOwnProperty.call(task, key)) payload[column] = (task as any)[key] ?? null;
+  }
+  return payload;
+}
+
+export async function createKanbanTaskInSupabase(task: Omit<KanbanTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<KanbanTask> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const now = new Date().toISOString();
+  const row = {
+    id: `task_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+    ...kanbanPayload(task),
+    created_at: now, updated_at: now
+  };
+  const { data, error } = await supabase.from('kanban_tasks').insert(row).select('*').single();
+  if (error) throw error;
+  return mapKanbanRow(data);
+}
+
+export async function updateKanbanTaskInSupabase(id: string, updates: Partial<KanbanTask>): Promise<KanbanTask> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const payload = { ...kanbanPayload(updates), updated_at: new Date().toISOString() };
+  const { data, error } = await supabase.from('kanban_tasks').update(payload).eq('id', id).select('*').single();
+  if (error) throw error;
+  return mapKanbanRow(data);
+}
+
+export async function deleteKanbanTaskInSupabase(id: string): Promise<{ success: boolean }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { error } = await supabase.from('kanban_tasks').delete().eq('id', id);
+  if (error) throw error;
+  return { success: true };
 }
