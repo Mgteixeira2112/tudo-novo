@@ -19,6 +19,7 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 import { RoomTypeConfig, Reservation } from '../types.ts';
 import { api } from '../services/api.ts';
+import { getSupabaseClient } from '../services/supabase.ts';
 
 export const OnlineBookingEngine: React.FC = () => {
   const { settings, refreshData } = useHotel();
@@ -48,6 +49,9 @@ export const OnlineBookingEngine: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmedReservation, setConfirmedReservation] = useState<Reservation | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<Record<string, number> | null>(null);
+  const [searchingAvailability, setSearchingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   // Calculate nights
   const start = new Date(checkInDate);
@@ -61,13 +65,41 @@ export const OnlineBookingEngine: React.FC = () => {
     setErrorMessage(null);
   };
 
-  const handleSearchAvailability = () => {
+  const handleSearchAvailability = async () => {
     if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
-      setErrorMessage('Selecione uma data de saída posterior à data de entrada.');
+      setAvailabilityError('Selecione uma data de saída posterior à data de entrada.');
       return;
     }
-    setErrorMessage(null);
-    document.getElementById('available-room-types')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+      setSearchingAvailability(true);
+      setAvailabilityError(null);
+      const supabase = getSupabaseClient();
+      if (!supabase) throw new Error('Supabase não configurado.');
+
+      const { data, error } = await supabase.rpc('get_available_room_types', {
+        p_check_in: checkInDate,
+        p_check_out: checkOutDate,
+        p_adults: adults,
+        p_children: children
+      });
+      if (error) throw error;
+
+      const nextAvailability: Record<string, number> = {};
+      for (const row of data || []) {
+        if (row?.type_id) nextAvailability[String(row.type_id)] = Number(row.available_count || 0);
+      }
+      setAvailability(nextAvailability);
+      requestAnimationFrame(() => {
+        document.getElementById('available-room-types')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } catch (err: any) {
+      console.error('Availability search error:', err);
+      setAvailability(null);
+      setAvailabilityError(err?.message || 'Não foi possível consultar a disponibilidade.');
+    } finally {
+      setSearchingAvailability(false);
+    }
   };
 
   const handleConfirmReservation = async (e: React.FormEvent) => {
@@ -163,7 +195,7 @@ export const OnlineBookingEngine: React.FC = () => {
                 type="date"
                 value={checkInDate}
                 min={today}
-                onChange={e => setCheckInDate(e.target.value)}
+                onChange={e => { setCheckInDate(e.target.value); setAvailability(null); setAvailabilityError(null); }}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] focus:border-[#588157] outline-none text-[#3D4035]"
               />
             </div>
@@ -181,7 +213,7 @@ export const OnlineBookingEngine: React.FC = () => {
                 type="date"
                 value={checkOutDate}
                 min={checkInDate}
-                onChange={e => setCheckOutDate(e.target.value)}
+                onChange={e => { setCheckOutDate(e.target.value); setAvailability(null); setAvailabilityError(null); }}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] focus:border-[#588157] outline-none text-[#3D4035]"
               />
             </div>
@@ -198,7 +230,7 @@ export const OnlineBookingEngine: React.FC = () => {
                 <select
                   id="select-adults-count"
                   value={adults}
-                  onChange={e => setAdults(Number(e.target.value))}
+                  onChange={e => { setAdults(Number(e.target.value)); setAvailability(null); setAvailabilityError(null); }}
                   className="w-full pl-9 pr-2 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] outline-none text-[#3D4035]"
                 >
                   <option value={1}>1 Adulto</option>
@@ -211,7 +243,7 @@ export const OnlineBookingEngine: React.FC = () => {
                 <select
                   id="select-children-count"
                   value={children}
-                  onChange={e => setChildren(Number(e.target.value))}
+                  onChange={e => { setChildren(Number(e.target.value)); setAvailability(null); setAvailabilityError(null); }}
                   className="w-full px-2 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] outline-none text-[#6B705C]"
                 >
                   <option value={0}>0 Crianças</option>
@@ -240,10 +272,11 @@ export const OnlineBookingEngine: React.FC = () => {
             id="btn-search-availability"
             type="button"
             onClick={handleSearchAvailability}
+            disabled={searchingAvailability}
             className="w-full min-h-[42px] flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-sm font-bold shadow-sm transition"
           >
-            <Search className="w-4 h-4" />
-            <span>Buscar disponibilidade</span>
+            <Search className={`w-4 h-4 ${searchingAvailability ? 'animate-pulse' : ''}`} />
+            <span>{searchingAvailability ? 'Buscando...' : 'Buscar disponibilidade'}</span>
           </button>
         </div>
       </div>
@@ -257,10 +290,27 @@ export const OnlineBookingEngine: React.FC = () => {
           <p className="text-sm text-[#6B705C] mt-1">
             Selecione a categoria ideal para sua estadia com café da manhã incluso e cancelamento flexível.
           </p>
+          {availabilityError && (
+            <p className="mt-3 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              {availabilityError}
+            </p>
+          )}
+          {availability && (
+            <p className="mt-2 text-sm font-medium text-[#588157]">
+              Resultado atualizado para {checkInDate.split('-').reverse().join('/')} a {checkOutDate.split('-').reverse().join('/')} · {adults} adulto{adults > 1 ? 's' : ''}{children ? ` · ${children} criança${children > 1 ? 's' : ''}` : ''}
+            </p>
+          )}
         </div>
 
+        {availability && Object.values(availability).every(count => count <= 0) && (
+          <div className="bg-white border border-[#E6E3D8] rounded-2xl p-6 text-center">
+            <p className="font-bold text-[#2C3327]">Nenhuma acomodação disponível para estes filtros.</p>
+            <p className="text-sm text-[#6B705C] mt-1">Altere as datas ou a quantidade de hóspedes e faça uma nova busca.</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {settings?.roomTypes.map(roomType => {
+          {(settings?.roomTypes || []).filter(roomType => availability === null || (availability[roomType.id] || 0) > 0).map(roomType => {
             const totalForNights = roomType.basePrice * nights;
 
             return (
@@ -280,6 +330,11 @@ export const OnlineBookingEngine: React.FC = () => {
                     <div className="absolute top-3 right-3 bg-[#2C3327]/85 backdrop-blur-sm text-[#FDFBF7] px-2.5 py-1 rounded-full text-xs font-semibold">
                       Até {roomType.capacityAdults} adultos
                     </div>
+                    {availability && (
+                      <div className="absolute top-3 left-3 bg-[#FDFBF7]/95 text-[#2C3327] px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
+                        {availability[roomType.id]} {availability[roomType.id] === 1 ? 'disponível' : 'disponíveis'}
+                      </div>
+                    )}
                   </div>
 
                   {/* Room Details */}
