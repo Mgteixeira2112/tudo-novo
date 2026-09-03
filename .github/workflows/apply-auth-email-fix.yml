@@ -1,0 +1,56 @@
+name: Apply auth email fix
+on:
+  push:
+    branches: [fix/auth-email-confirmation-redirect]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/auth-email-confirmation-redirect
+      - name: Patch auth email confirmation flow
+        shell: python
+        run: |
+          from pathlib import Path
+
+          redirect_url = 'https://mgteixeira2112.github.io/tudo-novo/'
+
+          p = Path('src/services/supabase.ts')
+          s = p.read_text()
+          if "DEFAULT_AUTH_REDIRECT_URL" not in s:
+              s = s.replace("const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';", "const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';\nconst DEFAULT_AUTH_REDIRECT_URL = 'https://mgteixeira2112.github.io/tudo-novo/';")
+          s = s.replace("    options: {\n      data: metadata || {}\n    }", "    options: {\n      data: metadata || {},\n      emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL\n    }")
+          s = s.replace("  const { data, error } = await supabase.auth.signUp({ email, password });", "  const { data, error } = await supabase.auth.signUp({\n    email,\n    password,\n    options: { emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL }\n  });")
+          if "resendSupabaseConfirmation" not in s:
+              anchor = "/**\n * Supabase Auth: Sign Out\n */"
+              helper = """export async function resendSupabaseConfirmation(email: string) {\n  const supabase = getSupabaseClient();\n  if (!supabase) throw new Error('Supabase não configurado.');\n  const { data, error } = await supabase.auth.resend({\n    type: 'signup',\n    email,\n    options: { emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL }\n  });\n  if (error) throw error;\n  return data;\n}\n\n"""
+              s = s.replace(anchor, helper + anchor)
+          p.write_text(s)
+
+          p = Path('src/components/StaffLogin.tsx')
+          s = p.read_text()
+          if "resendSupabaseConfirmation" not in s:
+              s = s.replace("import { useHotel } from '../context/HotelContext.tsx';", "import { useHotel } from '../context/HotelContext.tsx';\nimport { resendSupabaseConfirmation, getSupabaseClient } from '../services/supabase.ts';")
+          if "handleResendConfirmation" not in s:
+              marker = "\n\n  return ("
+              fn = """\n  const handleResendConfirmation = async () => {\n    if (!email) {\n      setErrorMessage('Informe o e-mail cadastrado para reenviar a confirmação.');\n      return;\n    }\n    setSubmitting(true);\n    setErrorMessage(null);\n    try {\n      await resendSupabaseConfirmation(email.trim());\n      setErrorMessage('Novo e-mail de confirmação enviado. Use somente o link mais recente.');\n    } catch (err: any) {\n      setErrorMessage(err?.message || 'Não foi possível reenviar o e-mail de confirmação.');\n    } finally {\n      setSubmitting(false);\n    }\n  };\n"""
+              s = s.replace(marker, fn + marker)
+          s = s.replace("<span>{supabaseStatus?.connected ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>", "<span>{supabaseStatus?.connected || getSupabaseClient() ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>")
+          anchor = """            <button\n              type=\"button\"\n              onClick={handleBootstrap}\n              disabled={submitting}\n              className=\"w-full py-2.5 px-4 bg-white hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#CCD5AE] disabled:opacity-50\"\n            >\n              Criar primeiro administrador\n            </button>\n"""
+          if "Reenviar e-mail de confirmação" not in s:
+              extra = anchor + """\n            <button\n              type=\"button\"\n              onClick={handleResendConfirmation}\n              disabled={submitting}\n              className=\"w-full py-2.5 px-4 bg-[#FDFBF7] hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#E6E3D8] disabled:opacity-50\"\n            >\n              Reenviar e-mail de confirmação\n            </button>\n"""
+              s = s.replace(anchor, extra)
+          p.write_text(s)
+
+          Path('docs/AUTH-EMAIL-CONFIRMATION-FIX.md').write_text("# Correção do e-mail de confirmação\n\n- Todo signup define `emailRedirectTo` para `https://mgteixeira2112.github.io/tudo-novo/`.\n- Reenvio de confirmação usa o mesmo destino.\n- Tela de login ganhou botão para reenviar confirmação.\n- Indicador de Supabase reconhece o cliente configurado mesmo quando o backend Express não está hospedado.\n")
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/services/supabase.ts src/components/StaffLogin.tsx docs/AUTH-EMAIL-CONFIRMATION-FIX.md
+          git commit -m "fix: correct Supabase email confirmation redirect" || exit 0
+          git push
