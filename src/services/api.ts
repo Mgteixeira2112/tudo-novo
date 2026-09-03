@@ -17,10 +17,14 @@ import {
   StockMovementType,
   StaffUser
 } from '../types.ts';
-import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
+import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, createReservationAtomicInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
 import { createInventoryItemCloud, createMinibarItemCloud, createTransactionCloud, deleteInventoryItemCloud, deleteMinibarItemCloud, loadConsumptionsCloud, loadFinancialStatsCloud, loadInventoryItemCloud, loadInventoryItemsCloud, loadInventoryStatsCloud, loadMinibarItemsCloud, loadStockMovementsCloud, loadTransactionsCloud, registerConsumptionCloud, registerStockMovementCloud, restockMinibarItemCloud, updateInventoryItemCloud, updateMinibarItemCloud } from './financeInventoryPages.ts';
 
 const BASE_URL = '/api';
+
+function isGitHubPagesRuntime() {
+  return typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
+}
 
 let apiAccessToken: string | null = null;
 
@@ -124,12 +128,14 @@ export const api = {
     children: number;
     paymentMethod: Reservation['paymentMethod'];
     notes?: string;
-  }) =>
-    fetch(`${BASE_URL}/reservations`, {
+  }) => {
+    if (isGitHubPagesRuntime()) return createReservationAtomicInSupabase(data);
+    return fetch(`${BASE_URL}/reservations`, {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(data),
-    }).then(r => handleResponse<Reservation>(r)),
+    }).then(r => handleResponse<Reservation>(r));
+  },
   updateReservation: (id: string, updates: Partial<Reservation>) =>
     fetch(`${BASE_URL}/reservations/${id}`, {
       method: 'PUT',
