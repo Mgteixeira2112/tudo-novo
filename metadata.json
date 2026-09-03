@@ -1,0 +1,6 @@
+{
+  "name": "SaaS Hoteleiro & Motor de Reservas",
+  "description": "Sistema SaaS hoteleiro completo com front-end configurável, motor de reservas online sem localStorage com persistência SQL Supabase, gestão de setores com Kanbans em tempo real, cadastro de hóspedes, check-in/out, controle de frigobar, cozinha, room service e financeiro integrado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

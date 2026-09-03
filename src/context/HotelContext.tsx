@@ -1,0 +1,410 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  HotelSettings,
+  Guest,
+  Room,
+  Reservation,
+  KanbanTask,
+  FinancialTransaction,
+  FinancialStats,
+  SupabaseConfigStatus,
+  StaffUser,
+  AdminTab,
+  PermissionKey
+} from '../types.ts';
+import { api } from '../services/api.ts';
+import {
+  hasPermission as checkHasPermission,
+  canAccessTab as checkCanAccessTab,
+  getDefaultTabForUser
+} from '../services/rbac.ts';
+import {
+  supabaseSignIn,
+  supabaseSignUp,
+  supabaseSignOut,
+  subscribeToStaffUsersRealtime
+} from '../services/supabase.ts';
+
+interface HotelContextType {
+  settings: HotelSettings | null;
+  rooms: Room[];
+  guests: Guest[];
+  reservations: Reservation[];
+  tasks: KanbanTask[];
+  transactions: FinancialTransaction[];
+  stats: FinancialStats | null;
+  supabaseStatus: SupabaseConfigStatus | null;
+  loading: boolean;
+  error: string | null;
+  mode: 'admin' | 'booking';
+  setMode: (mode: 'admin' | 'booking') => void;
+  activeAdminTab: AdminTab;
+  setActiveAdminTab: (tab: AdminTab) => void;
+  refreshData: () => Promise<void>;
+  updateSettings: (updates: Partial<HotelSettings>) => Promise<void>;
+
+  // User Management & RBAC
+  currentUser: StaffUser | null;
+  allUsers: StaffUser[];
+  isImpersonating: boolean;
+  login: (email: string, password?: string) => Promise<StaffUser>;
+  registerStaff: (data: {
+    email: string;
+    password?: string;
+    fullName: string;
+    role?: any;
+    sector?: any;
+    phone?: string;
+    permissions?: PermissionKey[];
+  }) => Promise<StaffUser>;
+  logout: () => Promise<void>;
+  switchUser: (userOrId: StaffUser | string) => void;
+  revertToAdminUser: () => void;
+  createUser: (userData: Omit<StaffUser, 'id' | 'createdAt' | 'updatedAt'>) => Promise<StaffUser>;
+  updateUser: (id: string, updates: Partial<StaffUser>) => Promise<StaffUser>;
+  deleteUser: (id: string) => Promise<void>;
+  hasPermission: (permission: PermissionKey) => boolean;
+  canAccessTab: (tab: AdminTab) => boolean;
+}
+
+const HotelContext = createContext<HotelContextType | undefined>(undefined);
+
+export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [settings, setSettings] = useState<HotelSettings | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [tasks, setTasks] = useState<KanbanTask[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [stats, setStats] = useState<FinancialStats | null>(null);
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseConfigStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [mode, setMode] = useState<'admin' | 'booking'>('admin');
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('overview');
+
+  // Staff Users State
+  const [allUsers, setAllUsers] = useState<StaffUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<StaffUser | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [originalAdminUser, setOriginalAdminUser] = useState<StaffUser | null>(null);
+
+  const refreshData = useCallback(async () => {
+    try {
+      const [
+        fetchedSettings,
+        fetchedRooms,
+        fetchedGuests,
+        fetchedReservations,
+        fetchedTasks,
+        fetchedTransactions,
+        fetchedStats,
+        fetchedSupabase,
+        fetchedUsers
+      ] = await Promise.all([
+        api.getSettings(),
+        api.getRooms(),
+        api.getGuests(),
+        api.getReservations(),
+        api.getTasks(),
+        api.getTransactions(),
+        api.getFinancialStats(),
+        api.getSupabaseStatus(),
+        api.getUsers().catch(() => [])
+      ]);
+
+      setSettings(fetchedSettings);
+      setRooms(fetchedRooms);
+      setGuests(fetchedGuests);
+      setReservations(fetchedReservations);
+      setTasks(fetchedTasks);
+      setTransactions(fetchedTransactions);
+      setStats(fetchedStats);
+      setSupabaseStatus(fetchedSupabase);
+      setAllUsers(fetchedUsers);
+
+      // Set initial active user
+      setCurrentUser(prev => {
+        if (prev) {
+          const updated = fetchedUsers.find(u => u.id === prev.id);
+          return updated || prev;
+        }
+        // Restore last logged user or fallback to primary Admin
+        try {
+          const savedId = localStorage.getItem('hotel_auth_user_id');
+          if (savedId) {
+            const found = fetchedUsers.find(u => u.id === savedId);
+            if (found) return found;
+          }
+        } catch {}
+        return fetchedUsers[0] || null;
+      });
+
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching hotel data:', err);
+      setError(err.message || 'Erro ao carregar dados do servidor.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateSettings = async (updates: Partial<HotelSettings>) => {
+    try {
+      const updated = await api.updateSettings(updates);
+      setSettings(updated);
+    } catch (err: any) {
+      console.error('Failed to update settings:', err);
+      throw err;
+    }
+  };
+
+  // -------------------------------------------------------------
+  // RBAC & Auth Actions
+  // -------------------------------------------------------------
+  const login = async (email: string, password?: string): Promise<StaffUser> => {
+    try {
+      // 1. Try Supabase Auth first if configured
+      let supabaseAuthId: string | undefined = undefined;
+      if (supabaseStatus?.connected) {
+        try {
+          const { data, error: supaErr } = await supabaseSignIn(email, password, {
+            url: supabaseStatus.supabaseUrl,
+            anonKey: supabaseStatus.supabaseAnonKey
+          });
+          if (data?.user) {
+            supabaseAuthId = data.user.id;
+          }
+        } catch (e) {
+          console.warn('[Supabase Auth] Fallback para login de perfil local:', e);
+        }
+      }
+
+      // 2. Validate/update session in backend
+      const result = await api.login({ email, password, supabaseAuthId });
+      setCurrentUser(result.user);
+      setIsImpersonating(false);
+      setOriginalAdminUser(null);
+      try {
+        localStorage.setItem('hotel_auth_user_id', result.user.id);
+      } catch {}
+
+      // Switch to the user's primary default tab
+      const defaultTab = getDefaultTabForUser(result.user);
+      setActiveAdminTab(defaultTab);
+      return result.user;
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      throw err;
+    }
+  };
+
+  const registerStaff = async (data: {
+    email: string;
+    password?: string;
+    fullName: string;
+    role?: any;
+    sector?: any;
+    phone?: string;
+    permissions?: PermissionKey[];
+  }): Promise<StaffUser> => {
+    try {
+      let supabaseAuthId: string | undefined = undefined;
+      if (supabaseStatus?.connected) {
+        try {
+          const { data: supaData } = await supabaseSignUp(
+            data.email,
+            data.password,
+            { full_name: data.fullName, role: data.role, sector: data.sector },
+            { url: supabaseStatus.supabaseUrl, anonKey: supabaseStatus.supabaseAnonKey }
+          );
+          if (supaData?.user) {
+            supabaseAuthId = supaData.user.id;
+          }
+        } catch (e) {
+          console.warn('[Supabase Auth SignUp] Fallback para criação local:', e);
+        }
+      }
+
+      const result = await api.register({
+        ...data,
+        supabaseAuthId
+      });
+
+      setAllUsers(prev => [...prev, result.user]);
+      return result.user;
+    } catch (err: any) {
+      console.error('Registration failed:', err);
+      throw err;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      if (supabaseStatus?.connected) {
+        await supabaseSignOut({
+          url: supabaseStatus.supabaseUrl,
+          anonKey: supabaseStatus.supabaseAnonKey
+        }).catch(() => {});
+      }
+    } catch {}
+
+    try {
+      localStorage.removeItem('hotel_auth_user_id');
+    } catch {}
+
+    // Fallback to first user or prompt
+    setIsImpersonating(false);
+    setOriginalAdminUser(null);
+    if (allUsers.length > 0) {
+      setCurrentUser(allUsers[0]);
+    }
+  };
+
+  // Impersonate / switch user to quickly test and review sectoral views
+  const switchUser = (userOrId: StaffUser | string) => {
+    const targetUser = typeof userOrId === 'string' ? allUsers.find(u => u.id === userOrId) : userOrId;
+    if (!targetUser) return;
+
+    if (!isImpersonating && currentUser?.role === 'admin') {
+      setOriginalAdminUser(currentUser);
+    }
+
+    setCurrentUser(targetUser);
+    setIsImpersonating(true);
+
+    // If current tab is forbidden for target user, automatically switch to permitted tab
+    if (!checkCanAccessTab(targetUser, activeAdminTab)) {
+      const permittedTab = getDefaultTabForUser(targetUser);
+      setActiveAdminTab(permittedTab);
+    }
+  };
+
+  const revertToAdminUser = () => {
+    const adminUser = originalAdminUser || allUsers.find(u => u.role === 'admin') || allUsers[0];
+    if (adminUser) {
+      setCurrentUser(adminUser);
+      setIsImpersonating(false);
+      setOriginalAdminUser(null);
+    }
+  };
+
+  const createUser = async (userData: Omit<StaffUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<StaffUser> => {
+    const created = await api.createUser(userData);
+    setAllUsers(prev => [...prev, created]);
+    return created;
+  };
+
+  const updateUser = async (id: string, updates: Partial<StaffUser>): Promise<StaffUser> => {
+    const updated = await api.updateUser(id, updates);
+    setAllUsers(prev => prev.map(u => (u.id === id ? updated : u)));
+    if (currentUser?.id === id) {
+      setCurrentUser(updated);
+    }
+    return updated;
+  };
+
+  const deleteUser = async (id: string) => {
+    await api.deleteUser(id);
+    setAllUsers(prev => prev.filter(u => u.id !== id));
+    if (currentUser?.id === id) {
+      const fallback = allUsers.find(u => u.id !== id && u.role === 'admin') || allUsers[0];
+      if (fallback) setCurrentUser(fallback);
+    }
+  };
+
+  const hasPermission = (permission: PermissionKey) => {
+    return checkHasPermission(currentUser, permission);
+  };
+
+  const canAccessTab = (tab: AdminTab) => {
+    return checkCanAccessTab(currentUser, tab);
+  };
+
+  // Initial load
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Supabase Realtime subscription for staff_users updates
+  useEffect(() => {
+    const unsub = subscribeToStaffUsersRealtime(
+      () => {
+        api.getUsers().then(setAllUsers).catch(() => {});
+      },
+      {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      }
+    );
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+
+  // Real-time polling every 6 seconds to keep Kanbans, Room status, and financial counters synced across all screens
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Promise.all([
+        api.getRooms().then(setRooms).catch(() => {}),
+        api.getReservations().then(setReservations).catch(() => {}),
+        api.getTasks().then(setTasks).catch(() => {}),
+        api.getFinancialStats().then(setStats).catch(() => {}),
+        api.getTransactions().then(setTransactions).catch(() => {}),
+        api.getSupabaseStatus().then(setSupabaseStatus).catch(() => {}),
+        api.getUsers().then(setAllUsers).catch(() => {})
+      ]);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <HotelContext.Provider
+      value={{
+        settings,
+        rooms,
+        guests,
+        reservations,
+        tasks,
+        transactions,
+        stats,
+        supabaseStatus,
+        loading,
+        error,
+        mode,
+        setMode,
+        activeAdminTab,
+        setActiveAdminTab,
+        refreshData,
+        updateSettings,
+        currentUser,
+        allUsers,
+        isImpersonating,
+        login,
+        registerStaff,
+        logout,
+        switchUser,
+        revertToAdminUser,
+        createUser,
+        updateUser,
+        deleteUser,
+        hasPermission,
+        canAccessTab
+      }}
+    >
+      {children}
+    </HotelContext.Provider>
+  );
+};
+
+export const useHotel = () => {
+  const context = useContext(HotelContext);
+  if (!context) {
+    throw new Error('useHotel must be used within a HotelProvider');
+  }
+  return context;
+};
+
