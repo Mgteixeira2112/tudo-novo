@@ -13,7 +13,8 @@ import {
   MapPin,
   Phone,
   Mail,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { RoomTypeConfig, Reservation } from '../types.ts';
@@ -58,6 +59,15 @@ export const OnlineBookingEngine: React.FC = () => {
     setSelectedRoomType(roomType);
     setConfirmedReservation(null);
     setErrorMessage(null);
+  };
+
+  const handleSearchAvailability = () => {
+    if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
+      setErrorMessage('Selecione uma data de saída posterior à data de entrada.');
+      return;
+    }
+    setErrorMessage(null);
+    document.getElementById('available-room-types')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleConfirmReservation = async (e: React.FormEvent) => {
@@ -140,7 +150,7 @@ export const OnlineBookingEngine: React.FC = () => {
 
       {/* Floating Search / Filter Bar */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-7 sm:-mt-8 relative z-20">
-        <div className="bg-white rounded-2xl shadow-xl border border-[#E6E3D8] p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
+        <div className="bg-white rounded-2xl shadow-xl border border-[#E6E3D8] p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 items-end">
           {/* Check-in */}
           <div>
             <label className="block text-xs font-semibold text-[#6B705C] uppercase tracking-wider mb-1">
@@ -225,11 +235,21 @@ export const OnlineBookingEngine: React.FC = () => {
               <span className="font-semibold text-[#2C3327]">{settings?.checkInTime || '14:00'}</span>
             </div>
           </div>
+
+          <button
+            id="btn-search-availability"
+            type="button"
+            onClick={handleSearchAvailability}
+            className="w-full min-h-[42px] flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-sm font-bold shadow-sm transition"
+          >
+            <Search className="w-4 h-4" />
+            <span>Buscar disponibilidade</span>
+          </button>
         </div>
       </div>
 
       {/* Room Selection Grid */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 space-y-4">
+      <section id="available-room-types" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 space-y-4 scroll-mt-6">
         <div>
           <h3 className="text-2xl font-bold text-[#2C3327] tracking-tight">
             Acomodações Disponíveis
