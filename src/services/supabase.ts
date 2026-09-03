@@ -54,9 +54,11 @@ export async function supabaseSignIn(
     return { data: null, error: new Error('Supabase Client não configurado.') };
   }
 
-  // If password not provided, use default hotel staff demo password
-  const pwd = password || 'HotelStaff@2026';
-  return supabase.auth.signInWithPassword({ email, password: pwd });
+  if (!password) {
+    return { data: null, error: new Error('Senha é obrigatória.') };
+  }
+
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
 /**
@@ -73,10 +75,13 @@ export async function supabaseSignUp(
     return { data: null, error: new Error('Supabase Client não configurado.') };
   }
 
-  const pwd = password || 'HotelStaff@2026';
+  if (!password) {
+    return { data: null, error: new Error('Senha é obrigatória para criar usuário.') };
+  }
+
   return supabase.auth.signUp({
     email,
-    password: pwd,
+    password,
     options: {
       data: metadata || {}
     }
