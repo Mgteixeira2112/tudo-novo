@@ -11,6 +11,7 @@ import { FinancialDashboard } from './components/FinancialDashboard.tsx';
 import { UsersManager } from './components/UsersManager.tsx';
 import { StaffLogin } from './components/StaffLogin.tsx';
 import { HotelSettingsModal } from './components/HotelSettingsModal.tsx';
+import { HomeDashboard } from './components/HomeDashboard.tsx';
 import {
   RoomServiceNotificationToast,
   ToastItem
@@ -20,7 +21,7 @@ import {
   playRoomServiceChime
 } from './services/supabase.ts';
 import { api } from './services/api.ts';
-import { KitchenOrder } from './types.ts';
+import { AdminTab, KitchenOrder } from './types.ts';
 import {
   Hotel,
   ShieldCheck,
@@ -32,7 +33,8 @@ import {
   Mail,
   Loader2,
   BellRing,
-  Lock
+  Lock,
+  Home
 } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -51,6 +53,12 @@ const AppContent: React.FC = () => {
   } = useHotel();
 
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [showHome, setShowHome] = useState(false);
+
+  // Meu Painel is the real landing page after an authenticated session is established.
+  useEffect(() => {
+    setShowHome(Boolean(currentUser));
+  }, [currentUser?.id]);
 
   // Auto-switch tab if current user does not have permission to view activeAdminTab
   useEffect(() => {
@@ -74,6 +82,12 @@ const AppContent: React.FC = () => {
     }
   }, [mode, currentUser, activeAdminTab, canAccessTab, setActiveAdminTab]);
 
+  const navigateFromHome = (tab: AdminTab) => {
+    setShowHome(false);
+    setMode('admin');
+    setActiveAdminTab(tab);
+  };
+
   // -------------------------------------------------------------
   // Real-time Room Service Toast Notification System
   // -------------------------------------------------------------
@@ -92,19 +106,15 @@ const AppContent: React.FC = () => {
   // Trigger toast with sound chime and auto-dismiss
   const triggerRoomServiceToast = useCallback(
     (order: KitchenOrder, source: 'supabase_realtime' | 'backend_sync' | 'simulated') => {
-      // Filter for Room Service delivery
       const isRoomService =
         order.destination === 'Quarto' ||
         order.deliverySector === 'Room Service' ||
         order.deliveryFee > 0;
 
       if (!isRoomService) return;
-
-      // Prevent duplicate toasts for the same order
       if (seenOrderIdsRef.current.has(order.id)) return;
       seenOrderIdsRef.current.add(order.id);
 
-      // Play elegant hotel bell chime
       if (!isMuted) {
         playRoomServiceChime();
       }
@@ -118,10 +128,7 @@ const AppContent: React.FC = () => {
         expiresAt: Date.now() + 10000
       };
 
-      // Stack up to 3 active toasts
       setToasts(prev => [newToast, ...prev.slice(0, 2)]);
-
-      // Auto-dismiss after 10 seconds
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== toastId));
       }, 10000);
@@ -129,7 +136,6 @@ const AppContent: React.FC = () => {
     [isMuted]
   );
 
-  // 1. Initial load to populate existing order IDs (so we don't alert old historical orders)
   useEffect(() => {
     if (!currentUser) return;
     api
@@ -143,7 +149,6 @@ const AppContent: React.FC = () => {
       });
   }, [currentUser?.id]);
 
-  // 2. Supabase Realtime channel subscription for kitchen_orders
   useEffect(() => {
     if (!currentUser) return;
     const unsubscribe = subscribeToKitchenOrdersRealtime(
@@ -163,7 +168,6 @@ const AppContent: React.FC = () => {
     };
   }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);
 
-  // 3. Custom event listener from local UI actions
   useEffect(() => {
     const handleOrderCreatedEvent = (e: any) => {
       const order = e.detail;
@@ -178,7 +182,6 @@ const AppContent: React.FC = () => {
     };
   }, [triggerRoomServiceToast]);
 
-  // 4. Fallback polling check every 4 seconds to sync orders across multi-device sessions
   useEffect(() => {
     if (!currentUser) return;
     const interval = setInterval(async () => {
@@ -201,19 +204,17 @@ const AppContent: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentUser?.id, triggerRoomServiceToast, supabaseStatus?.connected]);
 
-  // Handle dismiss single toast
   const handleDismissToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Handle click on "Atender Pedido"
   const handleNavigateToOrder = (order: KitchenOrder) => {
+    setShowHome(false);
     setMode('admin');
     setActiveAdminTab('fnb');
     setToasts(prev => prev.filter(t => t.order.id !== order.id));
   };
 
-  // Toggle audio mute
   const handleToggleMute = () => {
     setIsMuted(prev => {
       const next = !prev;
@@ -224,7 +225,6 @@ const AppContent: React.FC = () => {
     });
   };
 
-  // Simulation helper for testing Room Service notifications
   const handleTestSimulation = () => {
     const simulatedOrder: KitchenOrder = {
       id: `test_${Date.now()}`,
@@ -264,7 +264,6 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#3D4035] flex flex-col selection:bg-[#CCD5AE] selection:text-[#2C3327]">
-      {/* Real-time Room Service Toast Notification Container */}
       <RoomServiceNotificationToast
         toasts={toasts}
         onDismiss={handleDismissToast}
@@ -275,67 +274,77 @@ const AppContent: React.FC = () => {
         supabaseConnected={supabaseStatus?.connected}
       />
 
-      {/* Top Navigation */}
       <Navbar onOpenSettingsModal={() => setSettingsModalOpen(true)} />
 
-      {/* Main Content Area */}
       <main className="flex-1">
         {mode === 'booking' ? (
-          /* Public Online Booking Engine */
           <OnlineBookingEngine />
         ) : !currentUser ? (
-          /* Protected staff portal */
           <StaffLogin />
         ) : (
-          /* Hotel Admin PMS & Sector Operation */
           <div className="animate-fade-in">
-            {activeAdminTab === 'overview' && <FinancialDashboard />}
-            {activeAdminTab === 'rooms_inventory' && <RoomsAndInventoryManager />}
-            {activeAdminTab === 'kanbans' && <KanbanBoard />}
-            {activeAdminTab === 'checkinout' && <ReceptionManager />}
-            {activeAdminTab === 'guests' && <GuestsManager />}
-            {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
-            {activeAdminTab === 'settings' && (
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-2xl border border-[#E6E3D8] p-8 text-center space-y-4 shadow-sm">
-                  <div className="w-12 h-12 bg-[#F2F5E8] text-[#588157] rounded-full flex items-center justify-center mx-auto border border-[#CCD5AE]/40">
-                    <Database className="w-6 h-6" />
+            {showHome ? (
+              <HomeDashboard onNavigate={navigateFromHome} />
+            ) : (
+              <>
+                {activeAdminTab === 'overview' && <FinancialDashboard />}
+                {activeAdminTab === 'rooms_inventory' && <RoomsAndInventoryManager />}
+                {activeAdminTab === 'kanbans' && <KanbanBoard />}
+                {activeAdminTab === 'checkinout' && <ReceptionManager />}
+                {activeAdminTab === 'guests' && <GuestsManager />}
+                {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
+                {activeAdminTab === 'settings' && (
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="bg-white rounded-2xl border border-[#E6E3D8] p-8 text-center space-y-4 shadow-sm">
+                      <div className="w-12 h-12 bg-[#F2F5E8] text-[#588157] rounded-full flex items-center justify-center mx-auto border border-[#CCD5AE]/40">
+                        <Database className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-lg font-bold text-[#2C3327]">
+                        Configuração do Hotel & Sincronização SQL Supabase
+                      </h3>
+                      <p className="text-xs text-[#6B705C] max-w-lg mx-auto">
+                        Gerencie a identidade visual, taxas, comodidades e execute o script SQL com as 10 tabelas relacionais no seu Supabase com Realtime ativado.
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        <button
+                          onClick={() => setSettingsModalOpen(true)}
+                          className="px-6 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow transition cursor-pointer"
+                        >
+                          Abrir Painel de Configurações & SQL
+                        </button>
+                        <button
+                          onClick={handleTestSimulation}
+                          className="flex items-center space-x-2 px-4 py-2.5 bg-[#F4F1EA] hover:bg-[#EBE7DD] text-[#3D4035] rounded-xl text-xs font-bold transition border border-[#E6E3D8] cursor-pointer"
+                        >
+                          <BellRing className="w-3.5 h-3.5 text-[#588157]" />
+                          <span>Testar Notificação Toast Room Service</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-[#2C3327]">
-                    Configuração do Hotel & Sincronização SQL Supabase
-                  </h3>
-                  <p className="text-xs text-[#6B705C] max-w-lg mx-auto">
-                    Gerencie a identidade visual, taxas, comodidades e execute o script SQL com as 10 tabelas relacionais no seu Supabase com Realtime ativado.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <button
-                      onClick={() => setSettingsModalOpen(true)}
-                      className="px-6 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow transition cursor-pointer"
-                    >
-                      Abrir Painel de Configurações & SQL
-                    </button>
-                    <button
-                      onClick={handleTestSimulation}
-                      className="flex items-center space-x-2 px-4 py-2.5 bg-[#F4F1EA] hover:bg-[#EBE7DD] text-[#3D4035] rounded-xl text-xs font-bold transition border border-[#E6E3D8] cursor-pointer"
-                    >
-                      <BellRing className="w-3.5 h-3.5 text-[#588157]" />
-                      <span>Testar Notificação Toast Room Service</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
       </main>
 
-      {/* Global Hotel Settings & SQL Supabase Modal */}
+      {mode === 'admin' && currentUser && !showHome && (
+        <button
+          onClick={() => setShowHome(true)}
+          className="fixed right-5 bottom-5 z-30 flex items-center gap-2 rounded-2xl bg-[#2C3327] px-4 py-3 text-xs font-bold text-white shadow-xl hover:bg-[#3A4135] transition"
+          title="Voltar ao Meu Painel"
+        >
+          <Home className="w-4 h-4 text-[#CCD5AE]" />
+          Meu Painel
+        </button>
+      )}
+
       <HotelSettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
       />
 
-      {/* Footer */}
       <footer className="bg-white border-t border-[#E6E3D8] py-6 text-xs text-[#6B705C] mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
