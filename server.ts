@@ -271,27 +271,27 @@ app.post('/api/supabase/reconnect', requireSupabaseAuth, requirePermission('mana
 });
 
 // Guests (Cadastro de Hóspedes)
-app.get('/api/guests', requireSupabaseAuth, requirePermission('view_guests'), (req: Request, res: Response) => {
+app.get('/api/guests', requireSupabaseAuth, requirePermission('view_guests'), async (req: Request, res: Response) => {
   try {
-    const guests = dbManager.getGuests();
+    const guests = await dbManager.getGuestsPersistent();
     res.json(guests);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/guests', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
+app.post('/api/guests', requireSupabaseAuth, requirePermission('manage_guests'), async (req: Request, res: Response) => {
   try {
-    const guest = dbManager.createGuest(req.body);
+    const guest = await dbManager.createGuestPersistent(req.body);
     res.status(201).json(guest);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.put('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
+app.put('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), async (req: Request, res: Response) => {
   try {
-    const guest = dbManager.updateGuest(req.params.id, req.body);
+    const guest = await dbManager.updateGuestPersistent(req.params.id, req.body);
     if (!guest) return res.status(404).json({ error: 'Hóspede não encontrado.' });
     res.json(guest);
   } catch (err: any) {
@@ -299,9 +299,9 @@ app.put('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests
   }
 });
 
-app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
+app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), async (req: Request, res: Response) => {
   try {
-    const ok = dbManager.deleteGuest(req.params.id);
+    const ok = await dbManager.deleteGuestPersistent(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Hóspede não encontrado.' });
     res.json({ success: true });
   } catch (err: any) {
@@ -310,27 +310,27 @@ app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_gue
 });
 
 // Rooms
-app.get('/api/rooms', requireSupabaseAuth, requirePermission('view_rooms'), (req: Request, res: Response) => {
+app.get('/api/rooms', requireSupabaseAuth, requirePermission('view_rooms'), async (req: Request, res: Response) => {
   try {
-    const rooms = dbManager.getRooms();
+    const rooms = await dbManager.getRoomsPersistent();
     res.json(rooms);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/rooms', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
+app.post('/api/rooms', requireSupabaseAuth, requirePermission('manage_rooms'), async (req: Request, res: Response) => {
   try {
-    const room = dbManager.createRoom(req.body);
+    const room = await dbManager.createRoomPersistent(req.body);
     res.status(201).json(room);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.put('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
+app.put('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), async (req: Request, res: Response) => {
   try {
-    const room = dbManager.updateRoom(req.params.id, req.body);
+    const room = await dbManager.updateRoomPersistent(req.params.id, req.body);
     if (!room) return res.status(404).json({ error: 'Quarto não encontrado.' });
     res.json(room);
   } catch (err: any) {
@@ -338,10 +338,10 @@ app.put('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms')
   }
 });
 
-app.patch('/api/rooms/:id/status', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
+app.patch('/api/rooms/:id/status', requireSupabaseAuth, requirePermission('manage_rooms'), async (req: Request, res: Response) => {
   try {
     const { status, notes } = req.body;
-    const room = dbManager.updateRoomStatus(req.params.id, status, notes);
+    const room = await dbManager.updateRoomStatusPersistent(req.params.id, status, notes);
     if (!room) return res.status(404).json({ error: 'Quarto não encontrado.' });
     res.json(room);
   } catch (err: any) {
@@ -349,9 +349,9 @@ app.patch('/api/rooms/:id/status', requireSupabaseAuth, requirePermission('manag
   }
 });
 
-app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
+app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), async (req: Request, res: Response) => {
   try {
-    const ok = dbManager.deleteRoom(req.params.id);
+    const ok = await dbManager.deleteRoomPersistent(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Quarto não encontrado.' });
     res.json({ success: true });
   } catch (err: any) {
