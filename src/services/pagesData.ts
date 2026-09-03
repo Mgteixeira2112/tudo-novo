@@ -179,25 +179,16 @@ function mapKitchenOrderRow(r:any): KitchenOrder {
 
 export async function createKitchenOrderInSupabase(input:{roomId:string;items:{menuItemId:string;quantity:number;notes?:string}[];destination:'Quarto'|'Restaurante'|'Piscina';deliverySector:'Cozinha'|'Room Service';specialInstructions?:string}):Promise<KitchenOrder>{
   const supabase=getSupabaseClient(); if(!supabase) throw new Error('Supabase não configurado.');
-  const {data:room,error:roomError}=await supabase.from('rooms').select('*').eq('id',input.roomId).single(); if(roomError) throw roomError;
-  const ids=[...new Set(input.items.map(i=>i.menuItemId))];
-  const {data:menu,error:menuError}=await supabase.from('menu_items').select('*').in('id',ids); if(menuError) throw menuError;
-  const byId=new Map((menu||[]).map((m:any)=>[m.id,m]));
-  const normalized=input.items.filter(i=>Number(i.quantity)>0).map(i=>{const m:any=byId.get(i.menuItemId);if(!m)throw new Error('Item de cardápio inválido.');return{menuItemId:m.id,name:m.name,price:Number(m.price||0),quantity:Number(i.quantity),notes:i.notes||''};});
-  if(!normalized.length) throw new Error('Selecione ao menos um item.');
-  const itemsTotal=normalized.reduce((sum:any,i:any)=>sum+i.price*i.quantity,0);
-  const deliveryFee=input.destination==='Quarto'?15:0;
-  let validReservationId:string|null=null;
-  if(room.current_reservation_id){const{data:r}=await supabase.from('reservations').select('id').eq('id',room.current_reservation_id).maybeSingle();validReservationId=r?.id||null;}
-  const now=new Date().toISOString();
-  const id=`ord_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-  const row={id,order_number:`RS-${String(Date.now()).slice(-6)}`,room_id:room.id,room_number:room.number,reservation_id:validReservationId,guest_name:room.current_guest_name||null,items:normalized,total_amount:itemsTotal+deliveryFee,delivery_fee:deliveryFee,destination:input.destination,delivery_sector:input.deliverySector,status:'Recebido',special_instructions:input.specialInstructions||null,created_at:now,completed_at:null};
-  const {data,error}=await supabase.from('kitchen_orders').insert(row).select('*').single(); if(error) throw error;
-  const {error:finError}=await supabase.from('financial_transactions').insert({id:`tx_${Date.now()}_${Math.floor(Math.random()*1000)}`,type:'Receita',category:'Room Service',description:`Room Service ${row.order_number} - Quarto ${room.number}`,amount:row.total_amount,payment_method:'Faturado',status:'Pendente',reservation_id:validReservationId,room_number:room.number,guest_name:room.current_guest_name||null,date:now.slice(0,10),created_at:now});
-  if(finError){await supabase.from('kitchen_orders').delete().eq('id',id);throw finError;}
+  const {data,error}=await supabase.rpc('create_kitchen_order_atomic',{
+    p_room_id:input.roomId,
+    p_items:input.items,
+    p_destination:input.destination,
+    p_delivery_sector:input.deliverySector,
+    p_special_instructions:input.specialInstructions||null
+  });
+  if(error)throw error;
   return mapKitchenOrderRow(data);
 }
-
 export async function updateKitchenOrderStatusInSupabase(id:string,status:KitchenOrder['status']):Promise<KitchenOrder>{
   const supabase=getSupabaseClient(); if(!supabase) throw new Error('Supabase não configurado.');
   const payload:any={status}; if(status==='Entregue'||status==='Cancelado')payload.completed_at=new Date().toISOString();
