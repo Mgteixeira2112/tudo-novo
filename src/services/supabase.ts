@@ -3,6 +3,7 @@ import { KitchenOrder, StaffUser } from '../types.ts';
 
 const DEFAULT_SUPABASE_URL = 'https://izuymcuzbggrdkezwxyu.supabase.co';
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';
+const DEFAULT_AUTH_REDIRECT_URL = 'https://mgteixeira2112.github.io/tudo-novo/';
 
 let clientInstance: SupabaseClient | null = null;
 let currentUrl: string | null = null;
@@ -86,9 +87,22 @@ export async function supabaseSignUp(
     email,
     password,
     options: {
-      data: metadata || {}
+      data: metadata || {},
+      emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL
     }
   });
+}
+
+export async function resendSupabaseConfirmation(email: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { data, error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL }
+  });
+  if (error) throw error;
+  return data;
 }
 
 /**
@@ -143,7 +157,11 @@ export async function getSupabaseStaffProfile(userId?: string) {
 export async function bootstrapFirstAdmin(email: string, password: string) {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: DEFAULT_AUTH_REDIRECT_URL }
+  });
   if (error) throw error;
   if (!data.user) throw new Error('Não foi possível criar o usuário administrador.');
   if (!data.session) {
