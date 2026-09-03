@@ -14,11 +14,9 @@ import {
   Database
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
-import { ROLE_DEFINITIONS, SECTOR_DEFINITIONS } from '../services/rbac.ts';
-import { StaffUser } from '../types.ts';
 
 export const StaffLogin: React.FC = () => {
-  const { login, allUsers, switchUser, settings, supabaseStatus } = useHotel();
+  const { login, settings, supabaseStatus } = useHotel();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,17 +33,15 @@ export const StaffLogin: React.FC = () => {
     setSubmitting(true);
     setErrorMessage(null);
 
-    const result = await login(email.trim(), password);
-    setSubmitting(false);
-
-    if (!result.success) {
-      setErrorMessage(result.error || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+    try {
+      await login(email.trim(), password);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleQuickSelect = (user: StaffUser) => {
-    switchUser(user);
-  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -71,65 +67,16 @@ export const StaffLogin: React.FC = () => {
               Acesso seguro com <strong>Supabase Auth</strong> e setorização operacional. O sistema filtra automaticamente as abas, relatórios financeiros e ações conforme o cargo do colaborador.
             </p>
 
-            {/* Quick Sector Login Simulators */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B705C]">
-                  Acesso Rápido por Setor / Função
-                </span>
-                <span className="text-[10px] text-[#588157] font-semibold bg-[#E9EDC9] px-2 py-0.5 rounded-full">
-                  1-Click Demo
-                </span>
-              </div>
-
-              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                {allUsers.map(user => {
-                  const roleDef = ROLE_DEFINITIONS[user.role];
-                  const sectorDef = SECTOR_DEFINITIONS[user.sector];
-
-                  return (
-                    <button
-                      key={user.id}
-                      onClick={() => handleQuickSelect(user)}
-                      className="w-full group p-2.5 rounded-2xl bg-white hover:bg-[#E9EDC9]/40 border border-[#E6E3D8] hover:border-[#CCD5AE] flex items-center justify-between text-left transition shadow-2xs"
-                    >
-                      <div className="flex items-center space-x-2.5 min-w-0">
-                        <img
-                          src={
-                            user.avatarUrl ||
-                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
-                          }
-                          alt={user.fullName}
-                          className="w-8 h-8 rounded-xl object-cover border border-[#E6E3D8] shrink-0"
-                        />
-                        <div className="truncate">
-                          <h4 className="text-xs font-bold text-[#2C3327] truncate group-hover:text-[#588157] transition">
-                            {user.fullName}
-                          </h4>
-                          <span className="text-[10px] text-[#6B705C] truncate block">
-                            {roleDef?.title} • {sectorDef?.label}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold border shrink-0 ${
-                          roleDef?.badgeColor || 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        Entrar &rarr;
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="p-4 rounded-2xl bg-white border border-[#E6E3D8] text-xs text-[#6B705C] leading-relaxed">
+              O acesso administrativo exige uma conta ativa no Supabase Auth e um perfil de colaborador ativo no hotel.
+              Não existem mais atalhos de demonstração ou troca de usuário sem autenticação.
             </div>
           </div>
 
           <div className="pt-4 mt-6 border-t border-[#E6E3D8] flex items-center justify-between text-[11px] text-[#6B705C]">
             <span className="flex items-center space-x-1.5">
               <Database className="w-3.5 h-3.5 text-[#588157]" />
-              <span>{supabaseStatus?.connected ? 'Supabase Auth Online' : 'Auth Local Habilitado'}</span>
+              <span>{supabaseStatus?.connected ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>
             </span>
             <span className="font-mono text-[10px] text-[#8E9280]">v2.4 RBAC</span>
           </div>
@@ -192,11 +139,6 @@ export const StaffLogin: React.FC = () => {
                     placeholder="••••••••"
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#E6E3D8] bg-[#FDFBF7] text-xs focus:ring-2 focus:ring-[#588157] focus:outline-none"
                   />
-                </div>
-                <div className="flex justify-between items-center mt-1.5">
-                  <span className="text-[10px] text-[#6B705C]">
-                    Senha padrão demo: <code className="font-mono font-bold">admin123</code>
-                  </span>
                 </div>
               </div>
 
