@@ -1,0 +1,50 @@
+name: Fix inventory auth load
+on:
+  push:
+    branches: [fix/inventario-frigobar-auth-load]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/inventario-frigobar-auth-load
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch authenticated loading
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/components/RoomsAndInventoryManager.tsx')
+          s = p.read_text()
+          s = s.replace("const { rooms, settings, refreshData } = useHotel();", "const { rooms, settings, refreshData, currentUser } = useHotel();")
+          s = s.replace("  useEffect(() => {\n    loadMinibarData();\n    loadKitchenData();\n  }, []);", "  useEffect(() => {\n    if (!currentUser) return;\n    loadMinibarData();\n    loadKitchenData();\n  }, [currentUser?.id]);")
+          p.write_text(s)
+
+          p = Path('src/components/IntegratedInventoryManager.tsx')
+          s = p.read_text()
+          s = s.replace("const { refreshData } = useHotel();", "const { refreshData, currentUser } = useHotel();")
+          s = s.replace("  useEffect(() => {\n    loadInventoryData();\n  }, [selectedSector, onlyLowStock]);", "  useEffect(() => {\n    if (!currentUser) return;\n    loadInventoryData();\n  }, [selectedSector, onlyLowStock, currentUser?.id]);")
+          old = '''      const [fetchedItems, fetchedMovements, fetchedStats] = await Promise.all([\n        api.getInventoryItems(selectedSector, onlyLowStock),\n        api.getStockMovements({ sector: selectedSector !== 'ALL' ? selectedSector : undefined }),\n        api.getInventoryStats()\n      ]);\n      setItems(fetchedItems);\n      setMovements(fetchedMovements);\n      setStats(fetchedStats);'''
+          new = '''      const [itemsResult, movementsResult, statsResult] = await Promise.allSettled([\n        api.getInventoryItems(selectedSector, onlyLowStock),\n        api.getStockMovements({ sector: selectedSector !== 'ALL' ? selectedSector : undefined }),\n        api.getInventoryStats()\n      ]);\n\n      let failed = 0;\n      if (itemsResult.status === 'fulfilled') setItems(itemsResult.value); else failed++;\n      if (movementsResult.status === 'fulfilled') setMovements(movementsResult.value); else failed++;\n      if (statsResult.status === 'fulfilled') setStats(statsResult.value); else failed++;\n\n      if (itemsResult.status === 'rejected') {\n        throw itemsResult.reason;\n      }\n      if (failed > 0) {\n        showToast('Inventário carregado; alguns indicadores auxiliares serão atualizados novamente.', 'error');\n      }'''
+          if old not in s:
+              raise SystemExit('inventory load block not found')
+          s = s.replace(old, new)
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          npm install
+          npm run build
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/RoomsAndInventoryManager.tsx src/components/IntegratedInventoryManager.tsx
+          git commit -m "fix: recarregar inventário após sessão autenticada"
+          git push
