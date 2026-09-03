@@ -290,11 +290,24 @@ export const PERMISSION_DEFINITIONS: Record<
 };
 
 /**
+ * Normalizes legacy JSON staff status and Supabase staff active flag.
+ * Supabase profiles use `active`; legacy profiles use `status`.
+ */
+function isActiveStaffUser(user: StaffUser | null): boolean {
+  if (!user) return false;
+  const status = (user as any).status;
+  if (status !== undefined && status !== null) return status === 'Ativo';
+  const active = (user as any).active;
+  if (typeof active === 'boolean') return active;
+  return false;
+}
+
+/**
  * Checks whether a user possesses a specific permission
  */
 export function hasPermission(user: StaffUser | null, permission: PermissionKey): boolean {
   if (!user) return false;
-  if (user.status !== 'Ativo') return false;
+  if (!isActiveStaffUser(user)) return false;
   if (user.role === 'admin') return true; // Super admin possesses all permissions
   return user.permissions.includes(permission);
 }
@@ -304,7 +317,7 @@ export function hasPermission(user: StaffUser | null, permission: PermissionKey)
  */
 export function canAccessTab(user: StaffUser | null, tab: AdminTab): boolean {
   if (!user) return false;
-  if (user.status !== 'Ativo') return false;
+  if (!isActiveStaffUser(user)) return false;
   if (user.role === 'admin') return true;
 
   switch (tab) {
