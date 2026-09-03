@@ -17,7 +17,7 @@ import {
   StockMovementType,
   StaffUser
 } from '../types.ts';
-import { createKanbanTaskInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase } from './pagesData.ts';
+import { createKanbanTaskInSupabase, createKitchenOrderInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase, updateKitchenOrderStatusInSupabase } from './pagesData.ts';
 import { createInventoryItemCloud, createMinibarItemCloud, createTransactionCloud, deleteInventoryItemCloud, deleteMinibarItemCloud, loadConsumptionsCloud, loadFinancialStatsCloud, loadInventoryItemCloud, loadInventoryItemsCloud, loadInventoryStatsCloud, loadMinibarItemsCloud, loadStockMovementsCloud, loadTransactionsCloud, registerConsumptionCloud, registerStockMovementCloud, restockMinibarItemCloud, updateInventoryItemCloud, updateMinibarItemCloud } from './financeInventoryPages.ts';
 
 const BASE_URL = '/api';
@@ -234,6 +234,7 @@ export const api = {
       body: JSON.stringify(data),
     })
       .then(r => handleResponse<KitchenOrder>(r))
+      .catch(() => createKitchenOrderInSupabase(data))
       .then(order => {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
@@ -249,7 +250,7 @@ export const api = {
       method: 'PATCH',
       headers: protectedHeaders(),
       body: JSON.stringify({ status }),
-    }).then(r => handleResponse<KitchenOrder>(r)),
+    }).then(r => handleResponse<KitchenOrder>(r)).catch(() => updateKitchenOrderStatusInSupabase(id, status)),
 
   // Kanban Tasks
   getTasks: (sector?: string) => {
