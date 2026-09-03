@@ -2072,15 +2072,23 @@ export const RoomsAndInventoryManager: React.FC = () => {
                   <label className="block text-xs font-bold text-[#6B705C] mb-1">
                     Preço Unitário ({settings?.currency || 'R$'}) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="1"
-                    required
-                    value={minibarItemForm.price}
-                    onChange={e => setMinibarItemForm(prev => ({ ...prev, price: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 text-xs border border-[#E6E3D8] rounded-xl bg-[#FDFBF7] text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#6B705C]">R$</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      value={Number(minibarItemForm.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      onFocus={e => e.currentTarget.select()}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        const value = raw ? Number(raw) / 100 : 0;
+                        setMinibarItemForm(prev => ({ ...prev, price: value }));
+                      }}
+                      className="w-full pl-9 pr-3 py-2 text-xs border border-[#E6E3D8] rounded-xl bg-[#FDFBF7] text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]"
+                      placeholder="0,00"
+                    />
+                  </div>
                 </div>
 
                 <div>
