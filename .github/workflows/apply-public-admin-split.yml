@@ -13,21 +13,17 @@ jobs:
         with:
           ref: refactor/fase-01-dados-publicos-admin
       - name: Patch public/admin split
-        shell: python
+        shell: python {0}
         run: |
           from pathlib import Path
           import re
 
-          # ---------------- server.ts ----------------
           p = Path('server.ts')
           s = p.read_text()
-
           marker = "// Settings (Front-end configurável)\n"
-          public_route = """// Public hotel presentation settings (sanitized)\napp.get('/api/public/settings', (req: Request, res: Response) => {\n  try {\n    const settings = dbManager.getSettings();\n    const {\n      hotelName, tagline, address, phone, email, currency,\n      roomTypes, amenities, taxes, checkInTime, checkOutTime,\n      logoUrl, primaryColor, secondaryColor\n    } = settings as any;\n    res.json({\n      hotelName, tagline, address, phone, email, currency,\n      roomTypes, amenities, taxes, checkInTime, checkOutTime,\n      logoUrl, primaryColor, secondaryColor\n    });\n  } catch (err: any) {\n    res.status(500).json({ error: err.message });\n  }\n});\n\n"""
+          public_route = """// Public hotel presentation settings (sanitized)\napp.get('/api/public/settings', (req: Request, res: Response) => {\n  try {\n    const settings = dbManager.getSettings();\n    const { hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor } = settings as any;\n    res.json({ hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor });\n  } catch (err: any) {\n    res.status(500).json({ error: err.message });\n  }\n});\n\n"""
           if public_route not in s:
               s = s.replace(marker, public_route + marker)
-
-          # Sensitive GETs: authenticated + permission checked.
           repl = {
             "app.get('/api/supabase/status', (req: Request, res: Response) => {": "app.get('/api/supabase/status', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {",
             "app.get('/api/supabase/schema-sql', (req: Request, res: Response) => {": "app.get('/api/supabase/schema-sql', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {",
@@ -41,11 +37,9 @@ jobs:
             "app.get('/api/financial/transactions', (req: Request, res: Response) => {": "app.get('/api/financial/transactions', requireSupabaseAuth, requirePermission('view_financial'), (req: Request, res: Response) => {",
             "app.get('/api/financial/stats', (req: Request, res: Response) => {": "app.get('/api/financial/stats', requireSupabaseAuth, requirePermission('view_financial'), (req: Request, res: Response) => {",
           }
-          for a,b in repl.items():
-              s = s.replace(a,b)
+          for a,b in repl.items(): s = s.replace(a,b)
           p.write_text(s)
 
-          # ---------------- api.ts ----------------
           p = Path('src/services/api.ts')
           s = p.read_text()
           if 'export function hasApiAccessToken' not in s:
@@ -67,84 +61,24 @@ jobs:
           for a,b in get_repls.items(): s = s.replace(a,b)
           p.write_text(s)
 
-          # ---------------- HotelContext.tsx ----------------
           p = Path('src/context/HotelContext.tsx')
           s = p.read_text()
           s = s.replace("import { api, setApiAccessToken } from '../services/api.ts';", "import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';")
           start = s.index('  const refreshData = useCallback(async () => {')
           end = s.index('\n\n  const updateSettings', start)
-          new_refresh = r'''  const clearPrivateData = useCallback(() => {
-    setRooms([]);
-    setGuests([]);
-    setReservations([]);
-    setTasks([]);
-    setTransactions([]);
-    setStats(null);
-    setSupabaseStatus(null);
-    setAllUsers([]);
-  }, []);
-
-  const refreshData = useCallback(async () => {
-    try {
-      if (!hasApiAccessToken()) {
-        const publicSettings = await api.getPublicSettings();
-        setSettings(publicSettings);
-        clearPrivateData();
-        setError(null);
-        return;
-      }
-
-      const [
-        fetchedSettings,
-        fetchedRooms,
-        fetchedGuests,
-        fetchedReservations,
-        fetchedTasks,
-        fetchedTransactions,
-        fetchedStats,
-        fetchedSupabase,
-        fetchedUsers
-      ] = await Promise.all([
-        api.getSettings(),
-        api.getRooms(),
-        api.getGuests(),
-        api.getReservations(),
-        api.getTasks(),
-        api.getTransactions(),
-        api.getFinancialStats(),
-        api.getSupabaseStatus().catch(() => null),
-        api.getUsers().catch(() => [])
-      ]);
-
-      setSettings(fetchedSettings);
-      setRooms(fetchedRooms);
-      setGuests(fetchedGuests);
-      setReservations(fetchedReservations);
-      setTasks(fetchedTasks);
-      setTransactions(fetchedTransactions);
-      setStats(fetchedStats);
-      setSupabaseStatus(fetchedSupabase);
-      setAllUsers(fetchedUsers);
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching hotel data:', err);
-      setError(err.message || 'Erro ao carregar dados do servidor.');
-    } finally {
-      setLoading(false);
-    }
-  }, [clearPrivateData]);'''
+          new_refresh = '''  const clearPrivateData = useCallback(() => {\n    setRooms([]); setGuests([]); setReservations([]); setTasks([]); setTransactions([]); setStats(null); setSupabaseStatus(null); setAllUsers([]);\n  }, []);\n\n  const refreshData = useCallback(async () => {\n    try {\n      if (!hasApiAccessToken()) {\n        const publicSettings = await api.getPublicSettings();\n        setSettings(publicSettings);\n        clearPrivateData();\n        setError(null);\n        return;\n      }\n      const [fetchedSettings, fetchedRooms, fetchedGuests, fetchedReservations, fetchedTasks, fetchedTransactions, fetchedStats, fetchedSupabase, fetchedUsers] = await Promise.all([\n        api.getSettings(), api.getRooms(), api.getGuests(), api.getReservations(), api.getTasks(), api.getTransactions(), api.getFinancialStats(), api.getSupabaseStatus().catch(() => null), api.getUsers().catch(() => [])\n      ]);\n      setSettings(fetchedSettings); setRooms(fetchedRooms); setGuests(fetchedGuests); setReservations(fetchedReservations); setTasks(fetchedTasks); setTransactions(fetchedTransactions); setStats(fetchedStats); setSupabaseStatus(fetchedSupabase); setAllUsers(fetchedUsers); setError(null);\n    } catch (err: any) {\n      console.error('Error fetching hotel data:', err);\n      setError(err.message || 'Erro ao carregar dados do servidor.');\n    } finally { setLoading(false); }\n  }, [clearPrivateData]);'''
           s = s[:start] + new_refresh + s[end:]
           s = s.replace("      setActiveAdminTab(defaultTab);\n      return result.user;", "      setActiveAdminTab(defaultTab);\n      await refreshData();\n      return result.user;")
           s = s.replace("    setCurrentUser(null);\n    setMode('booking');", "    setCurrentUser(null);\n    clearPrivateData();\n    setMode('booking');\n    await refreshData().catch(() => {});")
-          s = s.replace("        setActiveAdminTab(defaultTab);", "        setActiveAdminTab(defaultTab);\n        await refreshData();", 1)
-          # Gate staff realtime and polling by authenticated user.
+          restore_anchor = "        const defaultTab = getDefaultTabForUser(staff);\n        setActiveAdminTab(defaultTab);"
+          s = s.replace(restore_anchor, restore_anchor + "\n        await refreshData();")
           s = s.replace("  useEffect(() => {\n    const unsub = subscribeToStaffUsersRealtime(", "  useEffect(() => {\n    if (!currentUser) return;\n    const unsub = subscribeToStaffUsersRealtime(")
           s = s.replace("  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);\n\n  // Real-time polling", "  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);\n\n  // Real-time polling")
-          s = s.replace("  useEffect(() => {\n    const interval = setInterval(() => {\n      Promise.all([", "  useEffect(() => {\n    if (!currentUser) return;\n    const interval = setInterval(() => {\n      Promise.all([")
-          s = s.replace("  }, []);\n\n  return (\n    <HotelContext.Provider", "  }, [currentUser?.id]);\n\n  return (\n    <HotelContext.Provider", 1)
+          poll_anchor = "  useEffect(() => {\n    const interval = setInterval(() => {\n      Promise.all(["
+          s = s.replace(poll_anchor, "  useEffect(() => {\n    if (!currentUser) return;\n    const interval = setInterval(() => {\n      Promise.all([")
+          s = s.replace("  }, []);\n\n  return (\n    <HotelContext.Provider", "  }, [currentUser?.id]);\n\n  return (\n    <HotelContext.Provider")
           p.write_text(s)
 
-          # ---------------- App.tsx ----------------
           p = Path('src/App.tsx')
           s = p.read_text()
           s = s.replace("  useEffect(() => {\n    api\n      .getOrders()", "  useEffect(() => {\n    if (!currentUser) return;\n    api\n      .getOrders()")
@@ -153,13 +87,10 @@ jobs:
           s = s.replace("  }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);", "  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);")
           s = s.replace("  useEffect(() => {\n    const interval = setInterval(async () => {", "  useEffect(() => {\n    if (!currentUser) return;\n    const interval = setInterval(async () => {")
           s = s.replace("  }, [triggerRoomServiceToast, supabaseStatus?.connected]);", "  }, [currentUser?.id, triggerRoomServiceToast, supabaseStatus?.connected]);")
-          # Never expose Wi-Fi credentials publicly.
-          s = re.sub(r"\s*<span className=\"text\[#E6E3D8\]\">\|</span>\s*<span>Wi-Fi:.*?</span>", "", s, flags=re.S)
-          # fallback exact current JSX
           s = s.replace("            <span className=\"text-[#E6E3D8]\">|</span>\n            <span>Wi-Fi: <strong className=\"text-[#3D4035]\">{settings?.wifiPassword || 'Horizonte@2025'}</strong></span>\n", "")
           p.write_text(s)
 
-          Path('docs/FASE-01-05-PUBLIC-ADMIN-DATA.md').write_text('''# FASE 1.5 — Separação de dados públicos e administrativos\n\n- `/api/public/settings` entrega apenas campos de apresentação necessários ao site/reserva.\n- Credenciais Wi-Fi e configurações operacionais não são expostas publicamente.\n- GETs de hóspedes, quartos operacionais, reservas internas, consumos, pedidos, tarefas, financeiro e Supabase exigem autenticação/permissão.\n- O frontend carrega apenas settings sanitizados quando não há sessão.\n- Após login/restauração de sessão, o frontend carrega o conjunto administrativo autorizado.\n- Realtime/polling operacional só inicia para colaborador autenticado.\n- POST de reserva online permanece público por desenho.\n''')
+          Path('docs/FASE-01-05-PUBLIC-ADMIN-DATA.md').write_text("# FASE 1.5 — Separação de dados públicos e administrativos\n\n- /api/public/settings entrega apenas campos sanitizados.\n- Dados operacionais exigem autenticação/permissão.\n- Realtime e polling operacional só rodam para colaborador autenticado.\n- POST de reserva online permanece público.\n")
       - name: Commit patch
         run: |
           git config user.name github-actions[bot]
