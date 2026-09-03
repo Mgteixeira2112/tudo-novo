@@ -1,0 +1,30 @@
+name: Apply final security audit
+on:
+  push:
+    branches: [refactor/fase-01-final-security-audit]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/fase-01-final-security-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply final security audit
+        run: python scripts/apply_final_security_audit.py
+      - name: Validate full build
+        run: |
+          npm install
+          npm run build
+      - name: Commit audit fixes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add server.ts src/context/HotelContext.tsx docs/FASE-01-07-AUDITORIA-FINAL-SEGURANCA.md
+          git commit -m "security: close final auth and impersonation gaps" || exit 0
+          git push
