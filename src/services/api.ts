@@ -17,7 +17,7 @@ import {
   StockMovementType,
   StaffUser
 } from '../types.ts';
-import { loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase } from './pagesData.ts';
+import { createKanbanTaskInSupabase, deleteKanbanTaskInSupabase, loadKanbanTasksFromSupabase, loadKitchenOrdersFromSupabase, loadMenuItemsFromSupabase, updateKanbanTaskInSupabase } from './pagesData.ts';
 
 const BASE_URL = '/api';
 
@@ -260,15 +260,15 @@ export const api = {
       method: 'POST',
       headers: protectedHeaders(),
       body: JSON.stringify(task),
-    }).then(r => handleResponse<KanbanTask>(r)),
+    }).then(r => handleResponse<KanbanTask>(r)).catch(() => createKanbanTaskInSupabase(task)),
   updateTask: (id: string, updates: Partial<KanbanTask>) =>
     fetch(`${BASE_URL}/tasks/${id}`, {
       method: 'PATCH',
       headers: protectedHeaders(),
       body: JSON.stringify(updates),
-    }).then(r => handleResponse<KanbanTask>(r)),
+    }).then(r => handleResponse<KanbanTask>(r)).catch(() => updateKanbanTaskInSupabase(id, updates)),
   deleteTask: (id: string) =>
-    fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)).catch(() => deleteKanbanTaskInSupabase(id)),
 
   // Financial Control
   getTransactions: () => fetch(`${BASE_URL}/financial/transactions`, { headers: protectedHeaders() }).then(r => handleResponse<FinancialTransaction[]>(r)),
