@@ -20,7 +20,7 @@ import { Room, Reservation, RoomMinibarConsumption, KitchenOrder } from '../type
 import { api } from '../services/api.ts';
 
 export const CheckInCheckOutModal: React.FC = () => {
-  const { rooms, reservations, settings, refreshData } = useHotel();
+  const { rooms, reservations, settings, transactions, refreshData } = useHotel();
 
   const [activeTab, setActiveTab] = useState<'checkin' | 'checkout'>('checkin');
 
@@ -44,7 +44,8 @@ export const CheckInCheckOutModal: React.FC = () => {
   // Filter pending confirmed reservations for check-in
   const checkinReservations = reservations.filter(r => r.status === 'Confirmada' || r.status === 'Pendente');
   // Available clean rooms
-  const availableCleanRooms = rooms.filter(r => r.status === 'Disponivel');
+  const selectedReservation = reservations.find(r => r.id === selectedResId);
+  const availableCleanRooms = rooms.filter(r => r.status === 'Disponivel' && (!selectedReservation || r.typeName === selectedReservation.roomTypeName));
   // Occupied rooms for check-out
   const occupiedRooms = rooms.filter(r => r.status === 'Ocupado');
 
@@ -114,9 +115,12 @@ export const CheckInCheckOutModal: React.FC = () => {
 
   // Compute checkout totals
   const nightsTotal = activeReservation ? activeReservation.totalNightsAmount : 0;
-  const minibarTotal = roomConsumptions.reduce((acc, c) => acc + c.totalPrice, 0);
-  const kitchenTotal = roomOrders.reduce((acc, o) => acc + o.totalAmount + (o.deliveryFee || 0), 0);
-  const totalBill = Math.max(0, nightsTotal + minibarTotal + kitchenTotal - (checkoutDiscount || 0));
+  const minibarTotal = roomConsumptions.filter(c => !activeReservation || c.reservationId === activeReservation.id).reduce((acc, c) => acc + c.totalPrice, 0);
+  const kitchenTotal = roomOrders.filter(o => !activeReservation || o.reservationId === activeReservation.id).reduce((acc, o) => acc + o.totalAmount + (o.deliveryFee || 0), 0);
+  const priorPaid = activeReservation
+    ? transactions.filter(tx => tx.reservationId === activeReservation.id && tx.type === 'Receita' && tx.status === 'Pago').reduce((acc, tx) => acc + tx.amount, 0)
+    : 0;
+  const totalBill = Math.max(0, nightsTotal + minibarTotal + kitchenTotal - (checkoutDiscount || 0) - priorPaid);
 
   const handleExecuteCheckOut = async () => {
     if (!activeReservation || !selectedOccupiedRoom) return;
@@ -494,6 +498,13 @@ export const CheckInCheckOutModal: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {priorPaid > 0 && (
+                    <div className="flex items-center justify-between p-2 text-[#588157]">
+                      <span>Pagamentos já realizados:</span>
+                      <span className="font-bold">- {currency} {priorPaid.toLocaleString('pt-BR')}</span>
+                    </div>
+                  )}
 
                   {/* Desconto */}
                   <div className="flex items-center justify-between p-2">
