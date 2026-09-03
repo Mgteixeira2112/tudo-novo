@@ -59,7 +59,7 @@ export const api = {
 
   // Supabase Status & SQL
   getSupabaseStatus: () => fetch(`${BASE_URL}/supabase/status`).then(r => handleResponse<SupabaseConfigStatus>(r)),
-  getSupabaseSQL: () => fetch(`${BASE_URL}/supabase/schema-sql`).then(r => r.text()),
+  getSupabaseSQL: () => fetch(`${BASE_URL}/supabase/schema-sql`, { headers: protectedHeaders() }).then(r => r.text()),
   reconnectSupabase: () =>
     fetch(`${BASE_URL}/supabase/reconnect`, { method: 'POST', headers: protectedHeaders() }).then(r => handleResponse<SupabaseConfigStatus>(r)),
 
@@ -68,40 +68,40 @@ export const api = {
   createGuest: (guest: Omit<Guest, 'id' | 'createdAt' | 'updatedAt' | 'totalStays' | 'totalSpent'>) =>
     fetch(`${BASE_URL}/guests`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(guest),
     }).then(r => handleResponse<Guest>(r)),
   updateGuest: (id: string, guest: Partial<Guest>) =>
     fetch(`${BASE_URL}/guests/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(guest),
     }).then(r => handleResponse<Guest>(r)),
   deleteGuest: (id: string) =>
-    fetch(`${BASE_URL}/guests/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/guests/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Rooms
   getRooms: () => fetch(`${BASE_URL}/rooms`).then(r => handleResponse<Room[]>(r)),
   createRoom: (room: Omit<Room, 'id'>) =>
     fetch(`${BASE_URL}/rooms`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(room),
     }).then(r => handleResponse<Room>(r)),
   updateRoom: (id: string, room: Partial<Room>) =>
     fetch(`${BASE_URL}/rooms/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(room),
     }).then(r => handleResponse<Room>(r)),
   updateRoomStatus: (id: string, status: Room['status'], notes?: string) =>
     fetch(`${BASE_URL}/rooms/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify({ status, notes }),
     }).then(r => handleResponse<Room>(r)),
   deleteRoom: (id: string) =>
-    fetch(`${BASE_URL}/rooms/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/rooms/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Reservations
   getReservations: () => fetch(`${BASE_URL}/reservations`).then(r => handleResponse<Reservation[]>(r)),
@@ -120,13 +120,13 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/reservations`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<Reservation>(r)),
   updateReservation: (id: string, updates: Partial<Reservation>) =>
     fetch(`${BASE_URL}/reservations/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(updates),
     }).then(r => handleResponse<Reservation>(r)),
 
@@ -141,7 +141,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/checkin`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<{ reservation: Reservation; room: Room; task: KanbanTask }>(r)),
 
@@ -155,7 +155,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/checkout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r =>
       handleResponse<{
@@ -178,23 +178,23 @@ export const api = {
   createMinibarItem: (item: Omit<MinibarItem, 'id'>) =>
     fetch(`${BASE_URL}/minibar/items`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(item),
     }).then(r => handleResponse<MinibarItem>(r)),
   updateMinibarItem: (id: string, updates: Partial<MinibarItem>) =>
     fetch(`${BASE_URL}/minibar/items/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(updates),
     }).then(r => handleResponse<MinibarItem>(r)),
   restockMinibarItem: (id: string, quantityToAdd: number) =>
     fetch(`${BASE_URL}/minibar/items/${id}/restock`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify({ quantityToAdd }),
     }).then(r => handleResponse<MinibarItem>(r)),
   deleteMinibarItem: (id: string) =>
-    fetch(`${BASE_URL}/minibar/items/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/minibar/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
   getRoomConsumptions: (roomId?: string) => {
     const url = roomId ? `${BASE_URL}/minibar/consumptions?roomId=${roomId}` : `${BASE_URL}/minibar/consumptions`;
     return fetch(url).then(r => handleResponse<RoomMinibarConsumption[]>(r));
@@ -207,7 +207,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/minibar/consumptions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<RoomMinibarConsumption>(r)),
 
@@ -223,7 +223,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/kitchen/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     })
       .then(r => handleResponse<KitchenOrder>(r))
@@ -240,7 +240,7 @@ export const api = {
   updateOrderStatus: (id: string, status: KitchenOrder['status']) =>
     fetch(`${BASE_URL}/kitchen/orders/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify({ status }),
     }).then(r => handleResponse<KitchenOrder>(r)),
 
@@ -252,24 +252,24 @@ export const api = {
   createTask: (task: Omit<KanbanTask, 'id' | 'createdAt' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/tasks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(task),
     }).then(r => handleResponse<KanbanTask>(r)),
   updateTask: (id: string, updates: Partial<KanbanTask>) =>
     fetch(`${BASE_URL}/tasks/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(updates),
     }).then(r => handleResponse<KanbanTask>(r)),
   deleteTask: (id: string) =>
-    fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
 
   // Financial Control
   getTransactions: () => fetch(`${BASE_URL}/financial/transactions`).then(r => handleResponse<FinancialTransaction[]>(r)),
   createTransaction: (tx: Omit<FinancialTransaction, 'id' | 'createdAt'>) =>
     fetch(`${BASE_URL}/financial/transactions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(tx),
     }).then(r => handleResponse<FinancialTransaction>(r)),
   getFinancialStats: () => fetch(`${BASE_URL}/financial/stats`).then(r => handleResponse<FinancialStats>(r)),
@@ -280,23 +280,23 @@ export const api = {
     if (sector && sector !== 'ALL') params.append('sector', sector);
     if (lowStock) params.append('lowStock', 'true');
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetch(`${BASE_URL}/inventory/items${query}`).then(r => handleResponse<InventoryItem[]>(r));
+    return fetch(`${BASE_URL}/inventory/items${query}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem[]>(r));
   },
-  getInventoryItem: (id: string) => fetch(`${BASE_URL}/inventory/items/${id}`).then(r => handleResponse<InventoryItem>(r)),
+  getInventoryItem: (id: string) => fetch(`${BASE_URL}/inventory/items/${id}`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryItem>(r)),
   createInventoryItem: (item: Omit<InventoryItem, 'id' | 'updatedAt'>) =>
     fetch(`${BASE_URL}/inventory/items`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(item),
     }).then(r => handleResponse<InventoryItem>(r)),
   updateInventoryItem: (id: string, updates: Partial<InventoryItem>) =>
     fetch(`${BASE_URL}/inventory/items/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(updates),
     }).then(r => handleResponse<InventoryItem>(r)),
   deleteInventoryItem: (id: string) =>
-    fetch(`${BASE_URL}/inventory/items/${id}`, { method: 'DELETE' }).then(r => handleResponse<{ success: boolean }>(r)),
+    fetch(`${BASE_URL}/inventory/items/${id}`, { method: 'DELETE', headers: protectedHeaders() }).then(r => handleResponse<{ success: boolean }>(r)),
   registerStockMovement: (data: {
     itemId: string;
     type: StockMovementType;
@@ -312,7 +312,7 @@ export const api = {
   }) =>
     fetch(`${BASE_URL}/inventory/movements`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<{ item: InventoryItem; movement: StockMovement }>(r)),
   getStockMovements: (filters?: { itemId?: string; sector?: string; type?: string; limit?: number }) => {
@@ -322,13 +322,13 @@ export const api = {
     if (filters?.type && filters.type !== 'ALL') params.append('type', filters.type);
     if (filters?.limit) params.append('limit', String(filters.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetch(`${BASE_URL}/inventory/movements${query}`).then(r => handleResponse<StockMovement[]>(r));
+    return fetch(`${BASE_URL}/inventory/movements${query}`, { headers: protectedHeaders() }).then(r => handleResponse<StockMovement[]>(r));
   },
-  getInventoryStats: () => fetch(`${BASE_URL}/inventory/stats`).then(r => handleResponse<InventoryStats>(r)),
+  getInventoryStats: () => fetch(`${BASE_URL}/inventory/stats`, { headers: protectedHeaders() }).then(r => handleResponse<InventoryStats>(r)),
   triggerReplenishmentOrder: (itemIds?: string[]) =>
     fetch(`${BASE_URL}/inventory/replenish-order`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify({ itemIds }),
     }).then(r => handleResponse<{ tasksCreated: number; estimatedCost: number }>(r)),
 
@@ -354,7 +354,7 @@ export const api = {
   login: (data: { email: string; password?: string; supabaseAuthId?: string }) =>
     fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: protectedHeaders(),
       body: JSON.stringify(data),
     }).then(r => handleResponse<{ user: StaffUser; token: string }>(r)),
   register: (data: {

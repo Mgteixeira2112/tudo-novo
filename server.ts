@@ -115,7 +115,7 @@ app.get('/api/supabase/status', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/supabase/schema-sql', (req: Request, res: Response) => {
+app.get('/api/supabase/schema-sql', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     const sql = dbManager.getSupabaseSchemaSQL();
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -125,7 +125,7 @@ app.get('/api/supabase/schema-sql', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/supabase/reconnect', requireSupabaseAuth, (req: Request, res: Response) => {
+app.post('/api/supabase/reconnect', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     dbManager.initSupabaseClient();
     const status = dbManager.getSupabaseStatus();
@@ -145,7 +145,7 @@ app.get('/api/guests', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/guests', (req: Request, res: Response) => {
+app.post('/api/guests', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
   try {
     const guest = dbManager.createGuest(req.body);
     res.status(201).json(guest);
@@ -154,7 +154,7 @@ app.post('/api/guests', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/guests/:id', (req: Request, res: Response) => {
+app.put('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
   try {
     const guest = dbManager.updateGuest(req.params.id, req.body);
     if (!guest) return res.status(404).json({ error: 'Hóspede não encontrado.' });
@@ -164,7 +164,7 @@ app.put('/api/guests/:id', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/guests/:id', (req: Request, res: Response) => {
+app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_guests'), (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteGuest(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Hóspede não encontrado.' });
@@ -184,7 +184,7 @@ app.get('/api/rooms', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/rooms', (req: Request, res: Response) => {
+app.post('/api/rooms', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
   try {
     const room = dbManager.createRoom(req.body);
     res.status(201).json(room);
@@ -193,7 +193,7 @@ app.post('/api/rooms', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/rooms/:id', (req: Request, res: Response) => {
+app.put('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
   try {
     const room = dbManager.updateRoom(req.params.id, req.body);
     if (!room) return res.status(404).json({ error: 'Quarto não encontrado.' });
@@ -203,7 +203,7 @@ app.put('/api/rooms/:id', (req: Request, res: Response) => {
   }
 });
 
-app.patch('/api/rooms/:id/status', (req: Request, res: Response) => {
+app.patch('/api/rooms/:id/status', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
   try {
     const { status, notes } = req.body;
     const room = dbManager.updateRoomStatus(req.params.id, status, notes);
@@ -214,7 +214,7 @@ app.patch('/api/rooms/:id/status', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/rooms/:id', (req: Request, res: Response) => {
+app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_rooms'), (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteRoom(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Quarto não encontrado.' });
@@ -243,7 +243,7 @@ app.post('/api/reservations', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/reservations/:id', (req: Request, res: Response) => {
+app.put('/api/reservations/:id', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
   try {
     const reservation = dbManager.updateReservation(req.params.id, req.body);
     if (!reservation) return res.status(404).json({ error: 'Reserva não encontrada.' });
@@ -254,7 +254,7 @@ app.put('/api/reservations/:id', (req: Request, res: Response) => {
 });
 
 // Check-in & Check-out Flows
-app.post('/api/checkin', (req: Request, res: Response) => {
+app.post('/api/checkin', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
   try {
     const result = dbManager.processCheckIn(req.body);
     res.json(result);
@@ -263,7 +263,7 @@ app.post('/api/checkin', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/checkout', (req: Request, res: Response) => {
+app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkinout'), (req: Request, res: Response) => {
   try {
     const result = dbManager.processCheckOut(req.body);
     res.json(result);
@@ -282,7 +282,7 @@ app.get('/api/minibar/items', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/minibar/items', (req: Request, res: Response) => {
+app.post('/api/minibar/items', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const item = dbManager.createMinibarItem(req.body);
     res.status(201).json(item);
@@ -291,7 +291,7 @@ app.post('/api/minibar/items', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/minibar/items/:id', (req: Request, res: Response) => {
+app.put('/api/minibar/items/:id', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const item = dbManager.updateMinibarItem(req.params.id, req.body);
     if (!item) return res.status(404).json({ error: 'Item de frigobar não encontrado.' });
@@ -301,7 +301,7 @@ app.put('/api/minibar/items/:id', (req: Request, res: Response) => {
   }
 });
 
-app.patch('/api/minibar/items/:id/restock', (req: Request, res: Response) => {
+app.patch('/api/minibar/items/:id/restock', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const { quantityToAdd } = req.body;
     const item = dbManager.restockMinibarItem(req.params.id, quantityToAdd);
@@ -312,7 +312,7 @@ app.patch('/api/minibar/items/:id/restock', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/minibar/items/:id', (req: Request, res: Response) => {
+app.delete('/api/minibar/items/:id', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteMinibarItem(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Item de frigobar não encontrado.' });
@@ -332,7 +332,7 @@ app.get('/api/minibar/consumptions', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/minibar/consumptions', (req: Request, res: Response) => {
+app.post('/api/minibar/consumptions', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const consumption = dbManager.registerMinibarConsumption(req.body);
     res.status(201).json(consumption);
@@ -369,7 +369,7 @@ app.post('/api/kitchen/orders', (req: Request, res: Response) => {
   }
 });
 
-app.patch('/api/kitchen/orders/:id/status', (req: Request, res: Response) => {
+app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermission('manage_fnb'), (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     const order = dbManager.updateOrderStatus(req.params.id, status);
@@ -391,7 +391,7 @@ app.get('/api/tasks', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/tasks', (req: Request, res: Response) => {
+app.post('/api/tasks', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const task = dbManager.createTask(req.body);
     res.status(201).json(task);
@@ -400,7 +400,7 @@ app.post('/api/tasks', (req: Request, res: Response) => {
   }
 });
 
-app.patch('/api/tasks/:id', (req: Request, res: Response) => {
+app.patch('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const task = dbManager.updateTask(req.params.id, req.body);
     if (!task) return res.status(404).json({ error: 'Tarefa não encontrada.' });
@@ -410,7 +410,7 @@ app.patch('/api/tasks/:id', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/tasks/:id', (req: Request, res: Response) => {
+app.delete('/api/tasks/:id', requireSupabaseAuth, (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteTask(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Tarefa não encontrada.' });
@@ -430,7 +430,7 @@ app.get('/api/financial/transactions', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/financial/transactions', (req: Request, res: Response) => {
+app.post('/api/financial/transactions', requireSupabaseAuth, requirePermission('manage_financial'), (req: Request, res: Response) => {
   try {
     const tx = dbManager.createTransaction(req.body);
     res.status(201).json(tx);
@@ -451,7 +451,7 @@ app.get('/api/financial/stats', (req: Request, res: Response) => {
 // -------------------------------------------------------------
 // Integrated Real-Time Inventory & Kardex Routes
 // -------------------------------------------------------------
-app.get('/api/inventory/items', (req: Request, res: Response) => {
+app.get('/api/inventory/items', requireSupabaseAuth, requirePermission('view_inventory'), (req: Request, res: Response) => {
   try {
     const sector = req.query.sector as string | undefined;
     const lowStockOnly = req.query.lowStock === 'true';
@@ -462,7 +462,7 @@ app.get('/api/inventory/items', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/inventory/items/:id', (req: Request, res: Response) => {
+app.get('/api/inventory/items/:id', requireSupabaseAuth, requirePermission('view_inventory'), (req: Request, res: Response) => {
   try {
     const item = dbManager.getInventoryItemById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Item não encontrado.' });
@@ -472,7 +472,7 @@ app.get('/api/inventory/items/:id', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/inventory/items', (req: Request, res: Response) => {
+app.post('/api/inventory/items', requireSupabaseAuth, requirePermission('manage_inventory'), (req: Request, res: Response) => {
   try {
     const item = dbManager.createInventoryItem(req.body);
     res.status(201).json(item);
@@ -481,7 +481,7 @@ app.post('/api/inventory/items', (req: Request, res: Response) => {
   }
 });
 
-app.put('/api/inventory/items/:id', (req: Request, res: Response) => {
+app.put('/api/inventory/items/:id', requireSupabaseAuth, requirePermission('manage_inventory'), (req: Request, res: Response) => {
   try {
     const item = dbManager.updateInventoryItem(req.params.id, req.body);
     if (!item) return res.status(404).json({ error: 'Item não encontrado.' });
@@ -491,7 +491,7 @@ app.put('/api/inventory/items/:id', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/inventory/items/:id', (req: Request, res: Response) => {
+app.delete('/api/inventory/items/:id', requireSupabaseAuth, requirePermission('manage_inventory'), (req: Request, res: Response) => {
   try {
     const ok = dbManager.deleteInventoryItem(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Item não encontrado.' });
@@ -501,7 +501,7 @@ app.delete('/api/inventory/items/:id', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/inventory/movements', (req: Request, res: Response) => {
+app.post('/api/inventory/movements', requireSupabaseAuth, requirePermission('manage_inventory'), (req: Request, res: Response) => {
   try {
     const result = dbManager.registerStockMovement(req.body);
     res.status(201).json(result);
@@ -510,7 +510,7 @@ app.post('/api/inventory/movements', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/inventory/movements', (req: Request, res: Response) => {
+app.get('/api/inventory/movements', requireSupabaseAuth, requirePermission('view_inventory'), (req: Request, res: Response) => {
   try {
     const { itemId, sector, type, limit } = req.query;
     const movements = dbManager.getStockMovements({
@@ -525,7 +525,7 @@ app.get('/api/inventory/movements', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/inventory/stats', (req: Request, res: Response) => {
+app.get('/api/inventory/stats', requireSupabaseAuth, requirePermission('view_inventory'), (req: Request, res: Response) => {
   try {
     const stats = dbManager.getInventoryStats();
     res.json(stats);
@@ -534,7 +534,7 @@ app.get('/api/inventory/stats', (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/inventory/replenish-order', (req: Request, res: Response) => {
+app.post('/api/inventory/replenish-order', requireSupabaseAuth, requirePermission('manage_inventory'), (req: Request, res: Response) => {
   try {
     const { itemIds } = req.body || {};
     const result = dbManager.generateReplenishmentOrders(itemIds);
@@ -628,18 +628,13 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Conta autenticada sem e-mail válido.' });
     }
 
-    let user = dbManager.getUserByEmail(verifiedEmail);
+    const user = dbManager.getUserByEmail(verifiedEmail);
 
-    // Create the local staff profile only after Supabase has verified the identity.
+    // Supabase identity alone never grants hotel staff access.
+    // A staff profile must be provisioned beforehand by an authorized manager/admin.
     if (!user) {
-      user = dbManager.createUser({
-        email: verifiedEmail,
-        fullName: String(authData.user.user_metadata?.full_name || verifiedEmail.split('@')[0]),
-        role: 'recepcionista',
-        sector: 'Recepcao',
-        status: 'Ativo',
-        permissions: ['view_rooms', 'view_checkinout', 'manage_checkinout', 'view_guests', 'view_kanbans'],
-        supabaseAuthId: authData.user.id
+      return res.status(403).json({
+        error: 'Conta autenticada, mas sem perfil de colaborador autorizado neste hotel.'
       });
     }
 
@@ -680,10 +675,7 @@ app.post('/api/auth/register', requireSupabaseAuth, requirePermission('manage_us
       supabaseAuthId
     });
 
-    res.status(201).json({
-      user: newUser,
-      token: `staff_token_${newUser.id}_${Date.now()}`
-    });
+    res.status(201).json({ user: newUser });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
