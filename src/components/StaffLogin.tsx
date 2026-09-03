@@ -14,6 +14,7 @@ import {
   Database
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
+import { resendSupabaseConfirmation, getSupabaseClient } from '../services/supabase.ts';
 
 export const StaffLogin: React.FC = () => {
   const { login, bootstrapAdmin, settings, supabaseStatus } = useHotel();
@@ -61,6 +62,23 @@ export const StaffLogin: React.FC = () => {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setErrorMessage('Informe o e-mail cadastrado para reenviar a confirmação.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await resendSupabaseConfirmation(email.trim());
+      setErrorMessage('Novo e-mail de confirmação enviado. Use somente o link mais recente.');
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Não foi possível reenviar o e-mail de confirmação.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -95,7 +113,7 @@ export const StaffLogin: React.FC = () => {
           <div className="pt-4 mt-6 border-t border-[#E6E3D8] flex items-center justify-between text-[11px] text-[#6B705C]">
             <span className="flex items-center space-x-1.5">
               <Database className="w-3.5 h-3.5 text-[#588157]" />
-              <span>{supabaseStatus?.connected ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>
+              <span>{supabaseStatus?.connected || getSupabaseClient() ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>
             </span>
             <span className="font-mono text-[10px] text-[#8E9280]">v2.4 RBAC</span>
           </div>
@@ -187,6 +205,15 @@ export const StaffLogin: React.FC = () => {
               className="w-full py-2.5 px-4 bg-white hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#CCD5AE] disabled:opacity-50"
             >
               Criar primeiro administrador
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={submitting}
+              className="w-full py-2.5 px-4 bg-[#FDFBF7] hover:bg-[#F4F1EA] text-[#2C3327] rounded-2xl text-xs font-bold transition border border-[#E6E3D8] disabled:opacity-50"
+            >
+              Reenviar e-mail de confirmação
             </button>
 
             <div className="p-3 bg-[#F4F1EA] rounded-2xl border border-[#E6E3D8] text-[11px] text-[#6B705C] space-y-1">
