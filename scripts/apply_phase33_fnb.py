@@ -74,3 +74,5 @@ app.patch('/api/kitchen/orders/:id/status'"""
 s2,n=re.subn(pat,rep,s,count=1,flags=re.S)
 if n!=1: raise SystemExit(f'server kitchen route replace count={n}')
 p.write_text(s2)
+
+# trigger
