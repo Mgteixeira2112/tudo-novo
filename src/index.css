@@ -56,3 +56,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #A3B18A;
 }
+
+/* Inventory sector navigation: keep every sector visible instead of hiding options in an invisible horizontal scroll. */
+#integrated-inventory-manager .scrollbar-none {
+  flex-wrap: wrap !important;
+  overflow-x: visible !important;
+  row-gap: 0.5rem;
+  padding-bottom: 0 !important;
+}
+
+#integrated-inventory-manager .scrollbar-none > button {
+  flex: 1 1 auto;
+  min-width: max-content;
+}
