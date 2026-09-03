@@ -1,0 +1,33 @@
+name: Fix RBAC permission helper
+
+on:
+  push:
+    branches:
+      - refactor/fase-01-rbac-login
+    paths:
+      - '.github/workflows/fix-rbac-permission-helper.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/fase-01-rbac-login
+      - name: Insert permission helper
+        shell: bash
+        run: |
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwPVBhdGgoInNlcnZlci50cyIpCnQ9cC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKbWFya2VyPSIiIi8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLy8gQVBJIEVuZHBvaW50cwovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCiIiIgpmbj0iIiJmdW5jdGlvbiByZXF1aXJlUGVybWlzc2lvbihwZXJtaXNzaW9uOiBzdHJpbmcpIHsKICByZXR1cm4gKHJlcTogUmVxdWVzdCwgcmVzOiBSZXNwb25zZSwgbmV4dDogTmV4dEZ1bmN0aW9uKSA9PiB7CiAgICBjb25zdCBhdXRoVXNlciA9IChyZXEgYXMgUmVxdWVzdCAmIHsgYXV0aFVzZXI/OiB7IHN0YWZmVXNlcj86IGFueSB9IH0pLmF1dGhVc2VyOwogICAgY29uc3Qgc3RhZmZVc2VyID0gYXV0aFVzZXI/LnN0YWZmVXNlcjsKICAgIGlmICghc3RhZmZVc2VyKSB7CiAgICAgIHJldHVybiByZXMuc3RhdHVzKDQwMSkuanNvbih7IGVycm9yOiAnQXV0ZW50aWNhw6fDo28gb2JyaWdhdMOzcmlhLicgfSk7CiAgICB9CiAgICBpZiAoc3RhZmZVc2VyLnJvbGUgPT09ICdhZG1pbicgfHwgc3RhZmZVc2VyLnBlcm1pc3Npb25zPy5pbmNsdWRlcyhwZXJtaXNzaW9uKSkgewogICAgICByZXR1cm4gbmV4dCgpOwogICAgfQogICAgcmV0dXJuIHJlcy5zdGF0dXMoNDAzKS5qc29uKHsgZXJyb3I6ICdQZXJtaXNzw6NvIGluc3VmaWNpZW50ZSBwYXJhIGVzdGEgb3BlcmHDp8Ojby4nIH0pOwogIH07Cn0KCiIiIgppZiAiZnVuY3Rpb24gcmVxdWlyZVBlcm1pc3Npb24iIG5vdCBpbiB0OgogICAgdD10LnJlcGxhY2UobWFya2VyLGZuK21hcmtlciwxKQpwLndyaXRlX3RleHQodCxlbmNvZGluZz0idXRmLTgiKQo=' | base64 -d | python3
+      - name: Commit fix
+        shell: bash
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.ts
+          git commit -m "fix: add server RBAC permission helper"
+          git push origin HEAD:refactor/fase-01-rbac-login
