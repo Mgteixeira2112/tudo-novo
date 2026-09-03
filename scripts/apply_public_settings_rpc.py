@@ -16,3 +16,5 @@ if old not in s:
     raise SystemExit('Trecho esperado não encontrado em pagesData.ts')
 s=s.replace(old,new,1)
 p.write_text(s)
+
+# trigger
