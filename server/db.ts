@@ -389,14 +389,101 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
   }
 
   // --- Settings ---
+  // Transitional repository: Supabase is preferred when the server has credentials;
+  // the local JSON object remains a temporary cache/fallback until Phase 2.7.
+  private mapSettingsFromSupabase(row: any): HotelSettings {
+    return {
+      id: row.id,
+      hotelName: row.hotel_name,
+      tagline: row.tagline || '',
+      description: row.description || '',
+      logoIcon: row.logo_icon || 'hotel',
+      primaryColor: row.primary_color || 'emerald',
+      currency: row.currency || 'R$',
+      taxRatePercent: Number(row.tax_rate_percent || 0),
+      checkInTime: row.check_in_time || '14:00',
+      checkOutTime: row.check_out_time || '11:00',
+      address: row.address || '',
+      cityState: row.city_state || '',
+      phone: row.phone || '',
+      email: row.email || '',
+      bookingPolicies: row.booking_policies || '',
+      wifiPassword: row.wifi_password || '',
+      roomTypes: Array.isArray(row.room_types) ? row.room_types : []
+    } as HotelSettings;
+  }
+
+  private mapSettingsToSupabase(settings: HotelSettings) {
+    return {
+      id: settings.id || 'hotel_1',
+      hotel_name: settings.hotelName,
+      tagline: settings.tagline,
+      description: settings.description,
+      logo_icon: settings.logoIcon,
+      primary_color: settings.primaryColor,
+      currency: settings.currency,
+      tax_rate_percent: settings.taxRatePercent,
+      check_in_time: settings.checkInTime,
+      check_out_time: settings.checkOutTime,
+      address: settings.address,
+      city_state: settings.cityState,
+      phone: settings.phone,
+      email: settings.email,
+      booking_policies: settings.bookingPolicies,
+      wifi_password: settings.wifiPassword,
+      room_types: settings.roomTypes || [],
+      updated_at: new Date().toISOString()
+    };
+  }
+
   public getSettings(): HotelSettings {
     return this.data.settings;
+  }
+
+  public async getSettingsPersistent(): Promise<HotelSettings> {
+    if (!this.supabase) return this.getSettings();
+    try {
+      const { data, error } = await this.supabase
+        .from('hotel_settings')
+        .select('*')
+        .eq('id', 'hotel_1')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return this.getSettings();
+      const settings = this.mapSettingsFromSupabase(data);
+      this.data.settings = settings;
+      this.persist();
+      return settings;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao ler hotel_settings; usando fallback JSON temporário:', err);
+      return this.getSettings();
+    }
   }
 
   public updateSettings(updates: Partial<HotelSettings>): HotelSettings {
     this.data.settings = { ...this.data.settings, ...updates };
     this.persist();
     return this.data.settings;
+  }
+
+  public async updateSettingsPersistent(updates: Partial<HotelSettings>): Promise<HotelSettings> {
+    const merged = { ...this.data.settings, ...updates } as HotelSettings;
+    if (!this.supabase) return this.updateSettings(updates);
+    try {
+      const { data, error } = await this.supabase
+        .from('hotel_settings')
+        .upsert(this.mapSettingsToSupabase(merged), { onConflict: 'id' })
+        .select('*')
+        .single();
+      if (error) throw error;
+      const settings = this.mapSettingsFromSupabase(data);
+      this.data.settings = settings;
+      this.persist();
+      return settings;
+    } catch (err) {
+      console.warn('[Supabase] Falha ao gravar hotel_settings; usando fallback JSON temporário:', err);
+      return this.updateSettings(updates);
+    }
   }
 
   // --- Guests ---

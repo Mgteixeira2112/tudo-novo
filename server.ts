@@ -138,6 +138,9 @@ async function requireSupabaseAuth(req: Request, res: Response, next: NextFuncti
       auth: {
         persistSession: false,
         autoRefreshToken: false
+      },
+      global: {
+        headers: { Authorization: `Bearer ${token}` }
       }
     });
 
@@ -147,10 +150,29 @@ async function requireSupabaseAuth(req: Request, res: Response, next: NextFuncti
     }
 
     const email = data.user.email;
-    const staffUser = email ? dbManager.getUserByEmail(email) : undefined;
-    if (!staffUser || staffUser.status !== 'Ativo') {
+    const { data: staffRow, error: staffError } = await authClient
+      .from('staff_users')
+      .select('*')
+      .eq('id', data.user.id)
+      .maybeSingle();
+    if (staffError) {
+      console.error('[Auth] Falha ao consultar staff_users no Supabase:', staffError);
+      return res.status(503).json({ error: 'Não foi possível validar o perfil do colaborador.' });
+    }
+    if (!staffRow || staffRow.active !== true) {
       return res.status(403).json({ error: 'Colaborador sem perfil ativo no hotel.' });
     }
+    const staffUser = {
+      id: staffRow.id,
+      email: staffRow.email || email || '',
+      fullName: staffRow.full_name,
+      role: staffRow.role,
+      sector: staffRow.sector,
+      status: 'Ativo',
+      permissions: Array.isArray(staffRow.permissions) ? staffRow.permissions : [],
+      createdAt: staffRow.created_at,
+      updatedAt: staffRow.updated_at
+    };
 
     (req as Request & { authUser?: { id: string; email?: string; staffUser?: any } }).authUser = {
       id: data.user.id,
@@ -189,9 +211,9 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Public hotel presentation settings (sanitized)
-app.get('/api/public/settings', (req: Request, res: Response) => {
+app.get('/api/public/settings', async (req: Request, res: Response) => {
   try {
-    const settings = dbManager.getSettings();
+    const settings = await dbManager.getSettingsPersistent();
     const { hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor } = settings as any;
     res.json({ hotelName, tagline, address, phone, email, currency, roomTypes, amenities, taxes, checkInTime, checkOutTime, logoUrl, primaryColor, secondaryColor });
   } catch (err: any) {
@@ -200,18 +222,18 @@ app.get('/api/public/settings', (req: Request, res: Response) => {
 });
 
 // Settings (Front-end configurável)
-app.get('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
+app.get('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), async (req: Request, res: Response) => {
   try {
-    const settings = dbManager.getSettings();
+    const settings = await dbManager.getSettingsPersistent();
     res.json(settings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
+app.put('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), async (req: Request, res: Response) => {
   try {
-    const updated = dbManager.updateSettings(req.body);
+    const updated = await dbManager.updateSettingsPersistent(req.body);
     res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
