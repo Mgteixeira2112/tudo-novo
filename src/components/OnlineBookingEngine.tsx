@@ -100,20 +100,20 @@ export const OnlineBookingEngine: React.FC = () => {
   const currency = settings?.currency || 'R$';
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-20">
+    <div className="min-h-screen bg-[#FDFBF7] pb-12">
       {/* Hero Header Section */}
-      <section className="relative bg-[#2C3327] text-[#FDFBF7] pt-14 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative bg-[#2C3327] text-[#FDFBF7] pt-8 sm:pt-10 pb-14 sm:pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 opacity-15 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(#CCD5AE_1px,transparent_1px)] [background-size:20px_20px]"></div>
         </div>
 
-        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-4">
+        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#A3B18A]/20 border border-[#A3B18A]/40 text-[#E9EDC9] text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5 text-[#D4A373]" />
             <span>Reserva Direta Garantida &bull; Melhor Tarifa Online</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#FDFBF7]">
+          <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-[#FDFBF7]">
             {settings?.hotelName || 'Grand Horizon Resort'}
           </h2>
 
@@ -139,8 +139,8 @@ export const OnlineBookingEngine: React.FC = () => {
       </section>
 
       {/* Floating Search / Filter Bar */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
-        <div className="bg-white rounded-2xl shadow-xl border border-[#E6E3D8] p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-7 sm:-mt-8 relative z-20">
+        <div className="bg-white rounded-2xl shadow-xl border border-[#E6E3D8] p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
           {/* Check-in */}
           <div>
             <label className="block text-xs font-semibold text-[#6B705C] uppercase tracking-wider mb-1">
@@ -229,7 +229,7 @@ export const OnlineBookingEngine: React.FC = () => {
       </div>
 
       {/* Room Selection Grid */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 space-y-4">
         <div>
           <h3 className="text-2xl font-bold text-[#2C3327] tracking-tight">
             Acomodações Disponíveis
@@ -239,18 +239,18 @@ export const OnlineBookingEngine: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {settings?.roomTypes.map(roomType => {
             const totalForNights = roomType.basePrice * nights;
 
             return (
               <div
                 key={roomType.id}
-                className="bg-white rounded-2xl border border-[#E6E3D8] overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                className="bg-white rounded-2xl border border-[#E6E3D8] overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between min-h-0"
               >
                 <div>
                   {/* Room Image */}
-                  <div className="h-52 w-full relative bg-[#F4F1EA] overflow-hidden">
+                  <div className="h-36 sm:h-40 lg:h-44 w-full relative bg-[#F4F1EA] overflow-hidden">
                     <img
                       src={roomType.imageUrl || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80'}
                       alt={roomType.name}
@@ -263,7 +263,7 @@ export const OnlineBookingEngine: React.FC = () => {
                   </div>
 
                   {/* Room Details */}
-                  <div className="p-5 space-y-3">
+                  <div className="p-4 space-y-2.5">
                     <h4 className="text-lg font-bold text-[#2C3327]">
                       {roomType.name}
                     </h4>
@@ -287,7 +287,7 @@ export const OnlineBookingEngine: React.FC = () => {
                 </div>
 
                 {/* Price & Action Footer */}
-                <div className="p-5 pt-3 border-t border-[#E6E3D8] bg-[#FDFBF7] flex items-center justify-between">
+                <div className="p-4 pt-3 border-t border-[#E6E3D8] bg-[#FDFBF7] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div>
                     <span className="text-xs text-[#6B705C] block">
                       {currency} {roomType.basePrice} / noite
@@ -303,7 +303,7 @@ export const OnlineBookingEngine: React.FC = () => {
                   <button
                     id={`btn-reserve-${roomType.id}`}
                     onClick={() => handleOpenBooking(roomType)}
-                    className="flex items-center space-x-1.5 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition"
+                    className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition shrink-0"
                   >
                     <span>Reservar Agora</span>
                     <ArrowRight className="w-4 h-4" />
@@ -316,7 +316,7 @@ export const OnlineBookingEngine: React.FC = () => {
       </section>
 
       {/* Hotel Policies & Features Banner */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="bg-white rounded-2xl border border-[#E6E3D8] p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex items-start space-x-3">
             <div className="p-2.5 bg-[#F2F5E8] rounded-xl text-[#588157] border border-[#CCD5AE]/50">
