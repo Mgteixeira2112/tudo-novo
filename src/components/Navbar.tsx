@@ -363,12 +363,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
         {mode === 'admin' && (
           <div className="border-t border-[#E6E3D8] bg-[#F4F1EA]/80">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <nav className="flex space-x-1 sm:space-x-3 overflow-x-auto py-2 text-xs sm:text-sm font-medium scrollbar-none">
+              <nav className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto py-2 text-xs sm:text-sm font-medium scrollbar-none xl:flex-wrap xl:overflow-x-visible">
                 {canAccessTab('overview') && (
                   <button
                     id="subnav-overview"
                     onClick={() => setActiveAdminTab('overview')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'overview'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -383,7 +383,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-rooms-inventory"
                     onClick={() => setActiveAdminTab('rooms_inventory')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'rooms_inventory'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -401,7 +401,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-kanbans"
                     onClick={() => setActiveAdminTab('kanbans')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'kanbans'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -421,7 +421,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-checkinout"
                     onClick={() => setActiveAdminTab('checkinout')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'checkinout'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -439,7 +439,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-guests"
                     onClick={() => setActiveAdminTab('guests')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'guests'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -454,7 +454,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-fnb"
                     onClick={() => setActiveAdminTab('fnb')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'fnb'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -469,7 +469,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-users"
                     onClick={() => setActiveAdminTab('users')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'users'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
@@ -487,7 +487,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   <button
                     id="subnav-settings"
                     onClick={() => setActiveAdminTab('settings')}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-xl whitespace-nowrap transition ${
+                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
                       activeAdminTab === 'settings'
                         ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
                         : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
