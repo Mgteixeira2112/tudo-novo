@@ -6,12 +6,9 @@ export async function loadPublicSettingsFromSupabase(): Promise<HotelSettings> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
-  const { data: row, error } = await supabase
-    .from('hotel_settings')
-    .select('hotel_name,tagline,description,logo_icon,primary_color,currency,tax_rate_percent,check_in_time,check_out_time,address,city_state,phone,email,booking_policies,room_types')
-    .eq('id', 'hotel_1')
-    .single();
+  const { data: row, error } = await supabase.rpc('get_public_hotel_settings');
   if (error) throw error;
+  if (!row) throw new Error('Configurações públicas do hotel não encontradas.');
 
   return {
     hotelName: row.hotel_name,
