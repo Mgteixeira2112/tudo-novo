@@ -114,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                 <span>
                   <strong>Simulação de Controle de Exibição Ativa:</strong> Você está visualizando o sistema como{' '}
                   <span className="font-bold underline">{currentUser.fullName}</span> (
-                  {currentRoleDef?.title} • Setor {currentSectorDef?.label}). As abas e ações estão restritas ao seu perfil.
+                  {currentRoleDef?.label} • Setor {currentSectorDef?.label}). As abas e ações estão restritas ao seu perfil.
                 </span>
               </div>
               <button
@@ -221,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                             currentRoleDef?.badgeColor || 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {currentUser.role === 'admin' ? 'Admin' : currentRoleDef?.title.split(' ')[0]}
+                          {currentUser.role === 'admin' ? 'Admin' : currentRoleDef?.label.split(' ')[0]}
                         </span>
                       </div>
                       <span className="text-[10px] text-[#6B705C] block">
@@ -254,7 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                                   currentRoleDef?.badgeColor
                                 }`}
                               >
-                                {currentRoleDef?.title}
+                                {currentRoleDef?.label}
                               </span>
                               <span className="text-[10px] text-[#6B705C]">
                                 • {currentSectorDef?.label}
@@ -292,7 +292,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                                   <span className="truncate">{u.fullName}</span>
                                 </div>
                                 <span className="text-[10px] text-[#6B705C] shrink-0 ml-2">
-                                  {uRole?.title.split(' ')[0]} ({u.sector})
+                                  {uRole?.label.split(' ')[0]} ({u.sector})
                                 </span>
                               </button>
                             );
