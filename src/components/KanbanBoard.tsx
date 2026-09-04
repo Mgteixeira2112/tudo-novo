@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Kanban as KanbanIcon,
   Plus,
@@ -13,11 +13,13 @@ import {
   UserCheck,
   DoorOpen,
   Filter,
-  Sparkles
+  Sparkles,
+  Archive
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { KanbanTask, SectorType, TaskPriority, TaskStatus } from '../types.ts';
 import { api } from '../services/api.ts';
+import { TaskHistoryModal } from './TaskHistoryModal.tsx';
 
 const SECTORS: { id: SectorType | 'Todos'; label: string; icon: string; color: string }[] = [
   { id: 'Todos', label: 'Todos os Setores', icon: '🏢', color: 'bg-gray-100 text-gray-800' },
@@ -37,7 +39,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
 
   const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>(initialSector);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [archiveClock, setArchiveClock] = useState(() => Date.now());
 
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
@@ -46,6 +50,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
   const [taskRoomNumber, setTaskRoomNumber] = useState('');
   const [taskAssignedTo, setTaskAssignedTo] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setArchiveClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const resetTaskForm = () => {
     setTaskTitle('');
@@ -79,11 +88,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
 
   const todoTasks = filteredTasks.filter(t => t.status === 'A_Fazer');
   const inProgressTasks = filteredTasks.filter(t => t.status === 'Em_Andamento');
-  const doneTasks = filteredTasks.filter(t => t.status === 'Concluido');
+  const doneTasks = filteredTasks.filter(t => {
+    if (t.status !== 'Concluido') return false;
+    const completedAt = new Date(t.updatedAt).getTime();
+    return !Number.isFinite(completedAt) || archiveClock - completedAt < 5 * 60 * 1000;
+  });
 
   const handleMoveStatus = async (taskId: string, newStatus: TaskStatus) => {
     try {
       await api.updateTask(taskId, { status: newStatus });
+      setArchiveClock(Date.now());
       await refreshData();
     } catch (err) {
       console.error('Error updating task:', err);
@@ -291,14 +305,28 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
           </p>
         </div>
 
-        <button
-          id="btn-new-kanban-task"
-          onClick={handleOpenNewTask}
-          className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Tarefa de Setor</span>
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => setShowHistory(true)}
+            className="flex items-center justify-center space-x-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#3D4035] shadow-sm transition hover:bg-[#F8FAF2]"
+          >
+            <Archive className="w-4 h-4 text-[#588157]" />
+            <span>Histórico</span>
+          </button>
+          <button
+            id="btn-new-kanban-task"
+            onClick={handleOpenNewTask}
+            className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Tarefa de Setor</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-4 py-3 text-[11px] text-[#6B705C]">
+        <strong className="text-[#3D4035]">Arquivamento automático:</strong> tarefas permanecem em Concluídos por 5 minutos e depois saem do Kanban operacional. O registro continua disponível em Histórico.
       </div>
 
       <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
@@ -406,6 +434,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
           </div>
         </div>
       </div>
+
+      {showHistory && <TaskHistoryModal onClose={() => setShowHistory(false)} />}
 
       {showNewTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
