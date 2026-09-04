@@ -24,6 +24,7 @@ import {
   supabaseSignUp,
   supabaseSignOut,
   getSupabaseAuthSession,
+  subscribeToSupabaseAuthChanges,
   subscribeToStaffUsersRealtime,
   getSupabaseStaffProfile,
   bootstrapFirstAdmin
@@ -322,6 +323,70 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       cancelled = true;
     };
   }, [supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+
+  // Keep React/RBAC state aligned with the real Supabase session when another
+  // tab in the same browser profile signs in or signs out.
+  useEffect(() => {
+    let cancelled = false;
+
+    const unsub = subscribeToSupabaseAuthChanges(
+      async (event, session) => {
+        if (event === 'INITIAL_SESSION') return;
+
+        if (event === 'SIGNED_OUT' || !session?.access_token || !session?.user?.id) {
+          setApiAccessToken(null);
+          if (!cancelled) {
+            setCurrentUser(null);
+            setIsImpersonating(false);
+            setOriginalAdminUser(null);
+            clearPrivateData();
+            setMode('booking');
+          }
+          return;
+        }
+
+        setApiAccessToken(session.access_token);
+        if (session.user.id === currentUser?.id) return;
+
+        try {
+          const staff = await getSupabaseStaffProfile(session.user.id);
+          if (cancelled) return;
+
+          if (!staff || !staff.active) {
+            setCurrentUser(null);
+            clearPrivateData();
+            setMode('booking');
+            setError('A sessão mudou, mas o novo usuário não possui um perfil de colaborador ativo.');
+            return;
+          }
+
+          setCurrentUser(staff);
+          setIsImpersonating(false);
+          setOriginalAdminUser(null);
+          setActiveAdminTab(getDefaultTabForUser(staff));
+          setMode('admin');
+          setError(null);
+          await refreshData();
+        } catch (err: any) {
+          if (cancelled) return;
+          setApiAccessToken(null);
+          setCurrentUser(null);
+          clearPrivateData();
+          setMode('booking');
+          setError(err?.message || 'A sessão de autenticação mudou e precisou ser reiniciada.');
+        }
+      },
+      {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, clearPrivateData, refreshData]);
 
   // Initial load
   useEffect(() => {

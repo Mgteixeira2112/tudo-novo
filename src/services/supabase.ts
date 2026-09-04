@@ -133,6 +133,24 @@ export async function getSupabaseAuthSession(config?: { url?: string; anonKey?: 
   return data.session || null;
 }
 
+/**
+ * Listen for Supabase Auth session changes, including changes propagated by
+ * another tab using the same browser profile/origin.
+ */
+export function subscribeToSupabaseAuthChanges(
+  onChanged: (event: string, session: any | null) => void,
+  config?: { url?: string; anonKey?: string }
+): (() => void) | null {
+  const supabase = getSupabaseClient(config?.url, config?.anonKey);
+  if (!supabase) return null;
+
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    onChanged(event, session);
+  });
+
+  return () => data.subscription.unsubscribe();
+}
+
 export async function getSupabaseStaffProfile(userId?: string) {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
