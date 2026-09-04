@@ -13,11 +13,32 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
-import { Room, RoomStatus } from '../types.ts';
+import { Room, RoomStatus, SectorType } from '../types.ts';
 import { updateRoomStatusSafeCloud } from '../services/roomStatusPages.ts';
 import { KanbanBoard } from './KanbanBoard.tsx';
 
 type WorkspaceView = 'rooms' | 'tasks';
+
+interface KanbanNavigationIntent {
+  view: WorkspaceView;
+  roomStatus?: RoomStatus;
+  taskSector?: SectorType;
+}
+
+const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
+
+function consumeKanbanNavigationIntent(): KanbanNavigationIntent | null {
+  try {
+    const raw = sessionStorage.getItem(KANBAN_NAVIGATION_KEY);
+    sessionStorage.removeItem(KANBAN_NAVIGATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as KanbanNavigationIntent;
+    if (parsed?.view !== 'rooms' && parsed?.view !== 'tasks') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 const ROOM_COLUMNS: Array<{
   status: RoomStatus;
@@ -114,10 +135,11 @@ function RoomCard({
   );
 }
 
-function RoomsKanbanView() {
+function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
   const { rooms, currentUser, refreshData } = useHotel();
   const [search, setSearch] = useState('');
   const [floor, setFloor] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<RoomStatus | 'ALL'>(initialStatus || 'ALL');
   const [busyRoomId, setBusyRoomId] = useState<string | null>(null);
 
   const canManage = Boolean(
@@ -141,6 +163,10 @@ function RoomsKanbanView() {
       return matchesFloor && matchesSearch;
     });
   }, [rooms, search, floor]);
+
+  const visibleColumns = statusFilter === 'ALL'
+    ? ROOM_COLUMNS
+    : ROOM_COLUMNS.filter(column => column.status === statusFilter);
 
   const handleChangeStatus = async (room: Room, status: RoomStatus) => {
     const label = statusLabel(status);
@@ -171,7 +197,7 @@ function RoomsKanbanView() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <label className="relative block">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8E9280]" />
               <input
@@ -192,12 +218,30 @@ function RoomsKanbanView() {
                 {floors.map(item => <option key={item} value={String(item)}>{item}º andar</option>)}
               </select>
             </label>
+            <label className="relative block">
+              <Filter className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8E9280]" />
+              <select
+                value={statusFilter}
+                onChange={event => setStatusFilter(event.target.value as RoomStatus | 'ALL')}
+                className="w-full appearance-none rounded-xl border border-[#E6E3D8] bg-white py-2.5 pl-9 pr-7 text-xs font-semibold text-[#3D4035] outline-none focus:border-[#A3B18A] sm:w-44"
+              >
+                <option value="ALL">Todos os status</option>
+                {ROOM_COLUMNS.map(column => <option key={column.status} value={column.status}>{column.label}</option>)}
+              </select>
+            </label>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        {ROOM_COLUMNS.map(column => {
+      {statusFilter !== 'ALL' && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#CCD5AE] bg-[#F8FAF2] px-4 py-3 text-xs text-[#3A5A40]">
+          <span><strong>Filtro ativo:</strong> {statusLabel(statusFilter)}</span>
+          <button type="button" onClick={() => setStatusFilter('ALL')} className="font-bold underline underline-offset-2">Ver todos</button>
+        </div>
+      )}
+
+      <div className={`grid grid-cols-1 gap-4 ${visibleColumns.length === 1 ? '' : 'xl:grid-cols-5'}`}>
+        {visibleColumns.map(column => {
           const ColumnIcon = column.icon;
           const columnRooms = visibleRooms.filter(room => room.status === column.status);
           return (
@@ -215,7 +259,7 @@ function RoomsKanbanView() {
                 </span>
               </header>
 
-              <div className="space-y-3">
+              <div className={visibleColumns.length === 1 ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}>
                 {columnRooms.map(room => (
                   <RoomCard
                     key={room.id}
@@ -245,8 +289,12 @@ function RoomsKanbanView() {
 
 export const KanbanWorkspace: React.FC = () => {
   const { rooms, tasks } = useHotel();
-  const [view, setView] = useState<WorkspaceView>('rooms');
+  const [navigationIntent] = useState<KanbanNavigationIntent | null>(() => consumeKanbanNavigationIntent());
+  const [view, setView] = useState<WorkspaceView>(navigationIntent?.view || 'rooms');
   const openTasks = tasks.filter(task => task.status !== 'Concluido').length;
+
+  const initialRoomStatus = navigationIntent?.view === 'rooms' ? navigationIntent.roomStatus : undefined;
+  const initialTaskSector = navigationIntent?.view === 'tasks' ? navigationIntent.taskSector : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
@@ -276,7 +324,9 @@ export const KanbanWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {view === 'rooms' ? <RoomsKanbanView /> : <KanbanBoard />}
+      {view === 'rooms'
+        ? <RoomsKanbanView initialStatus={initialRoomStatus} />
+        : <KanbanBoard initialSector={initialTaskSector || 'Todos'} />}
     </div>
   );
 };
