@@ -16,6 +16,9 @@ interface OperationalAlertsBellProps {
   userId: string;
 }
 
+const TASK_SOURCES = ['kanban_task', 'task', 'maintenance_task', 'governance_task'];
+const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
+
 function formatRelativeTime(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.max(0, Math.floor(diffMs / 60000));
@@ -29,11 +32,20 @@ function formatRelativeTime(iso: string) {
 function resolveOriginButtonId(item: OperationalAlertInboxItem): string | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'subnav-fnb';
-  if (['kanban_task', 'task', 'maintenance_task', 'governance_task'].includes(source)) return 'subnav-kanbans';
+  if (TASK_SOURCES.includes(source)) return 'subnav-kanbans';
   if (['room', 'room_status'].includes(source)) return 'subnav-rooms-inventory';
   if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'subnav-checkinout';
   if (['guest'].includes(source)) return 'subnav-guests';
   return null;
+}
+
+function prepareOriginNavigation(item: OperationalAlertInboxItem) {
+  const source = (item.sourceType || '').toLowerCase();
+  if (!TASK_SOURCES.includes(source)) return;
+
+  const intent: { view: 'tasks'; taskSector?: string } = { view: 'tasks' };
+  if (item.sector) intent.taskSector = item.sector;
+  sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify(intent));
 }
 
 export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ userId }) => {
@@ -99,6 +111,7 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
     await handleMarkRead(item);
     const buttonId = resolveOriginButtonId(item);
     if (!buttonId) return;
+    prepareOriginNavigation(item);
     setOpen(false);
     window.setTimeout(() => document.getElementById(buttonId)?.click(), 0);
   };
