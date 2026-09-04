@@ -20,6 +20,7 @@ import {
   subscribeToKitchenOrdersRealtime,
   playRoomServiceChime
 } from './services/supabase.ts';
+import { subscribeToRoomsRealtime } from './services/roomsRealtime.ts';
 import { api } from './services/api.ts';
 import { AdminTab, KitchenOrder } from './types.ts';
 import {
@@ -47,13 +48,10 @@ const AppContent: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showHome, setShowHome] = useState(false);
 
-  // Meu Painel is the real landing page after an authenticated session is established.
   useEffect(() => {
     setShowHome(Boolean(currentUser));
   }, [currentUser?.id]);
 
-  // Any click on the persistent administrative sub-navigation must leave the Home
-  // before rendering the selected module. This keeps a single visible workspace.
   useEffect(() => {
     const handleAdminNavigationClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
@@ -66,7 +64,6 @@ const AppContent: React.FC = () => {
     return () => document.removeEventListener('click', handleAdminNavigationClick, true);
   }, []);
 
-  // Auto-switch tab if current user does not have permission to view activeAdminTab
   useEffect(() => {
     if (mode === 'admin' && currentUser && !canAccessTab(activeAdminTab)) {
       const allTabs: Array<
@@ -171,6 +168,30 @@ const AppContent: React.FC = () => {
   }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, triggerRoomServiceToast, refreshData]);
 
   useEffect(() => {
+    if (!currentUser) return;
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToRoomsRealtime(
+      eventType => {
+        console.log('[App] Supabase Realtime detectou alteração em quartos:', eventType);
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshData();
+        }, 120);
+      },
+      {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      }
+    );
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, refreshData]);
+
+  useEffect(() => {
     const handleOrderCreatedEvent = (e: any) => {
       const order = e.detail;
       if (order && order.id) {
@@ -199,7 +220,6 @@ const AppContent: React.FC = () => {
           }
         });
       } catch {
-        // Ignore background polling errors
       }
     }, 4000);
 
