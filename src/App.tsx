@@ -24,16 +24,9 @@ import { api } from './services/api.ts';
 import { AdminTab, KitchenOrder } from './types.ts';
 import {
   Hotel,
-  ShieldCheck,
   Database,
-  CalendarCheck,
-  LayoutDashboard,
-  CheckCircle2,
-  Phone,
-  Mail,
   Loader2,
   BellRing,
-  Lock,
   Home
 } from 'lucide-react';
 
@@ -41,7 +34,6 @@ const AppContent: React.FC = () => {
   const {
     settings,
     loading,
-    error,
     mode,
     setMode,
     activeAdminTab,
@@ -59,6 +51,20 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     setShowHome(Boolean(currentUser));
   }, [currentUser?.id]);
+
+  // Any click on the persistent administrative sub-navigation must leave the Home
+  // before rendering the selected module. This keeps a single visible workspace.
+  useEffect(() => {
+    const handleAdminNavigationClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('button[id^="subnav-"]')) {
+        setShowHome(false);
+      }
+    };
+
+    document.addEventListener('click', handleAdminNavigationClick, true);
+    return () => document.removeEventListener('click', handleAdminNavigationClick, true);
+  }, []);
 
   // Auto-switch tab if current user does not have permission to view activeAdminTab
   useEffect(() => {
@@ -88,9 +94,6 @@ const AppContent: React.FC = () => {
     setActiveAdminTab(tab);
   };
 
-  // -------------------------------------------------------------
-  // Real-time Room Service Toast Notification System
-  // -------------------------------------------------------------
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     try {
@@ -103,7 +106,6 @@ const AppContent: React.FC = () => {
   const seenOrderIdsRef = useRef<Set<string>>(new Set());
   const initialLoadedRef = useRef<boolean>(false);
 
-  // Trigger toast with sound chime and auto-dismiss
   const triggerRoomServiceToast = useCallback(
     (order: KitchenOrder, source: 'supabase_realtime' | 'backend_sync' | 'simulated') => {
       const isRoomService =
@@ -293,6 +295,7 @@ const AppContent: React.FC = () => {
                 {activeAdminTab === 'checkinout' && <ReceptionManager />}
                 {activeAdminTab === 'guests' && <GuestsManager />}
                 {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
+                {activeAdminTab === 'users' && <UsersManager />}
                 {activeAdminTab === 'settings' && (
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="bg-white rounded-2xl border border-[#E6E3D8] p-8 text-center space-y-4 shadow-sm">
