@@ -1,4 +1,4 @@
-import { HotelSettings } from '../types.ts';
+import { HotelSettings, SupabaseConfigStatus } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
 
 function mapSettingsRow(row: any): HotelSettings {
@@ -63,4 +63,51 @@ export async function updateSettingsCloud(
   if (error) throw error;
   if (!data) throw new Error('Configurações não retornadas após a atualização.');
   return mapSettingsRow(data);
+}
+
+async function countRows(table: string): Promise<number> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from(table)
+    .select('*', { count: 'exact', head: true });
+  if (error) return 0;
+  return count || 0;
+}
+
+export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      connected: false,
+      urlConfigured: false,
+      mode: 'local_sql_engine',
+      message: 'Supabase não configurado.'
+    };
+  }
+
+  const [guests, rooms, reservations, kanbanTasks, orders, transactions] = await Promise.all([
+    countRows('guests'),
+    countRows('rooms'),
+    countRows('reservations'),
+    countRows('kanban_tasks'),
+    countRows('kitchen_orders'),
+    countRows('financial_transactions')
+  ]);
+
+  return {
+    connected: true,
+    urlConfigured: true,
+    mode: 'supabase_cloud',
+    message: 'Conectado ao Supabase diretamente pelo GitHub Pages.',
+    tableCounts: {
+      settings: 1,
+      guests,
+      rooms,
+      reservations,
+      kanban_tasks: kanbanTasks,
+      orders,
+      financial_transactions: transactions
+    }
+  };
 }
