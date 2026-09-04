@@ -28,14 +28,17 @@ const SECTORS: { id: SectorType | 'Todos'; label: string; icon: string; color: s
   { id: 'Manutencao', label: 'Manutenção Predial', icon: '🔧', color: 'bg-purple-100 text-purple-800' },
 ];
 
-export const KanbanBoard: React.FC = () => {
+interface KanbanBoardProps {
+  initialSector?: SectorType | 'Todos';
+}
+
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos' }) => {
   const { tasks, rooms, refreshData } = useHotel();
 
-  const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>('Todos');
+  const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>(initialSector);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  // New task form state
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [taskSector, setTaskSector] = useState<SectorType>('Governanca');
@@ -70,7 +73,6 @@ export const KanbanBoard: React.FC = () => {
     setShowNewTaskModal(true);
   };
 
-  // Filter tasks
   const filteredTasks = selectedSector === 'Todos'
     ? tasks
     : tasks.filter(t => t.sector === selectedSector);
@@ -79,7 +81,6 @@ export const KanbanBoard: React.FC = () => {
   const inProgressTasks = filteredTasks.filter(t => t.status === 'Em_Andamento');
   const doneTasks = filteredTasks.filter(t => t.status === 'Concluido');
 
-  // Move task status
   const handleMoveStatus = async (taskId: string, newStatus: TaskStatus) => {
     try {
       await api.updateTask(taskId, { status: newStatus });
@@ -228,7 +229,6 @@ export const KanbanBoard: React.FC = () => {
         </p>
       )}
 
-      {/* Footer Info & Move Buttons */}
       <div className="pt-2 border-t border-[#E6E3D8] flex items-center justify-between text-[11px] text-[#6B705C]">
         <div className="flex items-center space-x-1 truncate max-w-[150px]">
           {task.assignedTo ? (
@@ -241,7 +241,6 @@ export const KanbanBoard: React.FC = () => {
           )}
         </div>
 
-        {/* Move Column Actions */}
         <div className="flex items-center space-x-1">
           {task.status !== 'A_Fazer' && (
             <button
@@ -276,7 +275,6 @@ export const KanbanBoard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Top Header & New Task Trigger */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
@@ -303,7 +301,6 @@ export const KanbanBoard: React.FC = () => {
         </button>
       </div>
 
-      {/* Sector Selection Pills */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
         {SECTORS.map(s => {
           const count = s.id === 'Todos'
@@ -336,9 +333,7 @@ export const KanbanBoard: React.FC = () => {
         })}
       </div>
 
-      {/* 3-Column Kanban Board */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {/* Column 1: A Fazer */}
         <div className="bg-[#F7F5F0] rounded-2xl p-4 border border-[#E6E3D8] space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-[#E6E3D8]">
             <div className="flex items-center space-x-2">
@@ -363,7 +358,6 @@ export const KanbanBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Column 2: Em Andamento */}
         <div className="bg-[#F7F5F0] rounded-2xl p-4 border border-[#E6E3D8] space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-[#E6E3D8]">
             <div className="flex items-center space-x-2">
@@ -388,7 +382,6 @@ export const KanbanBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Column 3: Concluído */}
         <div className="bg-[#F7F5F0] rounded-2xl p-4 border border-[#E6E3D8] space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-[#E6E3D8]">
             <div className="flex items-center space-x-2">
@@ -414,7 +407,6 @@ export const KanbanBoard: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Create New Sector Task */}
       {showNewTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-[#E6E3D8]">
