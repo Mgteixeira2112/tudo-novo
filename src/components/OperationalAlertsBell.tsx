@@ -26,6 +26,16 @@ function formatRelativeTime(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
 }
 
+function resolveOriginButtonId(item: OperationalAlertInboxItem): string | null {
+  const source = (item.sourceType || '').toLowerCase();
+  if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'subnav-fnb';
+  if (['kanban_task', 'task', 'maintenance_task', 'governance_task'].includes(source)) return 'subnav-kanbans';
+  if (['room', 'room_status'].includes(source)) return 'subnav-rooms-inventory';
+  if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'subnav-checkinout';
+  if (['guest'].includes(source)) return 'subnav-guests';
+  return null;
+}
+
 export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ userId }) => {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<OperationalAlertInboxItem[]>([]);
@@ -83,6 +93,14 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
     setItems(prev => prev.map(current => current.deliveryId === item.deliveryId
       ? { ...current, readAt: new Date().toISOString() }
       : current));
+  };
+
+  const handleOpenItem = async (item: OperationalAlertInboxItem) => {
+    await handleMarkRead(item);
+    const buttonId = resolveOriginButtonId(item);
+    if (!buttonId) return;
+    setOpen(false);
+    window.setTimeout(() => document.getElementById(buttonId)?.click(), 0);
   };
 
   const handleMarkAllRead = async () => {
@@ -192,8 +210,9 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
             {items.map(item => (
               <button
                 key={item.deliveryId}
-                onClick={() => handleMarkRead(item)}
+                onClick={() => handleOpenItem(item)}
                 className={`w-full border-b border-[#F0EEE7] px-4 py-3 text-left transition hover:bg-[#FDFBF7] ${!item.readAt ? 'bg-[#F7FAF2]' : 'bg-white'}`}
+                title={resolveOriginButtonId(item) ? 'Abrir origem do alerta' : 'Marcar alerta como lido'}
               >
                 <div className="flex items-start gap-3">
                   <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${item.priority === 'critical' ? 'bg-red-50 text-red-600' : item.priority === 'attention' ? 'bg-amber-50 text-amber-700' : 'bg-[#F2F5E8] text-[#588157]'}`}>
