@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { api } from '../services/api.ts';
-import { AdminTab, KitchenOrder, UserSector } from '../types.ts';
+import { AdminTab, KitchenOrder, SectorType, UserSector } from '../types.ts';
 import { HomeDashboard } from './HomeDashboard.tsx';
 
 interface SectorDashboardProps {
@@ -31,10 +31,17 @@ interface MetricCard {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+interface KanbanIntent {
+  view: 'rooms' | 'tasks';
+  roomStatus?: 'Disponivel' | 'Ocupado' | 'Limpeza' | 'Manutencao' | 'Bloqueado';
+  taskSector?: SectorType;
+}
+
 interface ActionCard {
   label: string;
   tab: AdminTab;
   detail: string;
+  kanbanIntent?: KanbanIntent;
 }
 
 interface Highlight {
@@ -42,6 +49,8 @@ interface Highlight {
   detail: string;
   badge?: string;
 }
+
+const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
 const SECTOR_COPY: Record<UserSector, { title: string; subtitle: string }> = {
   Geral: { title: 'Operação Geral', subtitle: 'Visão consolidada do hotel, reservas, quartos, tarefas e indicadores.' },
@@ -89,6 +98,17 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
   if (!currentUser) return null;
   if (currentUser.sector === 'Geral') return <HomeDashboard onNavigate={onNavigate} />;
 
+  const handleActionNavigation = (action: ActionCard) => {
+    if (action.tab === 'kanbans' && action.kanbanIntent) {
+      try {
+        sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify(action.kanbanIntent));
+      } catch {
+        // Navigation still works even if transient browser storage is unavailable.
+      }
+    }
+    onNavigate(action.tab);
+  };
+
   const sector = currentUser.sector;
   const today = todayKey();
   const currency = settings?.currency || 'R$';
@@ -115,7 +135,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Reservas / Check-in', tab: 'checkinout', detail: 'Entradas, saídas e reservas' },
       { label: 'Cadastro de Hóspedes', tab: 'guests', detail: 'Consultar e atualizar hóspedes' },
       { label: 'Mapa de Quartos', tab: 'rooms_inventory', detail: 'Ocupação e disponibilidade' },
-      { label: 'Kanbans', tab: 'kanbans', detail: 'Demandas operacionais' }
+      { label: 'Tarefas da Recepção', tab: 'kanbans', detail: 'Demandas operacionais da recepção', kanbanIntent: { view: 'tasks', taskSector: 'Recepcao' } }
     ];
     highlights = [
       ...arrivals.slice(0, 4).map(r => ({ title: `${r.guestName} · Quarto ${r.roomNumber}`, detail: `${r.code} · chegada hoje`, badge: 'Chegada' })),
@@ -131,8 +151,9 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Indisponíveis', value: unavailableRooms.length, detail: 'Manutenção ou bloqueio', icon: Wrench }
     ];
     actions = [
-      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Status, limpeza e enxoval' },
-      { label: 'Kanban da Governança', tab: 'kanbans', detail: 'Tarefas do setor' },
+      { label: 'Quartos em Limpeza', tab: 'kanbans', detail: 'Liberar quartos aguardando higienização', kanbanIntent: { view: 'rooms', roomStatus: 'Limpeza' } },
+      { label: 'Tarefas da Governança', tab: 'kanbans', detail: 'Pendências e prioridades do setor', kanbanIntent: { view: 'tasks', taskSector: 'Governanca' } },
+      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Cadastro, status e enxoval' },
       { label: 'Frigobar & A&B', tab: 'fnb', detail: 'Consumos permitidos' }
     ];
     highlights = [
@@ -149,7 +170,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     ];
     actions = [
       { label: 'Pedidos & Cardápio', tab: 'fnb', detail: 'Operação de alimentos & bebidas' },
-      { label: 'Kanban da Cozinha', tab: 'kanbans', detail: 'Tarefas e prioridades' },
+      { label: 'Tarefas da Cozinha', tab: 'kanbans', detail: 'Pendências e prioridades do setor', kanbanIntent: { view: 'tasks', taskSector: 'Cozinha' } },
       { label: 'Estoque', tab: 'rooms_inventory', detail: 'Insumos quando permitido' }
     ];
     highlights = active.slice(0, 6).map(o => ({ title: `${o.orderNumber} · ${o.destination}`, detail: `${o.items.length} item(ns) · ${o.guestName}`, badge: o.status }));
@@ -163,7 +184,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     ];
     actions = [
       { label: 'Room Service', tab: 'fnb', detail: 'Pedidos e entregas' },
-      { label: 'Kanban', tab: 'kanbans', detail: 'Demandas do setor' },
+      { label: 'Tarefas do Room Service', tab: 'kanbans', detail: 'Demandas do setor', kanbanIntent: { view: 'tasks', taskSector: 'RoomService' } },
       { label: 'Quartos', tab: 'rooms_inventory', detail: 'Consultar destinos' }
     ];
     highlights = active.slice(0, 6).map(o => ({ title: `${o.orderNumber} · Quarto ${o.roomNumber}`, detail: `${o.guestName} · ${o.items.length} item(ns)`, badge: o.status }));
@@ -176,7 +197,8 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Quartos afetados', value: affectedRooms.length, detail: 'Bloqueados ou em manutenção', icon: BedDouble }
     ];
     actions = [
-      { label: 'Kanban da Manutenção', tab: 'kanbans', detail: 'Executar e atualizar chamados' },
+      { label: 'Quartos em Manutenção', tab: 'kanbans', detail: 'Quartos que exigem intervenção técnica', kanbanIntent: { view: 'rooms', roomStatus: 'Manutencao' } },
+      { label: 'Tarefas da Manutenção', tab: 'kanbans', detail: 'Executar e atualizar chamados', kanbanIntent: { view: 'tasks', taskSector: 'Manutencao' } },
       { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Bloqueios e peças' }
     ];
     highlights = [
@@ -265,7 +287,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
           <h3 className="mt-1 text-lg font-black">Módulos do seu trabalho</h3>
           <div className="mt-4 space-y-2">
             {allowedActions.map(action => (
-              <button key={action.tab} onClick={() => onNavigate(action.tab)} className="w-full text-left rounded-2xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition">
+              <button key={`${action.tab}-${action.label}`} onClick={() => handleActionNavigation(action)} className="w-full text-left rounded-2xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition">
                 <strong className="block text-sm">{action.label}</strong>
                 <span className="block mt-1 text-[11px] text-white/65">{action.detail}</span>
               </button>
