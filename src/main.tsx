@@ -8,6 +8,7 @@ import {
   loadSupabaseStatusCloud,
   updateSettingsCloud
 } from './services/settingsPages.ts';
+import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -17,6 +18,9 @@ if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.i
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <>
+      <App />
+      <OperationalAlertsBellPortal />
+    </>
   </StrictMode>,
 );
