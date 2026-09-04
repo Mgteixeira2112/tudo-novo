@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CheckCheck, CircleAlert, X } from 'lucide-react';
+import { Bell, BellOff, CheckCheck, CircleAlert, Volume2, X } from 'lucide-react';
 import {
   OperationalAlertInboxItem,
   loadOperationalAlertsInbox,
@@ -7,6 +7,10 @@ import {
   markOperationalAlertRead,
   subscribeToOperationalAlertsInbox
 } from '../services/operationalAlertsInbox.ts';
+import {
+  loadOperationalAlertsMuted,
+  setOperationalAlertsMuted
+} from '../services/operationalAlertPreferences.ts';
 
 interface OperationalAlertsBellProps {
   userId: string;
@@ -27,6 +31,8 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
   const [items, setItems] = useState<OperationalAlertInboxItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [savingMute, setSavingMute] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = useMemo(() => items.filter(item => !item.readAt).length, [items]);
@@ -44,10 +50,20 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
   };
 
   useEffect(() => {
+    let active = true;
     refresh();
+    loadOperationalAlertsMuted(userId)
+      .then(value => {
+        if (active) setMuted(value);
+      })
+      .catch(() => {
+        if (active) setMuted(false);
+      });
+
     const unsubscribe = subscribeToOperationalAlertsInbox(userId, refresh);
     const fallback = window.setInterval(refresh, 30000);
     return () => {
+      active = false;
       if (unsubscribe) unsubscribe();
       window.clearInterval(fallback);
     };
@@ -75,17 +91,43 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
     setItems(prev => prev.map(item => ({ ...item, readAt: item.readAt || now })));
   };
 
+  const handleToggleMute = async () => {
+    if (savingMute) return;
+    const next = !muted;
+    try {
+      setSavingMute(true);
+      setError(null);
+      await setOperationalAlertsMuted(userId, next);
+      setMuted(next);
+    } catch (err: any) {
+      setError(err?.message || 'Não foi possível alterar a preferência de alertas.');
+    } finally {
+      setSavingMute(false);
+    }
+  };
+
   return (
-    <div className="relative" ref={rootRef}>
+    <div className="relative flex items-center gap-1" ref={rootRef}>
+      <button
+        id="btn-toggle-operational-alerts-mute"
+        onClick={handleToggleMute}
+        disabled={savingMute}
+        className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${muted ? 'border-[#D9D6CC] bg-[#EFECE4] text-[#8E9280]' : 'border-transparent bg-transparent text-[#6B705C] hover:border-[#E6E3D8] hover:bg-[#F4F1EA]'} disabled:opacity-60`}
+        title={muted ? 'Reativar alertas' : 'Silenciar alertas'}
+        aria-label={muted ? 'Reativar alertas' : 'Silenciar alertas'}
+      >
+        {muted ? <BellOff className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+      </button>
+
       <button
         id="btn-operational-alerts"
         onClick={() => setOpen(value => !value)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E6E3D8] bg-[#F4F1EA] text-[#3D4035] transition hover:bg-[#EFECE4]"
-        title="Central de Alertas"
-        aria-label={`Central de Alertas${unreadCount ? `, ${unreadCount} não lidas` : ''}`}
+        className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition ${muted ? 'border-[#D9D6CC] bg-[#EFECE4] text-[#8E9280]' : 'border-[#E6E3D8] bg-[#F4F1EA] text-[#3D4035] hover:bg-[#EFECE4]'}`}
+        title={muted ? 'Central de Alertas — silenciada' : 'Central de Alertas'}
+        aria-label={`Central de Alertas${muted ? ', silenciada' : ''}${unreadCount ? `, ${unreadCount} não lidas` : ''}`}
       >
-        <Bell className="h-4 w-4 text-[#3A5A40]" />
-        {unreadCount > 0 && (
+        {muted ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4 text-[#3A5A40]" />}
+        {!muted && unreadCount > 0 && (
           <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-[#BC6C25] px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-white shadow">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
@@ -93,11 +135,13 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[360px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#E6E3D8] bg-white shadow-2xl">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[360px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#E6E3D8] bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-[#E6E3D8] bg-[#FDFBF7] px-4 py-3">
             <div>
               <h3 className="text-sm font-bold text-[#2C3327]">Central de Alertas</h3>
-              <p className="text-[10px] text-[#6B705C]">{unreadCount} não lida{unreadCount === 1 ? '' : 's'}</p>
+              <p className="text-[10px] text-[#6B705C]">
+                {muted ? 'Silenciada • alertas continuam sendo recebidos' : `${unreadCount} não lida${unreadCount === 1 ? '' : 's'}`}
+              </p>
             </div>
             <div className="flex items-center gap-1">
               {unreadCount > 0 && (
@@ -114,6 +158,20 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
                 <X className="h-4 w-4" />
               </button>
             </div>
+          </div>
+
+          <div className="border-b border-[#F0EEE7] bg-[#FCFBF8] px-4 py-2">
+            <button
+              onClick={handleToggleMute}
+              disabled={savingMute}
+              className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-xs text-[#3D4035] hover:bg-[#F4F1EA] disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2">
+                {muted ? <BellOff className="h-4 w-4 text-[#8E9280]" /> : <Volume2 className="h-4 w-4 text-[#588157]" />}
+                <span className="font-semibold">{muted ? 'Alertas silenciados' : 'Alertas ativos'}</span>
+              </span>
+              <span className="text-[10px] font-semibold text-[#588157]">{muted ? 'Reativar' : 'Silenciar'}</span>
+            </button>
           </div>
 
           <div className="max-h-[430px] overflow-y-auto">
