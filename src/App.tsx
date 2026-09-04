@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HotelProvider, useHotel } from './context/HotelContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { OnlineBookingEngine } from './components/OnlineBookingEngine.tsx';
-import { KanbanBoard } from './components/KanbanBoard.tsx';
+import { KanbanWorkspace } from './components/KanbanWorkspace.tsx';
 import { ReceptionManager } from './components/ReceptionManager.tsx';
 import { GuestsManager } from './components/GuestsManager.tsx';
 import { RoomsAndInventoryManager } from './components/RoomsAndInventoryManager.tsx';
@@ -291,7 +291,7 @@ const AppContent: React.FC = () => {
               <>
                 {activeAdminTab === 'overview' && <FinancialDashboard />}
                 {activeAdminTab === 'rooms_inventory' && <RoomsAndInventoryManager />}
-                {activeAdminTab === 'kanbans' && <KanbanBoard />}
+                {activeAdminTab === 'kanbans' && <KanbanWorkspace />}
                 {activeAdminTab === 'checkinout' && <ReceptionManager />}
                 {activeAdminTab === 'guests' && <GuestsManager />}
                 {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
