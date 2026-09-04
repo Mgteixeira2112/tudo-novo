@@ -8,10 +8,13 @@ import {
   Sparkles,
   Wrench,
   Ban,
-  KeyRound
+  KeyRound,
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { Room, RoomStatus } from '../types.ts';
+import { updateRoomStatusSafeCloud } from '../services/roomStatusPages.ts';
 import { KanbanBoard } from './KanbanBoard.tsx';
 
 type WorkspaceView = 'rooms' | 'tasks';
@@ -29,7 +32,31 @@ const ROOM_COLUMNS: Array<{
   { status: 'Bloqueado', label: 'Bloqueados', description: 'Indisponíveis por bloqueio', icon: Ban }
 ];
 
-function RoomCard({ room }: { room: Room }) {
+const SAFE_TARGETS: Record<RoomStatus, RoomStatus[]> = {
+  Disponivel: ['Limpeza', 'Manutencao', 'Bloqueado'],
+  Ocupado: [],
+  Limpeza: ['Disponivel', 'Manutencao', 'Bloqueado'],
+  Manutencao: ['Disponivel', 'Limpeza', 'Bloqueado'],
+  Bloqueado: ['Disponivel', 'Limpeza', 'Manutencao']
+};
+
+function statusLabel(status: RoomStatus) {
+  return ROOM_COLUMNS.find(column => column.status === status)?.label || status;
+}
+
+function RoomCard({
+  room,
+  canManage,
+  busy,
+  onChangeStatus
+}: {
+  room: Room;
+  canManage: boolean;
+  busy: boolean;
+  onChangeStatus: (room: Room, status: RoomStatus) => Promise<void>;
+}) {
+  const targets = SAFE_TARGETS[room.status];
+
   return (
     <article className="rounded-xl border border-[#E6E3D8] bg-white p-4 shadow-xs transition hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -56,17 +83,47 @@ function RoomCard({ room }: { room: Room }) {
         <p className="mt-3 line-clamp-2 text-[11px] leading-relaxed text-[#6B705C]">{room.notes}</p>
       )}
 
-      <div className="mt-3 border-t border-[#EFECE3] pt-2 text-[10px] font-semibold text-[#8A8F7D]">
-        Status vindo diretamente do cadastro de quartos
+      <div className="mt-3 border-t border-[#EFECE3] pt-3">
+        {room.status === 'Ocupado' ? (
+          <div className="flex items-start gap-2 rounded-lg bg-[#F8F7F2] px-3 py-2 text-[10px] leading-relaxed text-[#6B705C]">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#588157]" />
+            <span>Estado protegido. Entrada e saída são controladas pelos fluxos de check-in e checkout.</span>
+          </div>
+        ) : canManage ? (
+          <div className="space-y-2">
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Alterar status com segurança</span>
+            <div className="flex flex-wrap gap-1.5">
+              {targets.map(target => (
+                <button
+                  key={target}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onChangeStatus(room, target)}
+                  className="rounded-lg border border-[#DADFD1] bg-[#F8FAF2] px-2.5 py-1.5 text-[10px] font-bold text-[#3A5A40] transition hover:bg-[#E9EDC9] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : statusLabel(target)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-[10px] font-semibold text-[#8A8F7D]">Somente leitura para este perfil.</div>
+        )}
       </div>
     </article>
   );
 }
 
 function RoomsKanbanView() {
-  const { rooms } = useHotel();
+  const { rooms, currentUser, refreshData } = useHotel();
   const [search, setSearch] = useState('');
   const [floor, setFloor] = useState<string>('ALL');
+  const [busyRoomId, setBusyRoomId] = useState<string | null>(null);
+
+  const canManage = Boolean(
+    currentUser &&
+    (currentUser.role === 'admin' || currentUser.permissions.includes('manage_rooms'))
+  );
 
   const floors = useMemo(
     () => Array.from(new Set(rooms.map(room => Number(room.floor)))).sort((a, b) => a - b),
@@ -85,6 +142,21 @@ function RoomsKanbanView() {
     });
   }, [rooms, search, floor]);
 
+  const handleChangeStatus = async (room: Room, status: RoomStatus) => {
+    const label = statusLabel(status);
+    if (!confirm(`Alterar o Quarto ${room.number} de ${statusLabel(room.status)} para ${label}?`)) return;
+
+    try {
+      setBusyRoomId(room.id);
+      await updateRoomStatusSafeCloud(room.id, status, room.notes);
+      await refreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível alterar o status do quarto.');
+    } finally {
+      setBusyRoomId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-[#DADFD1] bg-[#F8FAF2] p-4 sm:p-5">
@@ -95,7 +167,7 @@ function RoomsKanbanView() {
               <h3 className="text-lg font-black text-[#2C3327]">Kanban de Quartos</h3>
             </div>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#6B705C]">
-              Visualização operacional de <strong>rooms.status</strong>. Nenhum card adicional é criado: cada card abaixo é o próprio quarto cadastrado no sistema.
+              Cada card é o próprio quarto cadastrado. Mudanças permitidas atualizam diretamente <strong>rooms.status</strong>; tarefas continuam independentes.
             </p>
           </div>
 
@@ -144,7 +216,15 @@ function RoomsKanbanView() {
               </header>
 
               <div className="space-y-3">
-                {columnRooms.map(room => <RoomCard key={room.id} room={room} />)}
+                {columnRooms.map(room => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    canManage={canManage}
+                    busy={busyRoomId === room.id}
+                    onChangeStatus={handleChangeStatus}
+                  />
+                ))}
                 {columnRooms.length === 0 && (
                   <div className="rounded-xl border border-dashed border-[#DADFD1] bg-white/60 px-3 py-6 text-center text-[10px] text-[#8E9280]">
                     Nenhum quarto neste status
@@ -156,8 +236,8 @@ function RoomsKanbanView() {
         })}
       </div>
 
-      <div className="rounded-xl border border-[#E6E3D8] bg-white px-4 py-3 text-[11px] text-[#6B705C]">
-        <strong className="text-[#3D4035]">Fase 1 — somente leitura.</strong> Alterações de status continuam sendo feitas pelos fluxos já existentes. A movimentação segura entre colunas será tratada em uma PR posterior.
+      <div className="rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-4 py-3 text-[11px] text-[#6B705C]">
+        <strong className="text-[#3D4035]">Proteção operacional ativa.</strong> O Kanban não permite criar ou remover o estado Ocupado. Check-in e checkout continuam sendo os únicos fluxos que controlam ocupação.
       </div>
     </div>
   );
@@ -173,7 +253,7 @@ export const KanbanWorkspace: React.FC = () => {
       <div className="flex flex-col gap-4 rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-black tracking-tight text-[#2C3327]">Central de Kanbans</h2>
-          <p className="mt-1 text-xs text-[#6B705C]">Quartos e tarefas agora são visualizações independentes, cada uma com sua própria fonte de verdade.</p>
+          <p className="mt-1 text-xs text-[#6B705C]">Quartos e tarefas são fluxos independentes, cada um com sua própria fonte de verdade.</p>
         </div>
 
         <div className="inline-flex rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
