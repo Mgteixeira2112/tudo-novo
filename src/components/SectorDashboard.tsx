@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BedDouble,
   CalendarDays,
@@ -13,7 +13,6 @@ import {
   Receipt,
   Sparkles,
   Truck,
-  Users,
   Wrench
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
@@ -28,7 +27,7 @@ interface SectorDashboardProps {
 interface MetricCard {
   label: string;
   value: string | number;
-  detail?: string;
+  detail: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -38,58 +37,37 @@ interface ActionCard {
   detail: string;
 }
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
-const money = (value: number, currency = 'R$') => `${currency} ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+interface Highlight {
+  title: string;
+  detail: string;
+  badge?: string;
+}
 
 const SECTOR_COPY: Record<UserSector, { title: string; subtitle: string }> = {
-  Geral: {
-    title: 'Operação Geral',
-    subtitle: 'Visão consolidada do hotel, reservas, quartos, tarefas e indicadores.'
-  },
-  Recepcao: {
-    title: 'Painel da Recepção',
-    subtitle: 'Chegadas, saídas, ocupação, hóspedes e prioridades do front desk.'
-  },
-  Governanca: {
-    title: 'Painel da Governança',
-    subtitle: 'Quartos em limpeza, liberações, pendências e tarefas de andares.'
-  },
-  Cozinha: {
-    title: 'Painel da Cozinha',
-    subtitle: 'Pedidos recebidos, em preparo, prontos e tarefas de alimentos & bebidas.'
-  },
-  RoomService: {
-    title: 'Painel do Room Service',
-    subtitle: 'Pedidos para quartos, entregas pendentes e acompanhamento do atendimento.'
-  },
-  Manutencao: {
-    title: 'Painel da Manutenção',
-    subtitle: 'Chamados, urgências, quartos bloqueados e intervenções em andamento.'
-  },
-  Financeiro: {
-    title: 'Painel Financeiro',
-    subtitle: 'Receita, pendências, despesas e resultado operacional.'
-  }
+  Geral: { title: 'Operação Geral', subtitle: 'Visão consolidada do hotel, reservas, quartos, tarefas e indicadores.' },
+  Recepcao: { title: 'Painel da Recepção', subtitle: 'Chegadas, saídas, ocupação, hóspedes e prioridades do front desk.' },
+  Governanca: { title: 'Painel da Governança', subtitle: 'Quartos em limpeza, liberações, pendências e tarefas de andares.' },
+  Cozinha: { title: 'Painel da Cozinha', subtitle: 'Pedidos recebidos, em preparo, prontos e tarefas de alimentos & bebidas.' },
+  RoomService: { title: 'Painel do Room Service', subtitle: 'Pedidos para quartos, entregas pendentes e acompanhamento do atendimento.' },
+  Manutencao: { title: 'Painel da Manutenção', subtitle: 'Chamados, urgências, quartos bloqueados e intervenções em andamento.' },
+  Financeiro: { title: 'Painel Financeiro', subtitle: 'Receita, pendências, despesas e resultado operacional.' }
 };
 
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const money = (value: number, currency = 'R$') =>
+  `${currency} ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
 export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) => {
-  const {
-    currentUser,
-    rooms,
-    reservations,
-    tasks,
-    transactions,
-    stats,
-    settings,
-    canAccessTab
-  } = useHotel();
+  const { currentUser, rooms, reservations, tasks, transactions, stats, settings, canAccessTab } = useHotel();
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
 
   useEffect(() => {
-    if (!currentUser || !['Cozinha', 'RoomService'].includes(currentUser.sector)) {
+    const sector = currentUser?.sector;
+    if (!sector || !['Cozinha', 'RoomService'].includes(sector)) {
       setOrders([]);
       return;
     }
+
     let cancelled = false;
     const load = async () => {
       try {
@@ -99,6 +77,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         if (!cancelled) setOrders([]);
       }
     };
+
     load();
     const interval = window.setInterval(load, 8000);
     return () => {
@@ -108,70 +87,58 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
   }, [currentUser?.id, currentUser?.sector]);
 
   if (!currentUser) return null;
-  if (currentUser.sector === 'Geral') {
-    return <HomeDashboard onNavigate={onNavigate} />;
-  }
+  if (currentUser.sector === 'Geral') return <HomeDashboard onNavigate={onNavigate} />;
 
-  const today = todayKey();
   const sector = currentUser.sector;
+  const today = todayKey();
   const currency = settings?.currency || 'R$';
-
-  const activeReservations = useMemo(
-    () => reservations.filter(r => r.status !== 'Cancelada' && r.status !== 'CheckOut'),
-    [reservations]
-  );
-
-  const arrivals = useMemo(
-    () => activeReservations.filter(r => r.checkInDate === today && r.status !== 'CheckIn'),
-    [activeReservations, today]
-  );
-  const departures = useMemo(
-    () => activeReservations.filter(r => r.checkOutDate === today && r.status === 'CheckIn'),
-    [activeReservations, today]
-  );
-
-  const sectorTasks = useMemo(
-    () => tasks.filter(task => task.sector === sector && task.status !== 'Concluido'),
-    [tasks, sector]
-  );
-  const urgentTasks = sectorTasks.filter(task => task.priority === 'Urgente' || task.priority === 'Alta');
-
-  const roomServiceOrders = orders.filter(order => order.destination === 'Quarto' || order.deliverySector === 'Room Service');
-  const kitchenOrders = orders.filter(order => order.deliverySector === 'Cozinha');
+  const activeReservations = reservations.filter(r => r.status !== 'Cancelada' && r.status !== 'CheckOut');
+  const arrivals = activeReservations.filter(r => r.checkInDate === today && r.status !== 'CheckIn');
+  const departures = activeReservations.filter(r => r.checkOutDate === today && r.status === 'CheckIn');
+  const sectorTasks = tasks.filter(t => t.sector === sector && t.status !== 'Concluido');
+  const urgentTasks = sectorTasks.filter(t => t.priority === 'Urgente' || t.priority === 'Alta');
+  const roomServiceOrders = orders.filter(o => o.destination === 'Quarto' || o.deliverySector === 'Room Service');
+  const kitchenOrders = orders.filter(o => o.deliverySector === 'Cozinha');
 
   let metrics: MetricCard[] = [];
   let actions: ActionCard[] = [];
-  let highlights: Array<{ title: string; detail: string; badge?: string }> = [];
+  let highlights: Highlight[] = [];
 
   if (sector === 'Recepcao') {
     metrics = [
       { label: 'Chegadas hoje', value: arrivals.length, detail: 'Reservas previstas para entrada', icon: CalendarDays },
-      { label: 'Saídas hoje', value: departures.length, detail: 'Hóspedes com checkout previsto', icon: KeyRound },
+      { label: 'Saídas hoje', value: departures.length, detail: 'Checkouts previstos', icon: KeyRound },
       { label: 'Ocupados', value: rooms.filter(r => r.status === 'Ocupado').length, detail: `${rooms.length} quartos cadastrados`, icon: BedDouble },
       { label: 'Disponíveis', value: rooms.filter(r => r.status === 'Disponivel').length, detail: 'Prontos para hospedagem', icon: CheckCircle2 }
     ];
     actions = [
-      { label: 'Reservas / Check-in', tab: 'checkinout', detail: 'Abrir operação de entradas e saídas' },
+      { label: 'Reservas / Check-in', tab: 'checkinout', detail: 'Entradas, saídas e reservas' },
       { label: 'Cadastro de Hóspedes', tab: 'guests', detail: 'Consultar e atualizar hóspedes' },
-      { label: 'Mapa de Quartos', tab: 'rooms_inventory', detail: 'Ver ocupação e disponibilidade' },
-      { label: 'Kanbans', tab: 'kanbans', detail: 'Acompanhar demandas operacionais' }
+      { label: 'Mapa de Quartos', tab: 'rooms_inventory', detail: 'Ocupação e disponibilidade' },
+      { label: 'Kanbans', tab: 'kanbans', detail: 'Demandas operacionais' }
     ];
-    highlights = [...arrivals.slice(0, 4).map(r => ({ title: `${r.guestName} · Quarto ${r.roomNumber}`, detail: `Chegada hoje · ${r.code}`, badge: 'Chegada' })), ...departures.slice(0, 4).map(r => ({ title: `${r.guestName} · Quarto ${r.roomNumber}`, detail: `Saída hoje · ${r.code}`, badge: 'Saída' }))].slice(0, 6);
+    highlights = [
+      ...arrivals.slice(0, 4).map(r => ({ title: `${r.guestName} · Quarto ${r.roomNumber}`, detail: `${r.code} · chegada hoje`, badge: 'Chegada' })),
+      ...departures.slice(0, 4).map(r => ({ title: `${r.guestName} · Quarto ${r.roomNumber}`, detail: `${r.code} · saída hoje`, badge: 'Saída' }))
+    ].slice(0, 6);
   } else if (sector === 'Governanca') {
     const cleaningRooms = rooms.filter(r => r.status === 'Limpeza');
     const unavailableRooms = rooms.filter(r => r.status === 'Manutencao' || r.status === 'Bloqueado');
     metrics = [
-      { label: 'Em limpeza', value: cleaningRooms.length, detail: 'Quartos aguardando liberação', icon: Sparkles },
+      { label: 'Em limpeza', value: cleaningRooms.length, detail: 'Aguardando liberação', icon: Sparkles },
       { label: 'Tarefas abertas', value: sectorTasks.length, detail: 'Pendências da governança', icon: ClipboardList },
       { label: 'Prioridade alta', value: urgentTasks.length, detail: 'Exigem atenção imediata', icon: Clock3 },
       { label: 'Indisponíveis', value: unavailableRooms.length, detail: 'Manutenção ou bloqueio', icon: Wrench }
     ];
     actions = [
-      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Atualizar status e consultar enxoval' },
-      { label: 'Kanban da Governança', tab: 'kanbans', detail: 'Executar tarefas do setor' },
-      { label: 'Frigobar & A&B', tab: 'fnb', detail: 'Registrar consumo quando permitido' }
+      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Status, limpeza e enxoval' },
+      { label: 'Kanban da Governança', tab: 'kanbans', detail: 'Tarefas do setor' },
+      { label: 'Frigobar & A&B', tab: 'fnb', detail: 'Consumos permitidos' }
     ];
-    highlights = [...cleaningRooms.slice(0, 4).map(r => ({ title: `Quarto ${r.number}`, detail: `${r.typeName} · aguardando limpeza/liberação`, badge: 'Limpeza' })), ...sectorTasks.slice(0, 4).map(t => ({ title: t.title, detail: t.roomNumber ? `Quarto ${t.roomNumber}` : t.description, badge: t.priority }))].slice(0, 6);
+    highlights = [
+      ...cleaningRooms.slice(0, 4).map(r => ({ title: `Quarto ${r.number}`, detail: `${r.typeName} · aguardando limpeza/liberação`, badge: 'Limpeza' })),
+      ...sectorTasks.slice(0, 4).map(t => ({ title: t.title, detail: t.roomNumber ? `Quarto ${t.roomNumber}` : t.description, badge: t.priority }))
+    ].slice(0, 6);
   } else if (sector === 'Cozinha') {
     const active = kitchenOrders.filter(o => !['Entregue', 'Cancelado'].includes(o.status));
     metrics = [
@@ -181,9 +148,9 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Tarefas abertas', value: sectorTasks.length, detail: 'Pendências da cozinha', icon: ClipboardList }
     ];
     actions = [
-      { label: 'Pedidos & Cardápio', tab: 'fnb', detail: 'Abrir operação de alimentos & bebidas' },
-      { label: 'Kanban da Cozinha', tab: 'kanbans', detail: 'Ver tarefas e prioridades' },
-      { label: 'Estoque', tab: 'rooms_inventory', detail: 'Consultar insumos quando permitido' }
+      { label: 'Pedidos & Cardápio', tab: 'fnb', detail: 'Operação de alimentos & bebidas' },
+      { label: 'Kanban da Cozinha', tab: 'kanbans', detail: 'Tarefas e prioridades' },
+      { label: 'Estoque', tab: 'rooms_inventory', detail: 'Insumos quando permitido' }
     ];
     highlights = active.slice(0, 6).map(o => ({ title: `${o.orderNumber} · ${o.destination}`, detail: `${o.items.length} item(ns) · ${o.guestName}`, badge: o.status }));
   } else if (sector === 'RoomService') {
@@ -195,24 +162,27 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Tarefas abertas', value: sectorTasks.length, detail: 'Pendências do setor', icon: ClipboardList }
     ];
     actions = [
-      { label: 'Room Service', tab: 'fnb', detail: 'Abrir pedidos e entregas' },
-      { label: 'Kanban', tab: 'kanbans', detail: 'Acompanhar demandas do setor' },
-      { label: 'Quartos', tab: 'rooms_inventory', detail: 'Consultar destino dos pedidos' }
+      { label: 'Room Service', tab: 'fnb', detail: 'Pedidos e entregas' },
+      { label: 'Kanban', tab: 'kanbans', detail: 'Demandas do setor' },
+      { label: 'Quartos', tab: 'rooms_inventory', detail: 'Consultar destinos' }
     ];
     highlights = active.slice(0, 6).map(o => ({ title: `${o.orderNumber} · Quarto ${o.roomNumber}`, detail: `${o.guestName} · ${o.items.length} item(ns)`, badge: o.status }));
   } else if (sector === 'Manutencao') {
-    const maintenanceRooms = rooms.filter(r => r.status === 'Manutencao' || r.status === 'Bloqueado');
+    const affectedRooms = rooms.filter(r => r.status === 'Manutencao' || r.status === 'Bloqueado');
     metrics = [
       { label: 'Chamados abertos', value: sectorTasks.length, detail: 'Tarefas não concluídas', icon: Hammer },
       { label: 'Urgentes/altos', value: urgentTasks.length, detail: 'Atendimento prioritário', icon: Clock3 },
       { label: 'Em andamento', value: sectorTasks.filter(t => t.status === 'Em_Andamento').length, detail: 'Intervenções sendo executadas', icon: Wrench },
-      { label: 'Quartos afetados', value: maintenanceRooms.length, detail: 'Bloqueados ou em manutenção', icon: BedDouble }
+      { label: 'Quartos afetados', value: affectedRooms.length, detail: 'Bloqueados ou em manutenção', icon: BedDouble }
     ];
     actions = [
       { label: 'Kanban da Manutenção', tab: 'kanbans', detail: 'Executar e atualizar chamados' },
-      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Consultar bloqueios e peças' }
+      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Bloqueios e peças' }
     ];
-    highlights = [...urgentTasks.slice(0, 4).map(t => ({ title: t.title, detail: t.roomNumber ? `Quarto ${t.roomNumber}` : t.description, badge: t.priority })), ...maintenanceRooms.slice(0, 4).map(r => ({ title: `Quarto ${r.number}`, detail: r.notes || `${r.typeName} · ${r.status}`, badge: r.status }))].slice(0, 6);
+    highlights = [
+      ...urgentTasks.slice(0, 4).map(t => ({ title: t.title, detail: t.roomNumber ? `Quarto ${t.roomNumber}` : t.description, badge: t.priority })),
+      ...affectedRooms.slice(0, 4).map(r => ({ title: `Quarto ${r.number}`, detail: r.notes || `${r.typeName} · ${r.status}`, badge: r.status }))
+    ].slice(0, 6);
   } else if (sector === 'Financeiro') {
     const pendingTransactions = transactions.filter(t => t.status === 'Pendente');
     metrics = [
@@ -222,9 +192,9 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       { label: 'Resultado do mês', value: money(stats?.netIncomeMonth || 0, currency), detail: `Despesas: ${money(stats?.totalExpensesMonth || 0, currency)}`, icon: CircleDollarSign }
     ];
     actions = [
-      { label: 'Visão Geral & Faturamento', tab: 'overview', detail: 'Abrir indicadores e transações' },
-      { label: 'Check-in / Check-out', tab: 'checkinout', detail: 'Consultar fechamentos de hospedagem' },
-      { label: 'Hóspedes', tab: 'guests', detail: 'Consultar responsáveis pelos débitos' }
+      { label: 'Visão Geral & Faturamento', tab: 'overview', detail: 'Indicadores e transações' },
+      { label: 'Check-in / Check-out', tab: 'checkinout', detail: 'Fechamentos de hospedagem' },
+      { label: 'Hóspedes', tab: 'guests', detail: 'Responsáveis pelos débitos' }
     ];
     highlights = pendingTransactions.slice(0, 6).map(t => ({ title: t.description, detail: `${money(t.amount, currency)}${t.roomNumber ? ` · Quarto ${t.roomNumber}` : ''}`, badge: 'Pendente' }));
   }
@@ -237,9 +207,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       <section className="rounded-3xl border border-[#DADFD1] bg-gradient-to-br from-[#F8FAF2] via-white to-[#EFF4E8] p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div>
-            <span className="inline-flex rounded-full border border-[#CCD5AE] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#588157]">
-              Meu Painel · {sector}
-            </span>
+            <span className="inline-flex rounded-full border border-[#CCD5AE] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#588157]">Meu Painel · {sector}</span>
             <h2 className="mt-4 text-2xl sm:text-3xl font-black text-[#2C3327]">{copy.title}</h2>
             <p className="mt-2 text-sm text-[#6B705C] max-w-2xl">{copy.subtitle}</p>
           </div>
@@ -258,7 +226,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
               <div>
                 <span className="text-[10px] uppercase tracking-wider font-bold text-[#7B806E]">{label}</span>
                 <strong className="block mt-2 text-2xl font-black text-[#2C3327]">{value}</strong>
-                {detail && <span className="block mt-1 text-[11px] text-[#8A8F7D]">{detail}</span>}
+                <span className="block mt-1 text-[11px] text-[#8A8F7D]">{detail}</span>
               </div>
               <div className="rounded-xl bg-[#F2F5E8] p-2.5 text-[#588157]"><Icon className="w-5 h-5" /></div>
             </div>
@@ -288,9 +256,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-[#DADFD1] bg-[#FAFBF7] p-8 text-center text-sm text-[#7B806E]">
-              Nenhuma prioridade pendente para este setor neste momento.
-            </div>
+            <div className="rounded-2xl border border-dashed border-[#DADFD1] bg-[#FAFBF7] p-8 text-center text-sm text-[#7B806E]">Nenhuma prioridade pendente para este setor neste momento.</div>
           )}
         </div>
 
@@ -299,11 +265,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
           <h3 className="mt-1 text-lg font-black">Módulos do seu trabalho</h3>
           <div className="mt-4 space-y-2">
             {allowedActions.map(action => (
-              <button
-                key={action.tab}
-                onClick={() => onNavigate(action.tab)}
-                className="w-full text-left rounded-2xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition"
-              >
+              <button key={action.tab} onClick={() => onNavigate(action.tab)} className="w-full text-left rounded-2xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition">
                 <strong className="block text-sm">{action.label}</strong>
                 <span className="block mt-1 text-[11px] text-white/65">{action.detail}</span>
               </button>
