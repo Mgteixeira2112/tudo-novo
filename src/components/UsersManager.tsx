@@ -177,32 +177,46 @@ export const UsersManager: React.FC = () => {
         </div>
       )}
 
-      {modalOpen && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-3xl bg-white rounded-3xl border border-[#E6E3D8] shadow-2xl my-6">
-          <div className="p-5 border-b border-[#E6E3D8] flex items-center justify-between">
-            <div><h3 className="font-black text-[#2C3327]">{editing?'Editar Colaborador':'Novo Colaborador'}</h3><p className="text-xs text-[#8E9280] mt-1">A conta usa Supabase Auth e as permissões RBAC já existentes.</p></div>
-            <button onClick={()=>setModalOpen(false)} className="p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
-          </div>
-          <form onSubmit={save} className="p-5 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Nome Completo *"><input required value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} className="input" /></Field>
-              <Field label="E-mail *"><input required type="email" disabled={!!editing} value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="input disabled:opacity-60" /></Field>
-              {!editing && <Field label="Senha Inicial *"><input required minLength={6} type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className="input" /></Field>}
-              <Field label="Papel"><select value={form.role} onChange={e=>changeRole(e.target.value as UserRole)} className="input">{roleEntries.map(([key,def])=><option key={key} value={key}>{def.label}</option>)}</select></Field>
-              <Field label="Setor"><select value={form.sector} onChange={e=>setForm({...form,sector:e.target.value as UserSector})} className="input">{sectorEntries.map(([key,def])=><option key={key} value={key}>{def.label}</option>)}</select></Field>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between gap-3"><div><h4 className="text-sm font-black text-[#2C3327]">Permissões</h4><p className="text-xs text-[#8E9280]">Marque apenas o que este colaborador precisa acessar.</p></div><button type="button" onClick={()=>setForm({...form,permissions:[...ROLE_DEFINITIONS[form.role].defaultPermissions]})} className="text-xs font-bold text-[#588157]">Restaurar padrão do papel</button></div>
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                {permissionEntries.map(([key,def]) => <label key={key} className="flex items-start gap-3 rounded-xl border border-[#E6E3D8] p-3 cursor-pointer hover:bg-[#FAF9F5]"><input type="checkbox" checked={form.permissions.includes(key)} onChange={()=>togglePermission(key)} className="mt-0.5" /><span><strong className="block text-xs text-[#2C3327]">{def.label}</strong><span className="block mt-0.5 text-[11px] text-[#8E9280]">{def.description}</span></span></label>)}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-5 flex items-start justify-center overflow-hidden">
+          <div className="w-full max-w-3xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2.5rem)] bg-white rounded-2xl sm:rounded-3xl border border-[#E6E3D8] shadow-2xl flex flex-col overflow-hidden">
+            <div className="shrink-0 p-4 sm:p-5 border-b border-[#E6E3D8] flex items-center justify-between bg-white">
+              <div className="min-w-0 pr-3">
+                <h3 className="font-black text-[#2C3327]">{editing?'Editar Colaborador':'Novo Colaborador'}</h3>
+                <p className="text-xs text-[#8E9280] mt-1">A conta usa Supabase Auth e as permissões RBAC já existentes.</p>
               </div>
+              <button type="button" onClick={()=>setModalOpen(false)} className="shrink-0 p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
             </div>
 
-            <div className="flex justify-end gap-2"><button type="button" onClick={()=>setModalOpen(false)} className="px-4 py-2 rounded-xl bg-[#F4F1EA] text-xs font-bold">Cancelar</button><button disabled={saving} className="px-4 py-2 rounded-xl bg-[#2C3327] text-white text-xs font-bold disabled:opacity-50">{saving?'Salvando...':editing?'Salvar Alterações':'Criar Colaborador'}</button></div>
-          </form>
+            <form onSubmit={save} className="min-h-0 flex flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Nome Completo *"><input required value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} className="input" /></Field>
+                  <Field label="E-mail *"><input required type="email" disabled={!!editing} value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="input disabled:opacity-60" /></Field>
+                  {!editing && <Field label="Senha Inicial *"><input required minLength={6} type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className="input" /></Field>}
+                  <Field label="Papel"><select value={form.role} onChange={e=>changeRole(e.target.value as UserRole)} className="input">{roleEntries.map(([key,def])=><option key={key} value={key}>{def.label}</option>)}</select></Field>
+                  <Field label="Setor"><select value={form.sector} onChange={e=>setForm({...form,sector:e.target.value as UserSector})} className="input">{sectorEntries.map(([key,def])=><option key={key} value={key}>{def.label}</option>)}</select></Field>
+                </div>
+
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div><h4 className="text-sm font-black text-[#2C3327]">Permissões</h4><p className="text-xs text-[#8E9280]">Marque apenas o que este colaborador precisa acessar.</p></div>
+                    <button type="button" onClick={()=>setForm({...form,permissions:[...ROLE_DEFINITIONS[form.role].defaultPermissions]})} className="text-xs font-bold text-[#588157] self-start sm:self-auto">Restaurar padrão do papel</button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {permissionEntries.map(([key,def]) => <label key={key} className="flex items-start gap-3 rounded-xl border border-[#E6E3D8] p-3 cursor-pointer hover:bg-[#FAF9F5]"><input type="checkbox" checked={form.permissions.includes(key)} onChange={()=>togglePermission(key)} className="mt-0.5" /><span><strong className="block text-xs text-[#2C3327]">{def.label}</strong><span className="block mt-0.5 text-[11px] text-[#8E9280]">{def.description}</span></span></label>)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="shrink-0 border-t border-[#E6E3D8] bg-white p-4 sm:p-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <button type="button" onClick={()=>setModalOpen(false)} className="px-4 py-2.5 rounded-xl bg-[#F4F1EA] text-xs font-bold">Cancelar</button>
+                <button disabled={saving} className="px-4 py-2.5 rounded-xl bg-[#2C3327] text-white text-xs font-bold disabled:opacity-50">{saving?'Salvando...':editing?'Salvar Alterações':'Criar Colaborador'}</button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>}
+      )}
       <style>{`.input{width:100%;padding:.65rem .75rem;border:1px solid #E6E3D8;border-radius:.75rem;outline:none;color:#3D4035;background:white}.input:focus{box-shadow:0 0 0 2px #CCD5AE}`}</style>
     </div>
   );
