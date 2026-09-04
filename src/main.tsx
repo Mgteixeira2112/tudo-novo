@@ -9,6 +9,8 @@ import {
   updateSettingsCloud
 } from './services/settingsPages.ts';
 import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
+import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
+import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -21,6 +23,8 @@ createRoot(document.getElementById('root')!).render(
     <>
       <App />
       <OperationalAlertsBellPortal />
+      <OperationalAlertsNavPortal />
+      <OperationalAlertsCenterPortal />
     </>
   </StrictMode>,
 );
