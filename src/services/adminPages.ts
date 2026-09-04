@@ -124,6 +124,18 @@ export async function createStaffCloud(input: {
 }): Promise<{ user: StaffUser; requiresEmailConfirmation: boolean }> {
   if (!input.password || input.password.length < 6) throw new Error('Informe uma senha inicial com pelo menos 6 caracteres.');
 
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const { data: existingProfile, error: existingError } = await client()
+    .from('staff_users')
+    .select('id,email,full_name')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (existingProfile) {
+    throw new Error('Este e-mail já está cadastrado na equipe. Use outro e-mail ou edite o colaborador existente.');
+  }
+
   const url = (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const key = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
   const isolated = createClient(url, key, {
@@ -131,7 +143,7 @@ export async function createStaffCloud(input: {
   });
 
   const { data: authData, error: authError } = await isolated.auth.signUp({
-    email: input.email.trim().toLowerCase(),
+    email: normalizedEmail,
     password: input.password,
     options: {
       data: { full_name: input.fullName, role: input.role, sector: input.sector },
@@ -143,7 +155,7 @@ export async function createStaffCloud(input: {
 
   const { data: row, error: profileError } = await client().from('staff_users').insert({
     id: authData.user.id,
-    email: input.email.trim().toLowerCase(),
+    email: normalizedEmail,
     full_name: input.fullName.trim(),
     role: input.role,
     sector: input.sector,
@@ -151,6 +163,11 @@ export async function createStaffCloud(input: {
     active: true
   }).select('*').single();
 
-  if (profileError) throw profileError;
+  if (profileError) {
+    if (profileError.code === '23505') {
+      throw new Error('Este e-mail já está cadastrado na equipe. Use outro e-mail ou edite o colaborador existente.');
+    }
+    throw profileError;
+  }
   return { user: mapStaff(row), requiresEmailConfirmation: !authData.session };
 }
