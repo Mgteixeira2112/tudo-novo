@@ -19,6 +19,7 @@ interface OperationalAlertsBellProps {
 const TASK_SOURCES = ['kanban_task', 'task', 'maintenance_task', 'governance_task'];
 const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
 const GOVERNANCE_CLEANING_SOURCE = 'governance_room_cleaning';
+const MAINTENANCE_ROOM_SOURCE = 'maintenance_room_status';
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
 function formatRelativeTime(iso: string) {
@@ -34,7 +35,7 @@ function formatRelativeTime(iso: string) {
 function resolveOriginButtonId(item: OperationalAlertInboxItem): string | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'subnav-fnb';
-  if (TASK_SOURCES.includes(source) || source === GOVERNANCE_CLEANING_SOURCE) return 'subnav-kanbans';
+  if (TASK_SOURCES.includes(source) || source === GOVERNANCE_CLEANING_SOURCE || source === MAINTENANCE_ROOM_SOURCE) return 'subnav-kanbans';
   if (['room', 'room_status'].includes(source)) return 'subnav-rooms-inventory';
   if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'subnav-checkinout';
   if (['guest'].includes(source)) return 'subnav-guests';
@@ -48,6 +49,14 @@ function prepareOriginNavigation(item: OperationalAlertInboxItem) {
     sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
       view: 'rooms',
       roomStatus: 'Limpeza'
+    }));
+    return;
+  }
+
+  if (source === MAINTENANCE_ROOM_SOURCE) {
+    sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
+      view: 'rooms',
+      roomStatus: 'Manutencao'
     }));
     return;
   }

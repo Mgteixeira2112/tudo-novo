@@ -1,4 +1,5 @@
 import { Room, RoomStatus } from '../types.ts';
+import { createOperationalNotification } from './operationalNotifications.ts';
 import { getSupabaseClient } from './supabase.ts';
 
 function mapRoomRow(row: any): Room {
@@ -34,5 +35,24 @@ export async function updateRoomStatusSafeCloud(
 
   if (error) throw error;
   if (!data) throw new Error('Quarto não encontrado após atualização.');
-  return mapRoomRow(data);
+
+  const room = mapRoomRow(data);
+
+  if (room.status === 'Manutencao') {
+    try {
+      await createOperationalNotification({
+        type: 'room_maintenance_required',
+        priority: 'attention',
+        title: `Quarto ${room.number} em manutenção`,
+        message: `O quarto ${room.number} entrou em manutenção e está indisponível para a operação.`,
+        general: true,
+        sourceType: 'maintenance_room_status',
+        sourceId: room.id
+      });
+    } catch (alertError) {
+      console.warn('[Central de Alertas] Não foi possível publicar o alerta geral de manutenção.', alertError);
+    }
+  }
+
+  return room;
 }
