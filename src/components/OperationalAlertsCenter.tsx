@@ -17,15 +17,26 @@ interface OperationalAlertsCenterProps {
 }
 
 const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
+const MAINTENANCE_ROOM_SOURCE = 'maintenance_room_status';
+const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
 function resolveOriginTab(item: OperationalAlertInboxItem): AdminTab | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'fnb';
-  if (['kanban_task', 'task', 'maintenance_task', 'governance_task'].includes(source)) return 'kanbans';
+  if (['kanban_task', 'task', 'maintenance_task', 'governance_task'].includes(source) || source === MAINTENANCE_ROOM_SOURCE) return 'kanbans';
   if (['room', 'room_status'].includes(source)) return 'rooms_inventory';
   if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'checkinout';
   if (['guest'].includes(source)) return 'guests';
   return null;
+}
+
+function prepareOriginNavigation(item: OperationalAlertInboxItem) {
+  const source = (item.sourceType || '').toLowerCase();
+  if (source !== MAINTENANCE_ROOM_SOURCE) return;
+  sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
+    view: 'rooms',
+    roomStatus: 'Manutencao'
+  }));
 }
 
 function formatDate(iso: string) {
@@ -109,6 +120,7 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
     await markRead(item);
     const tab = resolveOriginTab(item);
     if (!tab) return;
+    prepareOriginNavigation(item);
     onNavigate(tab);
     openOriginSubtab(item);
   };
