@@ -10,6 +10,7 @@ import {
 } from './services/settingsPages.ts';
 import { installTaskAlertIntegration } from './services/taskAlertIntegration.ts';
 import { installKitchenOrderAlertIntegration } from './services/kitchenOrderAlertIntegration.ts';
+import { installGovernanceCheckoutAlertIntegration } from './services/governanceCheckoutAlertIntegration.ts';
 import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
 import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
 import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
@@ -22,6 +23,7 @@ if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.i
 
 installTaskAlertIntegration();
 installKitchenOrderAlertIntegration();
+installGovernanceCheckoutAlertIntegration();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
