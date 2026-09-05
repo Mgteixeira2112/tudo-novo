@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase.ts';
 
 export type OperationalNotificationPriority = 'info' | 'attention' | 'critical';
+export type OperationalNotificationAudience = 'targeted' | 'general';
 
 export interface CreateOperationalNotificationInput {
   type: string;
@@ -9,6 +10,7 @@ export interface CreateOperationalNotificationInput {
   message: string;
   sector?: string;
   responsibleUserId?: string;
+  general?: boolean;
   sourceType: string;
   sourceId: string;
 }
@@ -20,6 +22,7 @@ export interface CreateOperationalNotificationResult {
     priority: OperationalNotificationPriority;
     title: string;
     message: string;
+    audience?: OperationalNotificationAudience;
     sector?: string | null;
     responsible_user_id?: string | null;
     source_type: string;
@@ -43,7 +46,8 @@ export async function createOperationalNotification(
     p_sector: input.sector || null,
     p_responsible_user_id: input.responsibleUserId || null,
     p_source_type: input.sourceType,
-    p_source_id: input.sourceId
+    p_source_id: input.sourceId,
+    p_general: Boolean(input.general)
   });
 
   if (error) {
