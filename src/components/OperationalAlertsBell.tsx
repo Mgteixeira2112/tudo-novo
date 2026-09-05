@@ -17,6 +17,7 @@ interface OperationalAlertsBellProps {
 }
 
 const TASK_SOURCES = ['kanban_task', 'task', 'maintenance_task', 'governance_task'];
+const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
 function formatRelativeTime(iso: string) {
@@ -46,6 +47,12 @@ function prepareOriginNavigation(item: OperationalAlertInboxItem) {
   const intent: { view: 'tasks'; taskSector?: string } = { view: 'tasks' };
   if (item.sector) intent.taskSector = item.sector;
   sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify(intent));
+}
+
+function openOriginSubtab(item: OperationalAlertInboxItem) {
+  const source = (item.sourceType || '').toLowerCase();
+  if (!KITCHEN_SOURCES.includes(source)) return;
+  window.setTimeout(() => document.getElementById('tab-kitchen')?.click(), 80);
 }
 
 export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ userId }) => {
@@ -113,7 +120,10 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
     if (!buttonId) return;
     prepareOriginNavigation(item);
     setOpen(false);
-    window.setTimeout(() => document.getElementById(buttonId)?.click(), 0);
+    window.setTimeout(() => {
+      document.getElementById(buttonId)?.click();
+      openOriginSubtab(item);
+    }, 0);
   };
 
   const handleMarkAllRead = async () => {
