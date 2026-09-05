@@ -16,6 +16,8 @@ interface OperationalAlertsCenterProps {
   onNavigate: (tab: AdminTab) => void;
 }
 
+const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
+
 function resolveOriginTab(item: OperationalAlertInboxItem): AdminTab | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'fnb';
@@ -34,6 +36,12 @@ function formatDate(iso: string) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function openOriginSubtab(item: OperationalAlertInboxItem) {
+  const source = (item.sourceType || '').toLowerCase();
+  if (!KITCHEN_SOURCES.includes(source)) return;
+  window.setTimeout(() => document.getElementById('tab-kitchen')?.click(), 80);
 }
 
 export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = ({ onNavigate }) => {
@@ -100,7 +108,9 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
   const openOrigin = async (item: OperationalAlertInboxItem) => {
     await markRead(item);
     const tab = resolveOriginTab(item);
-    if (tab) onNavigate(tab);
+    if (!tab) return;
+    onNavigate(tab);
+    openOriginSubtab(item);
   };
 
   const filters: Array<{ key: Filter; label: string; count: number }> = [
