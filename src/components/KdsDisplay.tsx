@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Monitor, ShieldCheck, Wifi, WifiOff } from 'lucide-react';
-import { getPublicKdsDisplay, heartbeatKdsDisplay, PublicKdsDisplay } from '../services/kdsDisplays.ts';
+import {
+  getPublicKdsDisplay,
+  heartbeatKdsDisplay,
+  PublicKdsDisplay,
+  validateKdsDisplayToken
+} from '../services/kdsDisplays.ts';
 
 const PRESET_LABELS: Record<string, string> = {
   operations: 'Operação geral',
@@ -21,6 +26,12 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
   useEffect(() => {
     let active = true;
     let heartbeatTimer: number | null = null;
+    let validityTimer: number | null = null;
+
+    const invalidate = () => {
+      setValid(false);
+      setConnected(false);
+    };
 
     const load = async () => {
       try {
@@ -33,8 +44,7 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
       } catch {
         if (!active) return;
         setDisplay(null);
-        setValid(false);
-        setConnected(false);
+        invalidate();
       } finally {
         if (active) setLoading(false);
       }
@@ -44,15 +54,23 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
       const ok = await heartbeatKdsDisplay(token);
       if (!active) return;
       setConnected(ok);
-      if (!ok) setValid(false);
+      if (!ok) invalidate();
+    };
+
+    const validateToken = async () => {
+      const ok = await validateKdsDisplayToken(token);
+      if (!active) return;
+      if (!ok) invalidate();
     };
 
     load();
     heartbeatTimer = window.setInterval(heartbeat, 45000);
+    validityTimer = window.setInterval(validateToken, 5000);
 
     return () => {
       active = false;
       if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+      if (validityTimer) window.clearInterval(validityTimer);
     };
   }, [token]);
 
