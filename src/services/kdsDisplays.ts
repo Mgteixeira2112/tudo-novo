@@ -70,6 +70,12 @@ export async function getPublicKdsDisplay(token: string): Promise<PublicKdsDispl
   return (data || null) as PublicKdsDisplay | null;
 }
 
+export async function validateKdsDisplayToken(token: string): Promise<boolean> {
+  const { data, error } = await getClient().rpc('validate_kds_display_token', { p_token: token });
+  if (error) return false;
+  return Boolean(data);
+}
+
 export async function heartbeatKdsDisplay(token: string): Promise<boolean> {
   const { data, error } = await getClient().rpc('heartbeat_kds_display', { p_token: token });
   if (error) return false;
