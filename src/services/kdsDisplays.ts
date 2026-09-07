@@ -21,6 +21,27 @@ export interface PublicKdsDisplay {
   server_time: string;
 }
 
+export interface PublicKdsKitchenOrderItem {
+  menuItemId?: string;
+  name: string;
+  quantity: number;
+  unitPrice?: number;
+  notes?: string;
+}
+
+export interface PublicKdsKitchenOrder {
+  id: string;
+  order_number: string;
+  room_number: string;
+  guest_name: string;
+  items: PublicKdsKitchenOrderItem[];
+  destination: 'Quarto' | 'Restaurante' | 'Piscina';
+  delivery_sector: 'Cozinha' | 'Room Service';
+  status: 'Recebido' | 'Em Preparo' | 'Pronto';
+  special_instructions?: string | null;
+  created_at: string;
+}
+
 function getClient() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
@@ -68,6 +89,12 @@ export async function getPublicKdsDisplay(token: string): Promise<PublicKdsDispl
   const { data, error } = await getClient().rpc('get_kds_public', { p_token: token });
   if (error) throw new Error(error.message || 'Não foi possível carregar a tela KDS.');
   return (data || null) as PublicKdsDisplay | null;
+}
+
+export async function getPublicKdsKitchenOrders(token: string): Promise<PublicKdsKitchenOrder[]> {
+  const { data, error } = await getClient().rpc('get_kds_kitchen_orders', { p_token: token });
+  if (error) throw new Error(error.message || 'Não foi possível carregar os pedidos do KDS.');
+  return Array.isArray(data) ? (data as PublicKdsKitchenOrder[]) : [];
 }
 
 export async function validateKdsDisplayToken(token: string): Promise<boolean> {
