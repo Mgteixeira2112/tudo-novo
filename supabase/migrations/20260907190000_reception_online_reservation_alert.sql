@@ -93,7 +93,7 @@ begin
         ' reservou o quarto ' || coalesce(new.room_number, '—') ||
         ' para entrada em ' || to_char(new.check_in_date, 'DD/MM/YYYY') || '.',
       'Recepcao',
-      'online_reservation',
+      'reservation',
       new.id
     );
   exception when others then
