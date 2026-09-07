@@ -16,14 +16,16 @@ interface OperationalAlertsCenterProps {
   onNavigate: (tab: AdminTab) => void;
 }
 
+const TASK_SOURCES = ['kanban_task', 'task', 'maintenance_task', 'governance_task'];
 const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
+const GOVERNANCE_CLEANING_SOURCE = 'governance_room_cleaning';
 const MAINTENANCE_ROOM_SOURCE = 'maintenance_room_status';
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
 function resolveOriginTab(item: OperationalAlertInboxItem): AdminTab | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'fnb';
-  if (['kanban_task', 'task', 'maintenance_task', 'governance_task'].includes(source) || source === MAINTENANCE_ROOM_SOURCE) return 'kanbans';
+  if (TASK_SOURCES.includes(source) || source === GOVERNANCE_CLEANING_SOURCE || source === MAINTENANCE_ROOM_SOURCE) return 'kanbans';
   if (['room', 'room_status'].includes(source)) return 'rooms_inventory';
   if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'checkinout';
   if (['guest'].includes(source)) return 'guests';
@@ -32,11 +34,28 @@ function resolveOriginTab(item: OperationalAlertInboxItem): AdminTab | null {
 
 function prepareOriginNavigation(item: OperationalAlertInboxItem) {
   const source = (item.sourceType || '').toLowerCase();
-  if (source !== MAINTENANCE_ROOM_SOURCE) return;
-  sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
-    view: 'rooms',
-    roomStatus: 'Manutencao'
-  }));
+
+  if (source === GOVERNANCE_CLEANING_SOURCE) {
+    sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
+      view: 'rooms',
+      roomStatus: 'Limpeza'
+    }));
+    return;
+  }
+
+  if (source === MAINTENANCE_ROOM_SOURCE) {
+    sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({
+      view: 'rooms',
+      roomStatus: 'Manutencao'
+    }));
+    return;
+  }
+
+  if (!TASK_SOURCES.includes(source)) return;
+
+  const intent: { view: 'tasks'; taskSector?: string } = { view: 'tasks' };
+  if (item.sector) intent.taskSector = item.sector;
+  sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify(intent));
 }
 
 function formatDate(iso: string) {
