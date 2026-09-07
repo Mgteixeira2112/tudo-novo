@@ -14,6 +14,8 @@ import { installGovernanceCheckoutAlertIntegration } from './services/governance
 import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
 import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
 import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
+import { KdsDisplay } from './components/KdsDisplay.tsx';
+import { KdsSettingsPortal } from './components/KdsSettingsPortal.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -25,13 +27,22 @@ installTaskAlertIntegration();
 installKitchenOrderAlertIntegration();
 installGovernanceCheckoutAlertIntegration();
 
+const kdsToken = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('kds')
+  : null;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <>
-      <App />
-      <OperationalAlertsBellPortal />
-      <OperationalAlertsNavPortal />
-      <OperationalAlertsCenterPortal />
-    </>
+    {kdsToken ? (
+      <KdsDisplay token={kdsToken} />
+    ) : (
+      <>
+        <App />
+        <OperationalAlertsBellPortal />
+        <OperationalAlertsNavPortal />
+        <OperationalAlertsCenterPortal />
+        <KdsSettingsPortal />
+      </>
+    )}
   </StrictMode>,
 );
