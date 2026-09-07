@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BedDouble,
   ClipboardList,
@@ -289,9 +289,25 @@ function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
 
 export const KanbanWorkspace: React.FC = () => {
   const { rooms, tasks } = useHotel();
-  const [navigationIntent] = useState<KanbanNavigationIntent | null>(() => consumeKanbanNavigationIntent());
+  const [navigationIntent, setNavigationIntent] = useState<KanbanNavigationIntent | null>(() => consumeKanbanNavigationIntent());
   const [view, setView] = useState<WorkspaceView>(navigationIntent?.view || 'rooms');
+  const [navigationVersion, setNavigationVersion] = useState(0);
   const openTasks = tasks.filter(task => task.status !== 'Concluido').length;
+
+  useEffect(() => {
+    const handleDocumentClick = () => {
+      window.setTimeout(() => {
+        const nextIntent = consumeKanbanNavigationIntent();
+        if (!nextIntent) return;
+        setNavigationIntent(nextIntent);
+        setView(nextIntent.view);
+        setNavigationVersion(version => version + 1);
+      }, 0);
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, []);
 
   const initialRoomStatus = navigationIntent?.view === 'rooms' ? navigationIntent.roomStatus : undefined;
   const initialTaskSector = navigationIntent?.view === 'tasks' ? navigationIntent.taskSector : undefined;
@@ -325,8 +341,8 @@ export const KanbanWorkspace: React.FC = () => {
       </div>
 
       {view === 'rooms'
-        ? <RoomsKanbanView initialStatus={initialRoomStatus} />
-        : <KanbanBoard initialSector={initialTaskSector || 'Todos'} />}
+        ? <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} />
+        : <KanbanBoard key={`tasks-${navigationVersion}`} initialSector={initialTaskSector || 'Todos'} />}
     </div>
   );
 };
