@@ -12,6 +12,7 @@ export const ReceptionManager: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
         <div className="inline-flex max-w-full overflow-x-auto bg-[#F4F1EA] p-1 rounded-xl border border-[#E6E3D8] text-xs font-semibold">
           <button
+            id="tab-reception-reservations"
             type="button"
             onClick={() => setTab('reservations')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg whitespace-nowrap transition ${
