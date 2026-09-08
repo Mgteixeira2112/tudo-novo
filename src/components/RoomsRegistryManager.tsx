@@ -143,9 +143,6 @@ export const RoomsRegistryManager: React.FC = () => {
             <BedDouble className="w-5 h-5 text-[#588157]" />
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327]">Cadastro de Quartos</h2>
           </div>
-          <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Cadastro mestre das acomodações. Status operacional continua sendo tratado nos módulos de operação.
-          </p>
         </div>
         <button
           id="btn-create-room-registry"
@@ -212,7 +209,6 @@ export const RoomsRegistryManager: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[#E6E3D8] pb-4">
               <div>
                 <h3 className="text-lg font-bold text-[#2C3327]">{editingRoom ? `Editar Quarto ${editingRoom.number}` : 'Cadastrar Novo Quarto'}</h3>
-                <p className="text-xs text-[#6B705C]">Somente dados cadastrais da acomodação.</p>
               </div>
               <button type="button" onClick={() => setShowModal(false)} className="p-1 text-[#8E9280] hover:text-[#2C3327]"><X className="w-5 h-5" /></button>
             </div>
