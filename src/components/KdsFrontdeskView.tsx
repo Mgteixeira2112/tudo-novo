@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BedDouble, CalendarCheck2, CalendarClock, Clock3, Loader2 } from 'lucide-react';
+import { CalendarCheck2, CalendarClock, Loader2 } from 'lucide-react';
 import {
   getPublicKdsFrontdeskOverview,
   PublicKdsFrontdeskOverview,
@@ -90,18 +90,9 @@ export const KdsFrontdeskView: React.FC<{ token: string; onConnectionError?: () 
 
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8">
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-[#CCD5AE]">
-            <BedDouble className="h-5 w-5" />
-            <span className="text-xs font-black uppercase tracking-[0.2em]">Visão operacional</span>
-          </div>
-          <h2 className="mt-1 text-2xl font-black sm:text-3xl">Recepção · mapa do hotel</h2>
-          {overview.server_date ? <p className="mt-1 text-xs font-semibold text-white/40">Data operacional: {overview.server_date}</p> : null}
-        </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-white/45">
-          <Clock3 className="h-4 w-4" /> Atualização automática a cada 5s
-        </div>
+      <div className="mb-5">
+        <h2 className="text-2xl font-black sm:text-3xl">Recepção · mapa do hotel</h2>
+        {overview.server_date ? <p className="mt-1 text-xs font-semibold text-white/40">Data operacional: {overview.server_date}</p> : null}
       </div>
 
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
