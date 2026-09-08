@@ -38,6 +38,12 @@ function strike(ctx: AudioContext, when: number, level = 1) {
   });
 }
 
+function ring(ctx: AudioContext) {
+  const now = ctx.currentTime + 0.01;
+  strike(ctx, now, 1);
+  strike(ctx, now + 0.34, 0.72);
+}
+
 export async function enableOldHotelBell(): Promise<boolean> {
   try {
     const ctx = getAudioContext();
@@ -54,11 +60,22 @@ export async function enableOldHotelBell(): Promise<boolean> {
 export function playOldHotelBell(): boolean {
   try {
     const ctx = getAudioContext();
-    if (!ctx || ctx.state !== 'running') return false;
-    const now = ctx.currentTime + 0.01;
-    strike(ctx, now, 1);
-    strike(ctx, now + 0.34, 0.72);
-    return true;
+    if (!ctx) return false;
+
+    if (ctx.state === 'running') {
+      ring(ctx);
+      return true;
+    }
+
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+        .then(() => {
+          if (ctx.state === 'running') ring(ctx);
+        })
+        .catch(() => {});
+    }
+
+    return false;
   } catch {
     return false;
   }
