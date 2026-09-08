@@ -72,7 +72,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (mode === 'admin' && currentUser && !canAccessTab(activeAdminTab)) {
+    if (mode === 'admin' && currentUser && !canAccessTab(activeAdminTabTab)) {
       const allTabs: Array<
         'kanbans' | 'rooms_inventory' | 'fnb' | 'checkinout' | 'guests' | 'overview' | 'users' | 'settings'
       > = [
@@ -262,10 +262,8 @@ const AppContent: React.FC = () => {
   };
 
   const handleNavigateToOrder = (order: KitchenOrder) => {
-    setShowHome(false);
-    setMode('admin');
-    setActiveAdminTab('fnb');
     setToasts(prev => prev.filter(t => t.order.id !== order.id));
+    navigateFromSidebar('fnb', 'fnb-module-room-service');
   };
 
   const handleToggleMute = () => {
