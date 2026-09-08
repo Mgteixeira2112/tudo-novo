@@ -91,37 +91,37 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
   admin: {
     role: 'admin', label: 'Administrador Geral / TI', description: 'Acesso irrestrito a todos os módulos, configurações globais, banco Supabase e gestão de equipe.', badgeColor: 'bg-[#2C3327] text-[#FDFBF7] border-[#2C3327]', defaultSector: 'Geral',
     defaultPermissions: [
-      'view_overview','view_financial','manage_financial','view_rooms','manage_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,GRANULAR_PERMISSION_KEYS.manageRoomRegistry,
-      'view_inventory','manage_inventory','view_kanbans','manage_all_kanbans','view_checkinout','manage_checkinout','view_guests','manage_guests','view_fnb','manage_fnb',
+      'view_overview','view_financial','manage_financial','view_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,GRANULAR_PERMISSION_KEYS.manageRoomRegistry,
+      'view_inventory','manage_inventory','view_kanbans','manage_all_kanbans','view_checkinout','manage_checkinout','view_guests','manage_guests',
       GRANULAR_PERMISSION_KEYS.viewMinibar,GRANULAR_PERMISSION_KEYS.manageMinibar,GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService,
-      GRANULAR_PERMISSION_KEYS.viewKitchen,GRANULAR_PERMISSION_KEYS.manageKitchen,GRANULAR_PERMISSION_KEYS.manageMenu,'manage_users','manage_settings',
+      GRANULAR_PERMISSION_KEYS.viewKitchen,GRANULAR_PERMISSION_KEYS.manageKitchen,GRANULAR_PERMISSION_KEYS.manageMenu,'manage_users',
       GRANULAR_PERMISSION_KEYS.manageHotelSettings,GRANULAR_PERMISSION_KEYS.manageRoomRates,GRANULAR_PERMISSION_KEYS.manageSystemSettings
     ]
   },
   gerente: {
     role: 'gerente', label: 'Gerente Operacional', description: 'Supervisão de todos os setores hoteleiros, liberação de quartos e auditoria operacional.', badgeColor: 'bg-[#3A5A40] text-white border-[#3A5A40]', defaultSector: 'Geral',
     defaultPermissions: [
-      'view_overview','view_financial','view_rooms','manage_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,GRANULAR_PERMISSION_KEYS.manageRoomRegistry,
-      'view_inventory','manage_inventory','view_kanbans','manage_all_kanbans','view_checkinout','manage_checkinout','view_guests','manage_guests','view_fnb','manage_fnb',
+      'view_overview','view_financial','view_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,GRANULAR_PERMISSION_KEYS.manageRoomRegistry,
+      'view_inventory','manage_inventory','view_kanbans','manage_all_kanbans','view_checkinout','manage_checkinout','view_guests','manage_guests',
       GRANULAR_PERMISSION_KEYS.viewMinibar,GRANULAR_PERMISSION_KEYS.manageMinibar,GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService,
       GRANULAR_PERMISSION_KEYS.viewKitchen,GRANULAR_PERMISSION_KEYS.manageKitchen,GRANULAR_PERMISSION_KEYS.manageMenu,'manage_users'
     ]
   },
   recepcionista: {
     role: 'recepcionista', label: 'Recepcionista / Atendente', description: 'Operação de Check-in, Check-out, cadastro de hóspedes e visualização de quartos.', badgeColor: 'bg-[#D4A373] text-[#2C3327] border-[#B08968]', defaultSector: 'Recepcao',
-    defaultPermissions: ['view_rooms','view_checkinout','manage_checkinout','view_guests','manage_guests','view_kanbans','view_fnb','manage_fnb',GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService]
+    defaultPermissions: ['view_rooms','view_checkinout','manage_checkinout','view_guests','manage_guests','view_kanbans',GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService]
   },
   governanca: {
     role: 'governanca', label: 'Governança / Camareira', description: 'Atualização de status de limpeza de quartos, lançamento de frigobar e kanban de governança.', badgeColor: 'bg-[#6B705C] text-white border-[#588157]', defaultSector: 'Governanca',
-    defaultPermissions: ['view_rooms','manage_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,'view_kanbans','view_fnb','manage_fnb',GRANULAR_PERMISSION_KEYS.viewMinibar,GRANULAR_PERMISSION_KEYS.manageMinibar,'view_inventory']
+    defaultPermissions: ['view_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,'view_kanbans',GRANULAR_PERMISSION_KEYS.viewMinibar,GRANULAR_PERMISSION_KEYS.manageMinibar,'view_inventory']
   },
   cozinha_roomservice: {
     role: 'cozinha_roomservice', label: 'Cozinha & Room Service', description: 'Gestão de pedidos de alimentos, cardápio, status de preparo e subestoque culinário.', badgeColor: 'bg-[#BC6C25] text-white border-[#99582A]', defaultSector: 'Cozinha',
-    defaultPermissions: ['view_fnb','manage_fnb',GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService,GRANULAR_PERMISSION_KEYS.viewKitchen,GRANULAR_PERMISSION_KEYS.manageKitchen,GRANULAR_PERMISSION_KEYS.manageMenu,'view_kanbans','view_inventory','manage_inventory']
+    defaultPermissions: [GRANULAR_PERMISSION_KEYS.viewRoomService,GRANULAR_PERMISSION_KEYS.manageRoomService,GRANULAR_PERMISSION_KEYS.viewKitchen,GRANULAR_PERMISSION_KEYS.manageKitchen,GRANULAR_PERMISSION_KEYS.manageMenu,'view_kanbans','view_inventory','manage_inventory']
   },
   manutencao: {
     role: 'manutencao', label: 'Técnico de Manutenção', description: 'Acompanhamento de chamados preventivos/corretivos, bloqueio técnico de quartos e peças.', badgeColor: 'bg-[#4A5759] text-white border-[#3D4035]', defaultSector: 'Manutencao',
-    defaultPermissions: ['view_rooms','manage_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,'view_kanbans','view_inventory','manage_inventory']
+    defaultPermissions: ['view_rooms',GRANULAR_PERMISSION_KEYS.manageRoomStatus,'view_kanbans','view_inventory','manage_inventory']
   },
   financeiro: {
     role: 'financeiro', label: 'Analista Financeiro / Auditor', description: 'Acesso completo ao faturamento, fluxo de receitas, conciliação e relatórios de ocupação.', badgeColor: 'bg-[#588157] text-white border-[#3A5A40]', defaultSector: 'Financeiro',
