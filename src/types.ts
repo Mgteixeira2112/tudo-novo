@@ -338,6 +338,8 @@ export type PermissionKey =
   | 'view_financial'
   | 'manage_financial'
   | 'view_rooms'
+  | 'manage_room_status'
+  | 'manage_room_registry'
   | 'manage_rooms'
   | 'view_inventory'
   | 'manage_inventory'
@@ -347,9 +349,19 @@ export type PermissionKey =
   | 'manage_checkinout'
   | 'view_guests'
   | 'manage_guests'
+  | 'view_minibar'
+  | 'manage_minibar'
+  | 'view_room_service'
+  | 'manage_room_service'
+  | 'view_kitchen'
+  | 'manage_kitchen'
+  | 'manage_menu'
   | 'view_fnb'
   | 'manage_fnb'
   | 'manage_users'
+  | 'manage_hotel_settings'
+  | 'manage_room_rates'
+  | 'manage_system_settings'
   | 'manage_settings';
 
 export interface StaffUser {
@@ -377,4 +389,3 @@ export type AdminTab =
   | 'fnb'
   | 'users'
   | 'settings';
-
