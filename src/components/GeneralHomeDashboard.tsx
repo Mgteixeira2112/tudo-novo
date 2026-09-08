@@ -21,6 +21,8 @@ interface HomeDashboardProps {
   onNavigate: (tab: AdminTab) => void;
 }
 
+const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
+
 const statusTone: Record<Room['status'], string> = {
   Disponivel: 'bg-[#EEF5E8] text-[#3A5A40] border-[#CCD5AE]',
   Ocupado: 'bg-[#FFF5DF] text-[#8A5A16] border-[#E9C98D]',
@@ -59,9 +61,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
 
-  // While the home is visible, the global admin navigation must leave the home
-  // before rendering the selected module. This keeps the existing Navbar contract
-  // intact while preventing the home state from swallowing menu clicks.
   useEffect(() => {
     const tabByButtonId: Record<string, AdminTab> = {
       'subnav-overview': 'overview',
@@ -85,6 +84,15 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
     document.addEventListener('click', handleGlobalAdminNavigation, true);
     return () => document.removeEventListener('click', handleGlobalAdminNavigation, true);
   }, [onNavigate]);
+
+  const openRoomsMap = () => {
+    try {
+      sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({ view: 'rooms' }));
+    } catch {
+      // Navigation still works even if transient browser storage is unavailable.
+    }
+    onNavigate('kanbans');
+  };
 
   const today = toDateKey(new Date());
   const activeReservations = useMemo(
@@ -202,8 +210,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
             <h3 className="mt-1 text-xl font-black text-[#2C3327]">Quartos em cards</h3>
             <p className="mt-1 text-xs text-[#8A8F7D]">Clique em qualquer quarto para abrir todas as informações relacionadas já disponíveis.</p>
           </div>
-          <button onClick={() => onNavigate('rooms_inventory')} className="text-xs font-bold text-[#588157] hover:text-[#3A5A40] flex items-center gap-1">
-            Abrir gestão completa <ChevronRight className="w-4 h-4" />
+          <button onClick={openRoomsMap} className="text-xs font-bold text-[#588157] hover:text-[#3A5A40] flex items-center gap-1">
+            Abrir Mapa de Quartos <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -286,7 +294,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
           <div className="flex flex-wrap gap-2">
             <button onClick={() => onNavigate('checkinout')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Reservas / Check-in</button>
             <button onClick={() => onNavigate('guests')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Hóspedes</button>
-            <button onClick={() => onNavigate('rooms_inventory')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Quartos</button>
+            <button onClick={openRoomsMap} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Mapa de Quartos</button>
             <button onClick={() => onNavigate('kanbans')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Kanbans · {metrics.openTasks}</button>
           </div>
         </div>
@@ -349,7 +357,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
               <section className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button onClick={() => { closeDrawer(); onNavigate('guests'); }} className="rounded-xl border border-[#E6E3D8] bg-white px-3 py-3 text-xs font-bold text-[#2C3327]">Abrir Hóspedes</button>
                 <button onClick={() => { closeDrawer(); onNavigate('checkinout'); }} className="rounded-xl border border-[#E6E3D8] bg-white px-3 py-3 text-xs font-bold text-[#2C3327]">Reserva / Check-in</button>
-                <button onClick={() => { closeDrawer(); onNavigate('rooms_inventory'); }} className="rounded-xl bg-[#2C3327] px-3 py-3 text-xs font-bold text-white">Gestão do Quarto</button>
+                <button onClick={() => { closeDrawer(); openRoomsMap(); }} className="rounded-xl bg-[#2C3327] px-3 py-3 text-xs font-bold text-white">Mapa de Quartos</button>
               </section>
             </div>
           </aside>
