@@ -226,19 +226,8 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <section className="rounded-3xl border border-[#DADFD1] bg-gradient-to-br from-[#F8FAF2] via-white to-[#EFF4E8] p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div>
-            <span className="inline-flex rounded-full border border-[#CCD5AE] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#588157]">Meu Painel · {sector}</span>
-            <h2 className="mt-4 text-2xl sm:text-3xl font-black text-[#2C3327]">{copy.title}</h2>
-            <p className="mt-2 text-sm text-[#6B705C] max-w-2xl">{copy.subtitle}</p>
-          </div>
-          <div className="rounded-2xl border border-[#E6E3D8] bg-white/90 px-5 py-4 min-w-[220px]">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-[#8A8F7D]">Usuário</span>
-            <strong className="block mt-1 text-sm text-[#2C3327]">{currentUser.fullName}</strong>
-            <span className="text-xs text-[#6B705C]">Setor {sector}</span>
-          </div>
-        </div>
+      <section className="rounded-2xl border border-[#DADFD1] bg-white px-5 py-4 sm:px-6 shadow-sm">
+        <h2 className="text-xl sm:text-2xl font-black text-[#2C3327]">{copy.title}</h2>
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -259,10 +248,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
       <section className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] gap-4">
         <div className="rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-[#588157]">Agora</span>
-              <h3 className="mt-1 text-lg font-black text-[#2C3327]">Prioridades do setor</h3>
-            </div>
+            <h3 className="text-lg font-black text-[#2C3327]">Prioridades do setor</h3>
             <ClipboardList className="w-5 h-5 text-[#588157]" />
           </div>
           {highlights.length ? (
@@ -283,13 +269,11 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         </div>
 
         <div className="rounded-3xl border border-[#E6E3D8] bg-[#2C3327] p-5 sm:p-6 text-white shadow-sm">
-          <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-[#CCD5AE]">Acesso rápido</span>
-          <h3 className="mt-1 text-lg font-black">Módulos do seu trabalho</h3>
+          <h3 className="text-lg font-black">Acesso rápido</h3>
           <div className="mt-4 space-y-2">
             {allowedActions.map(action => (
               <button key={`${action.tab}-${action.label}`} onClick={() => handleActionNavigation(action)} className="w-full text-left rounded-2xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition">
                 <strong className="block text-sm">{action.label}</strong>
-                <span className="block mt-1 text-[11px] text-white/65">{action.detail}</span>
               </button>
             ))}
           </div>
