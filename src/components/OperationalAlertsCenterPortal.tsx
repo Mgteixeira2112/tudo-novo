@@ -46,7 +46,7 @@ export const OperationalAlertsCenterPortal: React.FC = () => {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 rounded-xl border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-semibold text-[#3D4035] hover:bg-[#F4F1EA]"
           >
-            <X className="h-4 w-4" /> Fechar Central
+            <X className="h-4 w-4" /> Fechar
           </button>
         </div>
       </div>
