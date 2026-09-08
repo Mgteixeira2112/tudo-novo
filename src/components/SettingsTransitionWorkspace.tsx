@@ -1,13 +1,14 @@
 import React from 'react';
 import { Building2, Database, BedDouble } from 'lucide-react';
-import { HotelSettingsTab } from './HotelSettingsModal.tsx';
+
+export type SettingsEntryTab = 'visual' | 'rooms' | 'supabase';
 
 interface SettingsTransitionWorkspaceProps {
-  onOpen: (tab: HotelSettingsTab) => void;
+  onOpen: (tab: SettingsEntryTab) => void;
 }
 
 const entries: Array<{
-  tab: HotelSettingsTab;
+  tab: SettingsEntryTab;
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
