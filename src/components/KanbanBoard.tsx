@@ -32,12 +32,17 @@ const SECTORS: { id: SectorType | 'Todos'; label: string; icon: string; color: s
 
 interface KanbanBoardProps {
   initialSector?: SectorType | 'Todos';
+  lockedSector?: SectorType;
 }
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos' }) => {
+function sectorLabel(sector: SectorType) {
+  return SECTORS.find(item => item.id === sector)?.label || sector;
+}
+
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos', lockedSector }) => {
   const { tasks, rooms, refreshData } = useHotel();
 
-  const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>(initialSector);
+  const [selectedSector, setSelectedSector] = useState<SectorType | 'Todos'>(lockedSector || initialSector);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -45,7 +50,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
 
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [taskSector, setTaskSector] = useState<SectorType>('Governanca');
+  const [taskSector, setTaskSector] = useState<SectorType>(lockedSector || 'Governanca');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('Media');
   const [taskRoomNumber, setTaskRoomNumber] = useState('');
   const [taskAssignedTo, setTaskAssignedTo] = useState('');
@@ -56,10 +61,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!lockedSector) return;
+    setSelectedSector(lockedSector);
+    setTaskSector(lockedSector);
+  }, [lockedSector]);
+
+  const effectiveSector: SectorType | 'Todos' = lockedSector || selectedSector;
+
   const resetTaskForm = () => {
     setTaskTitle('');
     setTaskDescription('');
-    setTaskSector('Governanca');
+    setTaskSector(lockedSector || 'Governanca');
     setTaskPriority('Media');
     setTaskRoomNumber('');
     setTaskAssignedTo('');
@@ -75,16 +88,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
     setEditingTaskId(task.id);
     setTaskTitle(task.title || '');
     setTaskDescription(task.description || '');
-    setTaskSector(task.sector);
+    setTaskSector(lockedSector || task.sector);
     setTaskPriority(task.priority);
     setTaskRoomNumber(task.roomNumber || '');
     setTaskAssignedTo(task.assignedTo || '');
     setShowNewTaskModal(true);
   };
 
-  const filteredTasks = selectedSector === 'Todos'
+  const filteredTasks = effectiveSector === 'Todos'
     ? tasks
-    : tasks.filter(t => t.sector === selectedSector);
+    : tasks.filter(t => t.sector === effectiveSector);
 
   const todoTasks = filteredTasks.filter(t => t.status === 'A_Fazer');
   const inProgressTasks = filteredTasks.filter(t => t.status === 'Em_Andamento');
@@ -123,7 +136,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
       const payload = {
         title: taskTitle.trim(),
         description: taskDescription,
-        sector: taskSector,
+        sector: lockedSector || taskSector,
         priority: taskPriority,
         roomNumber: taskRoomNumber || undefined,
         assignedTo: taskAssignedTo || undefined
@@ -204,7 +217,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
         <div className="space-y-1 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             {getPriorityBadge(task.priority)}
-            {selectedSector === 'Todos' && getSectorBadge(task.sector)}
+            {effectiveSector === 'Todos' && getSectorBadge(task.sector)}
             {task.roomNumber && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#F4F1EA] text-[#2C3327] border border-[#E6E3D8]">
                 <DoorOpen className="w-3 h-3 text-[#6B705C]" />
@@ -293,7 +306,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
         <div>
           <div className="flex items-center space-x-2">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] tracking-tight">
-              Kanbans em Tempo Real por Setor
+              {lockedSector ? `Tarefas — ${sectorLabel(lockedSector)}` : 'Kanbans em Tempo Real por Setor'}
             </h2>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F2F5E8] text-[#2C3327] border border-[#CCD5AE]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#588157] mr-1.5 animate-pulse"></span>
@@ -301,26 +314,30 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Administração ágil das operações de Governança, Cozinha, Room Service, Manutenção e Recepção.
+            {lockedSector
+              ? 'Visão operacional dedicada ao setor. Novas tarefas permanecem vinculadas a este contexto.'
+              : 'Administração ágil das operações de Governança, Cozinha, Room Service, Manutenção e Recepção.'}
           </p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => setShowHistory(true)}
-            className="flex items-center justify-center space-x-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#3D4035] shadow-sm transition hover:bg-[#F8FAF2]"
-          >
-            <Archive className="w-4 h-4 text-[#588157]" />
-            <span>Histórico</span>
-          </button>
+          {!lockedSector && (
+            <button
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="flex items-center justify-center space-x-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#3D4035] shadow-sm transition hover:bg-[#F8FAF2]"
+            >
+              <Archive className="w-4 h-4 text-[#588157]" />
+              <span>Histórico</span>
+            </button>
+          )}
           <button
             id="btn-new-kanban-task"
             onClick={handleOpenNewTask}
             className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-sm transition shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Nova Tarefa de Setor</span>
+            <span>{lockedSector ? `Nova Tarefa — ${sectorLabel(lockedSector)}` : 'Nova Tarefa de Setor'}</span>
           </button>
         </div>
       </div>
@@ -329,37 +346,39 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
         <strong className="text-[#3D4035]">Arquivamento automático:</strong> tarefas permanecem em Concluídos por 5 minutos e depois saem do Kanban operacional. O registro continua disponível em Histórico.
       </div>
 
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
-        {SECTORS.map(s => {
-          const count = s.id === 'Todos'
-            ? tasks.filter(t => t.status !== 'Concluido').length
-            : tasks.filter(t => t.sector === s.id && t.status !== 'Concluido').length;
+      {!lockedSector && (
+        <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+          {SECTORS.map(s => {
+            const count = s.id === 'Todos'
+              ? tasks.filter(t => t.status !== 'Concluido').length
+              : tasks.filter(t => t.sector === s.id && t.status !== 'Concluido').length;
 
-          const isActive = selectedSector === s.id;
+            const isActive = selectedSector === s.id;
 
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSelectedSector(s.id)}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition border ${
-                isActive
-                  ? 'bg-[#2C3327] text-[#FDFBF7] border-[#2C3327] shadow-sm'
-                  : 'bg-white text-[#6B705C] border-[#E6E3D8] hover:bg-[#FDFBF7]'
-              }`}
-            >
-              <span>{s.icon}</span>
-              <span>{s.label}</span>
-              {count > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  isActive ? 'bg-[#588157] text-white' : 'bg-[#F4F1EA] text-[#6B705C]'
-                }`}>
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSelectedSector(s.id)}
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition border ${
+                  isActive
+                    ? 'bg-[#2C3327] text-[#FDFBF7] border-[#2C3327] shadow-sm'
+                    : 'bg-white text-[#6B705C] border-[#E6E3D8] hover:bg-[#FDFBF7]'
+                }`}
+              >
+                <span>{s.icon}</span>
+                <span>{s.label}</span>
+                {count > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    isActive ? 'bg-[#588157] text-white' : 'bg-[#F4F1EA] text-[#6B705C]'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <div className="bg-[#F7F5F0] rounded-2xl p-4 border border-[#E6E3D8] space-y-3">
@@ -435,14 +454,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
         </div>
       </div>
 
-      {showHistory && <TaskHistoryModal onClose={() => setShowHistory(false)} />}
+      {showHistory && !lockedSector && <TaskHistoryModal onClose={() => setShowHistory(false)} />}
 
       {showNewTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-[#E6E3D8]">
             <div className="flex items-center justify-between pb-3 border-b border-[#E6E3D8]">
               <h3 className="text-base font-bold text-[#2C3327]">
-                Nova Tarefa de Setor
+                {lockedSector ? `Nova Tarefa — ${sectorLabel(lockedSector)}` : 'Nova Tarefa de Setor'}
               </h3>
               <button
                 onClick={() => setShowNewTaskModal(false)}
@@ -473,18 +492,24 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
                   <label className="block text-xs font-semibold text-[#6B705C] mb-1">
                     Setor Responsável
                   </label>
-                  <select
-                    id="select-task-sector"
-                    value={taskSector}
-                    onChange={e => setTaskSector(e.target.value as SectorType)}
-                    className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] outline-none text-[#3D4035]"
-                  >
-                    <option value="Governanca">🧹 Governança</option>
-                    <option value="Cozinha">👨‍🍳 Cozinha</option>
-                    <option value="RoomService">🍷 Room Service</option>
-                    <option value="Recepcao">🛎️ Recepção</option>
-                    <option value="Manutencao">🔧 Manutenção</option>
-                  </select>
+                  {lockedSector ? (
+                    <div className="w-full px-3 py-2 text-sm border border-[#CCD5AE] rounded-xl bg-[#F8FAF2] font-semibold text-[#3A5A40]">
+                      {sectorLabel(lockedSector)}
+                    </div>
+                  ) : (
+                    <select
+                      id="select-task-sector"
+                      value={taskSector}
+                      onChange={e => setTaskSector(e.target.value as SectorType)}
+                      className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl focus:ring-2 focus:ring-[#588157] outline-none text-[#3D4035]"
+                    >
+                      <option value="Governanca">🧹 Governança</option>
+                      <option value="Cozinha">👨‍🍳 Cozinha</option>
+                      <option value="RoomService">🍷 Room Service</option>
+                      <option value="Recepcao">🛎️ Recepção</option>
+                      <option value="Manutencao">🔧 Manutenção</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>

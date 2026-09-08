@@ -17,10 +17,12 @@ import { Room, RoomStatus, SectorType } from '../types.ts';
 import { updateRoomStatusSafeCloud } from '../services/roomStatusPages.ts';
 import { KanbanBoard } from './KanbanBoard.tsx';
 
-type WorkspaceView = 'rooms' | 'tasks';
+type WorkspaceView = 'rooms' | 'tasks' | 'housekeeping' | 'maintenance';
+
+type NavigationWorkspaceView = 'rooms' | 'tasks';
 
 interface KanbanNavigationIntent {
-  view: WorkspaceView;
+  view: NavigationWorkspaceView;
   roomStatus?: RoomStatus;
   taskSector?: SectorType;
 }
@@ -135,12 +137,22 @@ function RoomCard({
   );
 }
 
-function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
+function RoomsKanbanView({
+  initialStatus,
+  lockedStatus
+}: {
+  initialStatus?: RoomStatus;
+  lockedStatus?: RoomStatus;
+}) {
   const { rooms, currentUser, refreshData } = useHotel();
   const [search, setSearch] = useState('');
   const [floor, setFloor] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<RoomStatus | 'ALL'>(initialStatus || 'ALL');
+  const [statusFilter, setStatusFilter] = useState<RoomStatus | 'ALL'>(lockedStatus || initialStatus || 'ALL');
   const [busyRoomId, setBusyRoomId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (lockedStatus) setStatusFilter(lockedStatus);
+  }, [lockedStatus]);
 
   const canManage = Boolean(
     currentUser &&
@@ -164,9 +176,10 @@ function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
     });
   }, [rooms, search, floor]);
 
-  const visibleColumns = statusFilter === 'ALL'
+  const effectiveStatus = lockedStatus || statusFilter;
+  const visibleColumns = effectiveStatus === 'ALL'
     ? ROOM_COLUMNS
-    : ROOM_COLUMNS.filter(column => column.status === statusFilter);
+    : ROOM_COLUMNS.filter(column => column.status === effectiveStatus);
 
   const handleChangeStatus = async (room: Room, status: RoomStatus) => {
     const label = statusLabel(status);
@@ -190,7 +203,9 @@ function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
           <div>
             <div className="flex items-center gap-2">
               <BedDouble className="h-5 w-5 text-[#588157]" />
-              <h3 className="text-lg font-black text-[#2C3327]">Kanban de Quartos</h3>
+              <h3 className="text-lg font-black text-[#2C3327]">
+                {lockedStatus ? `Quartos — ${statusLabel(lockedStatus)}` : 'Kanban de Quartos'}
+              </h3>
             </div>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#6B705C]">
               Cada card é o próprio quarto cadastrado. Mudanças permitidas atualizam diretamente <strong>rooms.status</strong>; tarefas continuam independentes.
@@ -218,22 +233,24 @@ function RoomsKanbanView({ initialStatus }: { initialStatus?: RoomStatus }) {
                 {floors.map(item => <option key={item} value={String(item)}>{item}º andar</option>)}
               </select>
             </label>
-            <label className="relative block">
-              <Filter className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8E9280]" />
-              <select
-                value={statusFilter}
-                onChange={event => setStatusFilter(event.target.value as RoomStatus | 'ALL')}
-                className="w-full appearance-none rounded-xl border border-[#E6E3D8] bg-white py-2.5 pl-9 pr-7 text-xs font-semibold text-[#3D4035] outline-none focus:border-[#A3B18A] sm:w-44"
-              >
-                <option value="ALL">Todos os status</option>
-                {ROOM_COLUMNS.map(column => <option key={column.status} value={column.status}>{column.label}</option>)}
-              </select>
-            </label>
+            {!lockedStatus && (
+              <label className="relative block">
+                <Filter className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8E9280]" />
+                <select
+                  value={statusFilter}
+                  onChange={event => setStatusFilter(event.target.value as RoomStatus | 'ALL')}
+                  className="w-full appearance-none rounded-xl border border-[#E6E3D8] bg-white py-2.5 pl-9 pr-7 text-xs font-semibold text-[#3D4035] outline-none focus:border-[#A3B18A] sm:w-44"
+                >
+                  <option value="ALL">Todos os status</option>
+                  {ROOM_COLUMNS.map(column => <option key={column.status} value={column.status}>{column.label}</option>)}
+                </select>
+              </label>
+            )}
           </div>
         </div>
       </div>
 
-      {statusFilter !== 'ALL' && (
+      {!lockedStatus && statusFilter !== 'ALL' && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[#CCD5AE] bg-[#F8FAF2] px-4 py-3 text-xs text-[#3A5A40]">
           <span><strong>Filtro ativo:</strong> {statusLabel(statusFilter)}</span>
           <button type="button" onClick={() => setStatusFilter('ALL')} className="font-bold underline underline-offset-2">Ver todos</button>
@@ -293,6 +310,8 @@ export const KanbanWorkspace: React.FC = () => {
   const [view, setView] = useState<WorkspaceView>(navigationIntent?.view || 'rooms');
   const [navigationVersion, setNavigationVersion] = useState(0);
   const openTasks = tasks.filter(task => task.status !== 'Concluido').length;
+  const housekeepingOpen = tasks.filter(task => task.sector === 'Governanca' && task.status !== 'Concluido').length;
+  const maintenanceOpen = tasks.filter(task => task.sector === 'Manutencao' && task.status !== 'Concluido').length;
 
   useEffect(() => {
     const handleDocumentClick = () => {
@@ -316,33 +335,83 @@ export const KanbanWorkspace: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="flex flex-col gap-4 rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black tracking-tight text-[#2C3327]">Central de Kanbans</h2>
-          <p className="mt-1 text-xs text-[#6B705C]">Quartos e tarefas são fluxos independentes, cada um com sua própria fonte de verdade.</p>
+          <h2 className="text-xl font-black tracking-tight text-[#2C3327]">Operação Hoteleira</h2>
+          <p className="mt-1 text-xs text-[#6B705C]">Central geral preservada e módulos setoriais independentes para Governança e Manutenção.</p>
         </div>
 
-        <div className="inline-flex rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
+        <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
           <button
             onClick={() => setView('rooms')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition ${view === 'rooms' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'rooms' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
             <BedDouble className="h-4 w-4" />
-            Quartos
+            Quartos Geral
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'rooms' ? 'bg-white/15' : 'bg-white'}`}>{rooms.length}</span>
           </button>
           <button
             onClick={() => setView('tasks')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition ${view === 'tasks' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'tasks' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
             <ClipboardList className="h-4 w-4" />
-            Tarefas
+            Tarefas Geral
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'tasks' ? 'bg-white/15' : 'bg-white'}`}>{openTasks}</span>
+          </button>
+          <button
+            id="tab-operations-housekeeping"
+            onClick={() => setView('housekeeping')}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'housekeeping' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
+          >
+            <Sparkles className="h-4 w-4" />
+            Governança
+            <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'housekeeping' ? 'bg-white/15' : 'bg-white'}`}>{housekeepingOpen}</span>
+          </button>
+          <button
+            id="tab-operations-maintenance"
+            onClick={() => setView('maintenance')}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'maintenance' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
+          >
+            <Wrench className="h-4 w-4" />
+            Manutenção
+            <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'maintenance' ? 'bg-white/15' : 'bg-white'}`}>{maintenanceOpen}</span>
           </button>
         </div>
       </div>
 
-      {view === 'rooms'
-        ? <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} />
-        : <KanbanBoard key={`tasks-${navigationVersion}`} initialSector={initialTaskSector || 'Todos'} />}
+      {view === 'rooms' && (
+        <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} />
+      )}
+
+      {view === 'tasks' && (
+        <KanbanBoard key={`tasks-${navigationVersion}`} initialSector={initialTaskSector || 'Todos'} />
+      )}
+
+      {view === 'housekeeping' && (
+        <div className="space-y-2">
+          <div className="rounded-2xl border border-[#CCD5AE] bg-[#F8FAF2] p-5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#588157]" />
+              <h3 className="text-lg font-black text-[#2C3327]">Governança</h3>
+            </div>
+            <p className="mt-1 text-xs text-[#6B705C]">Quartos em Limpeza e tarefas de Governança reunidos no mesmo contexto operacional.</p>
+          </div>
+          <RoomsKanbanView lockedStatus="Limpeza" />
+          <KanbanBoard lockedSector="Governanca" />
+        </div>
+      )}
+
+      {view === 'maintenance' && (
+        <div className="space-y-2">
+          <div className="rounded-2xl border border-[#D4A373]/40 bg-[#FAEDCD]/30 p-5">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-[#BC6C25]" />
+              <h3 className="text-lg font-black text-[#2C3327]">Manutenção</h3>
+            </div>
+            <p className="mt-1 text-xs text-[#6B705C]">Quartos em Manutenção e chamados técnicos reunidos no mesmo contexto operacional.</p>
+          </div>
+          <RoomsKanbanView lockedStatus="Manutencao" />
+          <KanbanBoard lockedSector="Manutencao" />
+        </div>
+      )}
     </div>
   );
 };
