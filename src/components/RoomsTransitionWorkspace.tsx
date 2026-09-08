@@ -35,10 +35,7 @@ export const RoomsTransitionWorkspace: React.FC = () => {
     <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-[#E6E3D8] bg-white p-3 shadow-xs">
-          <div>
-            <p className="text-xs font-bold text-[#2C3327]">Cadastros & Estoque</p>
-            <p className="text-[11px] text-[#6B705C] mt-0.5">O Mapa de Quartos operacional agora fica exclusivamente em Recepção → Mapa de Quartos.</p>
-          </div>
+          <p className="text-xs font-bold text-[#2C3327]">Cadastros & Estoque</p>
           <div className="inline-flex max-w-full overflow-x-auto bg-[#F4F1EA] p-1 rounded-xl border border-[#E6E3D8] text-xs font-semibold">
             {canManageRegistry && (
               <button id="rooms-transition-registry" type="button" onClick={() => setView('registry')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'registry' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
