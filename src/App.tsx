@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HotelProvider, useHotel } from './context/HotelContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
+import { SidebarNavigation } from './components/SidebarNavigation.tsx';
 import { OnlineBookingEngine } from './components/OnlineBookingEngine.tsx';
 import { KanbanWorkspace } from './components/KanbanWorkspace.tsx';
 import { ReceptionManager } from './components/ReceptionManager.tsx';
@@ -95,6 +96,30 @@ const AppContent: React.FC = () => {
     setShowHome(false);
     setMode('admin');
     setActiveAdminTab(tab);
+  };
+
+  const navigateFromSidebar = (tab: AdminTab, targetId?: string) => {
+    setShowHome(false);
+    setMode('admin');
+    setActiveAdminTab(tab);
+
+    if (!targetId) return;
+
+    let attempt = 0;
+    const openTarget = () => {
+      attempt += 1;
+      const target = document.getElementById(targetId);
+      if (target instanceof HTMLButtonElement) {
+        target.click();
+        return;
+      }
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (attempt < 6) window.setTimeout(openTarget, 80);
+    };
+    window.setTimeout(openTarget, 0);
   };
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -303,6 +328,10 @@ const AppContent: React.FC = () => {
       />
 
       <Navbar onOpenSettingsModal={() => openSettingsAt('visual')} />
+      <SidebarNavigation
+        onHome={() => setShowHome(true)}
+        onNavigate={navigateFromSidebar}
+      />
 
       <main className="flex-1">
         {mode === 'booking' ? (
