@@ -24,9 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     setMode,
     setActiveAdminTab,
     currentUser,
-    allUsers,
     isImpersonating,
-    switchUser,
     revertToAdminUser,
     canAccessTab,
     logout
@@ -192,41 +190,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                               </span>
                             </div>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="mb-3">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B705C] block px-1 mb-1.5">
-                          Testar Setorização & Políticas (Simulador)
-                        </span>
-                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                          {allUsers.map(u => {
-                            const uRole = ROLE_DEFINITIONS[u.role];
-                            const isSelected = u.id === currentUser.id;
-
-                            return (
-                              <button
-                                key={u.id}
-                                onClick={() => {
-                                  switchUser(u);
-                                  setShowUserMenu(false);
-                                }}
-                                className={`w-full flex items-center justify-between p-1.5 rounded-lg text-left text-xs transition ${
-                                  isSelected
-                                    ? 'bg-[#E9EDC9] text-[#2C3327] font-bold border border-[#CCD5AE]'
-                                    : 'hover:bg-[#F4F1EA] text-[#2C3327]'
-                                }`}
-                              >
-                                <div className="flex items-center space-x-2 truncate">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#588157]"></span>
-                                  <span className="truncate">{u.fullName}</span>
-                                </div>
-                                <span className="text-[10px] text-[#6B705C] shrink-0 ml-2">
-                                  {uRole?.label.split(' ')[0]} ({u.sector})
-                                </span>
-                              </button>
-                            );
-                          })}
                         </div>
                       </div>
 
