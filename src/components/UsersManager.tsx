@@ -125,7 +125,6 @@ export const UsersManager: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-[#588157] text-xs font-bold uppercase tracking-wider"><ShieldCheck className="w-4 h-4" /> Administração</div>
           <h2 className="mt-1 text-2xl font-black text-[#2C3327]">Equipe & Controle de Acesso</h2>
-          <p className="mt-1 text-sm text-[#6B705C]">Colaboradores, setores, papéis e permissões usando o RBAC granular do sistema.</p>
         </div>
         <button onClick={openNew} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2C3327] text-white text-xs font-bold shadow-sm hover:bg-[#3A4135]">
           <UserPlus className="w-4 h-4" /> Novo Colaborador
@@ -139,7 +138,7 @@ export const UsersManager: React.FC = () => {
         <Metric label="Colaboradores" value={users.length} />
         <Metric label="Ativos" value={users.filter(u => u.status === 'Ativo').length} />
         <Metric label="Setores" value={new Set(users.map(u => u.sector)).size} />
-        <Metric label="Papéis RBAC" value={roleEntries.length} />
+        <Metric label="Papéis de acesso" value={roleEntries.length} />
       </div>
 
       <div className="bg-white border border-[#E6E3D8] rounded-2xl p-4">
@@ -191,7 +190,6 @@ export const UsersManager: React.FC = () => {
             <div className="shrink-0 p-4 sm:p-5 border-b border-[#E6E3D8] flex items-center justify-between bg-white">
               <div className="min-w-0 pr-3">
                 <h3 className="font-black text-[#2C3327]">{editing?'Editar Colaborador':'Novo Colaborador'}</h3>
-                <p className="text-xs text-[#8E9280] mt-1">Permissões antigas são convertidas visualmente para os controles granulares equivalentes.</p>
               </div>
               <button type="button" onClick={()=>setModalOpen(false)} className="shrink-0 p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
             </div>
