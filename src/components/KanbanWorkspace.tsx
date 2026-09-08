@@ -15,6 +15,7 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 import { Room, RoomStatus, SectorType } from '../types.ts';
 import { updateRoomStatusSafeCloud } from '../services/roomStatusPages.ts';
+import { GRANULAR_PERMISSION_KEYS, hasPermission } from '../services/rbac.ts';
 import { KanbanBoard } from './KanbanBoard.tsx';
 
 type WorkspaceView = 'rooms' | 'tasks' | 'housekeeping' | 'maintenance';
@@ -154,10 +155,7 @@ function RoomsKanbanView({
     if (lockedStatus) setStatusFilter(lockedStatus);
   }, [lockedStatus]);
 
-  const canManage = Boolean(
-    currentUser &&
-    (currentUser.role === 'admin' || currentUser.permissions.includes('manage_rooms'))
-  );
+  const canManage = hasPermission(currentUser, GRANULAR_PERMISSION_KEYS.manageRoomStatus);
 
   const floors = useMemo(
     () => Array.from(new Set(rooms.map(room => Number(room.floor)))).sort((a, b) => a - b),
