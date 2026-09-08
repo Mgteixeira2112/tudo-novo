@@ -32,9 +32,23 @@ const THEME_COLORS: { id: HotelSettings['primaryColor']; label: string; bgClass:
 ];
 
 export const HotelSettingsModal: React.FC<HotelSettingsModalProps> = ({ isOpen, onClose }) => {
-  const { settings, supabaseStatus, updateSettings, refreshData } = useHotel();
+  const { settings, supabaseStatus, updateSettings, refreshData, hasPermission } = useHotel();
 
   const [activeTab, setActiveTab] = useState<'visual' | 'rooms' | 'supabase'>('visual');
+
+  const canManageHotelSettings = hasPermission('manage_hotel_settings');
+  const canManageRoomRates = hasPermission('manage_room_rates');
+  const canManageSystem = hasPermission('manage_system_settings');
+  const displayedTab =
+    (activeTab === 'visual' && canManageHotelSettings) ||
+    (activeTab === 'rooms' && canManageRoomRates) ||
+    (activeTab === 'supabase' && canManageSystem)
+      ? activeTab
+      : canManageHotelSettings
+        ? 'visual'
+        : canManageRoomRates
+          ? 'rooms'
+          : 'supabase';
 
   // Form states
   const [hotelName, setHotelName] = useState(settings?.hotelName || '');
@@ -115,11 +129,12 @@ export const HotelSettingsModal: React.FC<HotelSettingsModalProps> = ({ isOpen, 
             </div>
             <div className="min-w-0">
               <h3 className="text-base font-bold text-[#2C3327] truncate sm:whitespace-normal">
-                Configurações do Hotel & Persistência SQL
+                {displayedTab === 'supabase'
+                  ? 'Sistema / Supabase'
+                  : displayedTab === 'rooms'
+                    ? 'Tarifas & Acomodações'
+                    : 'Configurações do Hotel'}
               </h3>
-              <p className="text-xs text-[#6B705C] hidden sm:block">
-                Front-end 100% configurável com persistência relacional sem localStorage
-              </p>
             </div>
           </div>
           <button
@@ -132,49 +147,55 @@ export const HotelSettingsModal: React.FC<HotelSettingsModalProps> = ({ isOpen, 
 
         {/* Tab Navigation */}
         <div className="shrink-0 flex space-x-2 border-b border-[#E6E3D8] px-5 sm:px-8 py-3 text-xs font-semibold overflow-x-auto bg-white">
-          <button
-            id="tab-settings-visual"
-            onClick={() => setActiveTab('visual')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
-              activeTab === 'visual'
-                ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
-                : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Identidade Visual & Marca</span>
-          </button>
+          {canManageHotelSettings && (
+            <button
+              id="tab-settings-visual"
+              onClick={() => setActiveTab('visual')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
+                displayedTab === 'visual'
+                  ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
+                  : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Identidade Visual & Marca</span>
+            </button>
+          )}
 
-          <button
-            id="tab-settings-rooms"
-            onClick={() => setActiveTab('rooms')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
-              activeTab === 'rooms'
-                ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
-                : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
-            }`}
-          >
-            <BedDouble className="w-3.5 h-3.5" />
-            <span>Tarifas & Acomodações</span>
-          </button>
+          {canManageRoomRates && (
+            <button
+              id="tab-settings-rooms"
+              onClick={() => setActiveTab('rooms')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
+                displayedTab === 'rooms'
+                  ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
+                  : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
+              }`}
+            >
+              <BedDouble className="w-3.5 h-3.5" />
+              <span>Tarifas & Acomodações</span>
+            </button>
+          )}
 
-          <button
-            id="tab-settings-supabase"
-            onClick={() => setActiveTab('supabase')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
-              activeTab === 'supabase'
-                ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
-                : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5 text-[#588157]" />
-            <span>Supabase & Banco SQL</span>
-          </button>
+          {canManageSystem && (
+            <button
+              id="tab-settings-supabase"
+              onClick={() => setActiveTab('supabase')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 ${
+                displayedTab === 'supabase'
+                  ? 'bg-[#2C3327] text-[#FDFBF7] font-bold'
+                  : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA]'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5 text-[#588157]" />
+              <span>Sistema / Supabase</span>
+            </button>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-8 pb-5 sm:pb-8">
           {/* Tab 1: Visual Branding */}
-          {activeTab === 'visual' && (
+          {displayedTab === 'visual' && canManageHotelSettings && (
             <form onSubmit={handleSaveSettings} className="space-y-4 pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -348,7 +369,7 @@ export const HotelSettingsModal: React.FC<HotelSettingsModalProps> = ({ isOpen, 
           )}
 
           {/* Tab 2: Room Types & Rates */}
-          {activeTab === 'rooms' && (
+          {displayedTab === 'rooms' && canManageRoomRates && (
             <div className="space-y-4 pt-4">
               <div>
                 <h4 className="text-sm font-bold text-[#2C3327]">Categorias de Quartos & Tarifas Base</h4>
@@ -404,7 +425,7 @@ export const HotelSettingsModal: React.FC<HotelSettingsModalProps> = ({ isOpen, 
           )}
 
           {/* Tab 3: Supabase & SQL Architecture */}
-          {activeTab === 'supabase' && (
+          {displayedTab === 'supabase' && canManageSystem && (
             <div className="space-y-5 pt-4">
               <div className="p-4 bg-[#F2F5E8] border border-[#CCD5AE] rounded-2xl">
                 <div className="flex items-start space-x-3">
