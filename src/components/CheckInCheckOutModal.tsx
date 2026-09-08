@@ -161,11 +161,8 @@ export const CheckInCheckOutModal: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] tracking-tight">
-            Central de Check-in & Check-out
+            Check-in & Check-out
           </h2>
-          <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Recepção ágil: entrega de chaves, conferência de frigobar/cozinha e faturamento unificado.
-          </p>
         </div>
 
         <div className="flex bg-[#F4F1EA] p-1 rounded-xl border border-[#E6E3D8] text-xs font-semibold">
