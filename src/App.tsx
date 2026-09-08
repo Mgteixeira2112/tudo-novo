@@ -11,6 +11,7 @@ import { FinancialDashboard } from './components/FinancialDashboard.tsx';
 import { UsersManager } from './components/UsersManager.tsx';
 import { StaffLogin } from './components/StaffLogin.tsx';
 import { HotelSettingsModal } from './components/HotelSettingsModal.tsx';
+import { SettingsTransitionWorkspace, SettingsEntryTab } from './components/SettingsTransitionWorkspace.tsx';
 import { HomeDashboard } from './components/HomeDashboard.tsx';
 import {
   RoomServiceNotificationToast,
@@ -45,6 +46,13 @@ const AppContent: React.FC = () => {
 
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showHome, setShowHome] = useState(false);
+
+  const openSettingsAt = (tab: SettingsEntryTab) => {
+    setSettingsModalOpen(true);
+    window.setTimeout(() => {
+      document.getElementById(`tab-settings-${tab}`)?.click();
+    }, 0);
+  };
 
   useEffect(() => {
     setShowHome(Boolean(currentUser));
@@ -294,7 +302,7 @@ const AppContent: React.FC = () => {
         supabaseConnected={supabaseStatus?.connected}
       />
 
-      <Navbar onOpenSettingsModal={() => setSettingsModalOpen(true)} />
+      <Navbar onOpenSettingsModal={() => openSettingsAt('visual')} />
 
       <main className="flex-1">
         {mode === 'booking' ? (
@@ -314,36 +322,7 @@ const AppContent: React.FC = () => {
                 {activeAdminTab === 'guests' && <GuestsManager />}
                 {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
                 {activeAdminTab === 'users' && <UsersManager />}
-                {activeAdminTab === 'settings' && (
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="bg-white rounded-2xl border border-[#E6E3D8] p-8 text-center space-y-4 shadow-sm">
-                      <div className="w-12 h-12 bg-[#F2F5E8] text-[#588157] rounded-full flex items-center justify-center mx-auto border border-[#CCD5AE]/40">
-                        <Database className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-lg font-bold text-[#2C3327]">
-                        Configuração do Hotel & Sincronização SQL Supabase
-                      </h3>
-                      <p className="text-xs text-[#6B705C] max-w-lg mx-auto">
-                        Gerencie a identidade visual, taxas, comodidades e execute o script SQL com as 10 tabelas relacionais no seu Supabase com Realtime ativado.
-                      </p>
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                        <button
-                          onClick={() => setSettingsModalOpen(true)}
-                          className="px-6 py-2.5 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow transition cursor-pointer"
-                        >
-                          Abrir Painel de Configurações & SQL
-                        </button>
-                        <button
-                          onClick={handleTestSimulation}
-                          className="flex items-center space-x-2 px-4 py-2.5 bg-[#F4F1EA] hover:bg-[#EBE7DD] text-[#3D4035] rounded-xl text-xs font-bold transition border border-[#E6E3D8] cursor-pointer"
-                        >
-                          <BellRing className="w-3.5 h-3.5 text-[#588157]" />
-                          <span>Testar Notificação Toast Room Service</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {activeAdminTab === 'settings' && <SettingsTransitionWorkspace onOpen={openSettingsAt} />}
               </>
             )}
           </div>
