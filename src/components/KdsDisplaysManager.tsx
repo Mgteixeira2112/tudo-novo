@@ -107,7 +107,7 @@ export const KdsDisplaysManager: React.FC = () => {
   };
 
   return (
-    <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm sm:p-6">
+    <section id="kds-displays-manager" className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
