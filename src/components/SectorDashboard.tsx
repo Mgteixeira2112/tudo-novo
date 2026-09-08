@@ -134,7 +134,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     actions = [
       { label: 'Reservas / Check-in', tab: 'checkinout', detail: 'Entradas, saídas e reservas' },
       { label: 'Cadastro de Hóspedes', tab: 'guests', detail: 'Consultar e atualizar hóspedes' },
-      { label: 'Mapa de Quartos', tab: 'rooms_inventory', detail: 'Ocupação e disponibilidade' },
+      { label: 'Mapa de Quartos', tab: 'kanbans', detail: 'Ocupação e disponibilidade', kanbanIntent: { view: 'rooms' } },
       { label: 'Tarefas da Recepção', tab: 'kanbans', detail: 'Demandas operacionais da recepção', kanbanIntent: { view: 'tasks', taskSector: 'Recepcao' } }
     ];
     highlights = [
@@ -153,7 +153,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     actions = [
       { label: 'Quartos em Limpeza', tab: 'kanbans', detail: 'Liberar quartos aguardando higienização', kanbanIntent: { view: 'rooms', roomStatus: 'Limpeza' } },
       { label: 'Tarefas da Governança', tab: 'kanbans', detail: 'Pendências e prioridades do setor', kanbanIntent: { view: 'tasks', taskSector: 'Governanca' } },
-      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Cadastro, status e enxoval' },
+      { label: 'Cadastro & Estoque', tab: 'rooms_inventory', detail: 'Cadastro de quartos e itens permitidos' },
       { label: 'Frigobar & A&B', tab: 'fnb', detail: 'Consumos permitidos' }
     ];
     highlights = [
@@ -185,7 +185,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     actions = [
       { label: 'Room Service', tab: 'fnb', detail: 'Pedidos e entregas' },
       { label: 'Tarefas do Room Service', tab: 'kanbans', detail: 'Demandas do setor', kanbanIntent: { view: 'tasks', taskSector: 'RoomService' } },
-      { label: 'Quartos', tab: 'rooms_inventory', detail: 'Consultar destinos' }
+      { label: 'Mapa de Quartos', tab: 'kanbans', detail: 'Consultar destinos e ocupação', kanbanIntent: { view: 'rooms' } }
     ];
     highlights = active.slice(0, 6).map(o => ({ title: `${o.orderNumber} · Quarto ${o.roomNumber}`, detail: `${o.guestName} · ${o.items.length} item(ns)`, badge: o.status }));
   } else if (sector === 'Manutencao') {
@@ -199,7 +199,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
     actions = [
       { label: 'Quartos em Manutenção', tab: 'kanbans', detail: 'Quartos que exigem intervenção técnica', kanbanIntent: { view: 'rooms', roomStatus: 'Manutencao' } },
       { label: 'Tarefas da Manutenção', tab: 'kanbans', detail: 'Executar e atualizar chamados', kanbanIntent: { view: 'tasks', taskSector: 'Manutencao' } },
-      { label: 'Quartos & Inventário', tab: 'rooms_inventory', detail: 'Bloqueios e peças' }
+      { label: 'Cadastro & Estoque', tab: 'rooms_inventory', detail: 'Cadastro de quartos e peças permitidas' }
     ];
     highlights = [
       ...urgentTasks.slice(0, 4).map(t => ({ title: t.title, detail: t.roomNumber ? `Quarto ${t.roomNumber}` : t.description, badge: t.priority })),
