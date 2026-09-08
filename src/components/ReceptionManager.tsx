@@ -25,6 +25,7 @@ export const ReceptionManager: React.FC = () => {
             <span>Reservas & Calendário</span>
           </button>
           <button
+            id="tab-reception-checkinout"
             type="button"
             onClick={() => setTab('checkinout')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg whitespace-nowrap transition ${
@@ -37,6 +38,7 @@ export const ReceptionManager: React.FC = () => {
             <span>Check-in / Check-out</span>
           </button>
           <button
+            id="tab-reception-walkin"
             type="button"
             onClick={() => setTab('walkin')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg whitespace-nowrap transition ${

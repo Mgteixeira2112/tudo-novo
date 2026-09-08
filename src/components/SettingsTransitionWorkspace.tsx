@@ -41,7 +41,7 @@ export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspacePr
           {visibleEntries.map(entry => {
             const Icon = entry.icon;
             return (
-              <button key={entry.tab} type="button" onClick={() => onOpen(entry.tab)} className="group rounded-2xl border border-[#E6E3D8] bg-white p-5 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[#CCD5AE] hover:shadow-md">
+              <button id={`settings-entry-${entry.tab}`} key={entry.tab} type="button" onClick={() => onOpen(entry.tab)} className="group rounded-2xl border border-[#E6E3D8] bg-white p-5 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[#CCD5AE] hover:shadow-md">
                 <div className="flex items-start justify-between gap-4">
                   <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] p-3 text-[#588157]"><Icon className="h-5 w-5" /></div>
                   <span className="rounded-full bg-[#F4F1EA] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#6B705C]">{entry.eyebrow}</span>
