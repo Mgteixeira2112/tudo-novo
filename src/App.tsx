@@ -262,10 +262,8 @@ const AppContent: React.FC = () => {
   };
 
   const handleNavigateToOrder = (order: KitchenOrder) => {
-    setShowHome(false);
-    setMode('admin');
-    setActiveAdminTab('fnb');
     setToasts(prev => prev.filter(t => t.order.id !== order.id));
+    navigateFromSidebar('fnb', 'fnb-module-room-service');
   };
 
   const handleToggleMute = () => {
