@@ -388,7 +388,7 @@ export const IntegratedInventoryManager: React.FC = () => {
         </div>
       )}
 
-      {/* Header Banner & Real-Time Pulse */}
+      {/* Header Banner */}
       <div className="bg-white border border-[#E6E3D8] rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-2xl bg-[#588157]/10 flex items-center justify-center text-[#588157] shrink-0">
@@ -396,15 +396,8 @@ export const IntegratedInventoryManager: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-serif font-bold text-[#2C3327]">Controle de Estoque Integrado & Kardex</h2>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#588157]/10 text-[#588157]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#588157] animate-ping mr-1.5" />
-                Tempo Real
-              </span>
+              <h2 className="text-xl font-serif font-bold text-[#2C3327]">Estoque & Kardex</h2>
             </div>
-            <p className="text-sm text-[#6B705C] mt-1">
-              Almoxarifado central, subestoques de frigobar, cozinha, governança e enxoval sincronizados com baixa automática.
-            </p>
           </div>
         </div>
 
