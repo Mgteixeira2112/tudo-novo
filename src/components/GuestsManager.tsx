@@ -88,7 +88,6 @@ export const GuestsManager: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-[#588157] text-xs font-bold uppercase tracking-wider"><Users className="w-4 h-4" /> Hóspedes & CRM</div>
           <h2 className="mt-1 text-2xl font-black text-[#2C3327]">Cadastro de Hóspedes</h2>
-          <p className="mt-1 text-sm text-[#6B705C]">Cadastros reais armazenados no Supabase e usados pelas reservas do hotel.</p>
         </div>
         <button onClick={openNew} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2C3327] text-white text-xs font-bold shadow-sm hover:bg-[#3A4135]">
           <UserPlus className="w-4 h-4" /> Novo Hóspede
@@ -150,7 +149,7 @@ export const GuestsManager: React.FC = () => {
       {modalOpen && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-[#E6E3D8] my-6">
           <div className="p-5 border-b border-[#E6E3D8] flex items-center justify-between">
-            <div><h3 className="font-black text-[#2C3327]">{editing?'Editar Hóspede':'Novo Hóspede'}</h3><p className="text-xs text-[#8E9280] mt-1">Os dados serão salvos diretamente no cadastro central do hotel.</p></div>
+            <div><h3 className="font-black text-[#2C3327]">{editing?'Editar Hóspede':'Novo Hóspede'}</h3></div>
             <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
           </div>
           <form onSubmit={save} className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
