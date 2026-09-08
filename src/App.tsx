@@ -5,7 +5,7 @@ import { OnlineBookingEngine } from './components/OnlineBookingEngine.tsx';
 import { KanbanWorkspace } from './components/KanbanWorkspace.tsx';
 import { ReceptionManager } from './components/ReceptionManager.tsx';
 import { GuestsManager } from './components/GuestsManager.tsx';
-import { RoomsAndInventoryManager } from './components/RoomsAndInventoryManager.tsx';
+import { RoomsTransitionWorkspace } from './components/RoomsTransitionWorkspace.tsx';
 import { MinibarAndKitchen } from './components/MinibarAndKitchen.tsx';
 import { FinancialDashboard } from './components/FinancialDashboard.tsx';
 import { UsersManager } from './components/UsersManager.tsx';
@@ -308,7 +308,7 @@ const AppContent: React.FC = () => {
             ) : (
               <>
                 {activeAdminTab === 'overview' && <FinancialDashboard />}
-                {activeAdminTab === 'rooms_inventory' && <RoomsAndInventoryManager />}
+                {activeAdminTab === 'rooms_inventory' && <RoomsTransitionWorkspace />}
                 {activeAdminTab === 'kanbans' && <KanbanWorkspace />}
                 {activeAdminTab === 'checkinout' && <ReceptionManager />}
                 {activeAdminTab === 'guests' && <GuestsManager />}
