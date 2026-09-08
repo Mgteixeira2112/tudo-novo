@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   Clock3,
   KeyRound,
-  Sparkles,
   UserRoundCheck,
   Users,
   Wrench
@@ -41,7 +40,6 @@ export const ReceptionDashboard: React.FC = () => {
     rooms,
     reservations,
     tasks,
-    currentUser,
     setActiveAdminTab
   } = useHotel();
 
@@ -135,35 +133,23 @@ export const ReceptionDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-[#DADFD1] bg-gradient-to-br from-[#F8FAF2] via-white to-[#EFF4E8] p-6 sm:p-8 shadow-sm">
+      <section className="relative overflow-hidden rounded-2xl border border-[#DADFD1] bg-gradient-to-br from-[#F8FAF2] via-white to-[#EFF4E8] px-5 py-4 sm:px-6 shadow-sm">
         <div className="absolute -right-16 -top-20 w-64 h-64 rounded-full bg-[#DDE8CF]/60 blur-3xl pointer-events-none" />
-        <div className="relative flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#CCD5AE] bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#588157] mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Meu Painel · Recepção
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#2C3327]">
-              {currentUser?.fullName ? `Olá, ${currentUser.fullName.split(' ')[0]}.` : 'Visão do turno.'}
-              <span className="font-medium text-[#6B705C]"> O hotel em uma única leitura.</span>
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#6B705C] max-w-2xl">
-              Prioridades, movimentação de hóspedes e situação dos quartos para você decidir o próximo passo sem procurar informação em várias telas.
-            </p>
-          </div>
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#2C3327]">Recepção</h2>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
+          <div className="flex items-center gap-4 rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
             <div>
               <span className="block text-[10px] uppercase tracking-wider font-bold text-[#8A8F7D]">Ocupação agora</span>
               <div className="mt-1 flex items-end gap-2">
-                <strong className="text-3xl font-black text-[#2C3327]">{occupancyRate}%</strong>
-                <span className="pb-1 text-xs font-semibold text-[#6B705C]">
+                <strong className="text-2xl font-black text-[#2C3327]">{occupancyRate}%</strong>
+                <span className="pb-0.5 text-xs font-semibold text-[#6B705C]">
                   {operational.occupied.length}/{rooms.length} quartos
                 </span>
               </div>
             </div>
-            <div className="h-11 w-px bg-[#E6E3D8]" />
-            <BedDouble className="w-7 h-7 text-[#588157]" />
+            <div className="h-10 w-px bg-[#E6E3D8]" />
+            <BedDouble className="w-6 h-6 text-[#588157]" />
           </div>
         </div>
       </section>
@@ -224,12 +210,9 @@ export const ReceptionDashboard: React.FC = () => {
       <section className="grid grid-cols-1 xl:grid-cols-5 gap-5">
         <div className="xl:col-span-3 rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
           <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EEEAE1]">
-            <div>
-              <div className="flex items-center gap-2">
-                <Clock3 className="w-4 h-4 text-[#BC6C25]" />
-                <h3 className="font-extrabold text-[#2C3327]">Prioridades do turno</h3>
-              </div>
-              <p className="mt-1 text-xs text-[#8A8F7D]">Itens que merecem atenção antes da rotina normal.</p>
+            <div className="flex items-center gap-2">
+              <Clock3 className="w-4 h-4 text-[#BC6C25]" />
+              <h3 className="font-extrabold text-[#2C3327]">Prioridades do turno</h3>
             </div>
             <span className="rounded-full bg-[#F4F1EA] px-2.5 py-1 text-[10px] font-bold text-[#6B705C]">
               {needsAttention.length} agora
@@ -241,7 +224,6 @@ export const ReceptionDashboard: React.FC = () => {
               <div className="py-10 text-center">
                 <CheckCircle2 className="w-8 h-8 text-[#588157] mx-auto" />
                 <p className="mt-3 text-sm font-bold text-[#2C3327]">Turno sem pendências críticas</p>
-                <p className="mt-1 text-xs text-[#8A8F7D]">A operação está fluindo normalmente neste momento.</p>
               </div>
             ) : (
               needsAttention.map(item => (
@@ -265,10 +247,7 @@ export const ReceptionDashboard: React.FC = () => {
         <div className="xl:col-span-2 rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
           <div className="flex items-center gap-2 pb-4 border-b border-[#EEEAE1]">
             <CalendarDays className="w-4 h-4 text-[#588157]" />
-            <div>
-              <h3 className="font-extrabold text-[#2C3327]">Próximos movimentos</h3>
-              <p className="mt-1 text-xs text-[#8A8F7D]">Hoje e amanhã na Recepção.</p>
-            </div>
+            <h3 className="font-extrabold text-[#2C3327]">Próximos movimentos</h3>
           </div>
 
           <div className="mt-3 space-y-2">
@@ -299,11 +278,8 @@ export const ReceptionDashboard: React.FC = () => {
       </section>
 
       <section className="rounded-3xl border border-[#E6E3D8] bg-[#2C3327] p-5 sm:p-6 text-[#FDFBF7] shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-          <div>
-            <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#CCD5AE]">Ações rápidas</span>
-            <h3 className="mt-1 text-lg font-extrabold">O próximo passo a um clique.</h3>
-          </div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <h3 className="text-lg font-extrabold">Ações rápidas</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto">
             {[
               { label: 'Reservas', icon: CalendarDays, tab: 'checkinout' as AdminTab },
