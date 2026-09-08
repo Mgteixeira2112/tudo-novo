@@ -342,10 +342,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-4 py-3 text-[11px] text-[#6B705C]">
-        <strong className="text-[#3D4035]">Arquivamento automático:</strong> tarefas permanecem em Concluídos por 5 minutos e depois saem do Kanban operacional. O registro continua disponível em Histórico.
-      </div>
-
       {!lockedSector && (
         <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
           {SECTORS.map(s => {
