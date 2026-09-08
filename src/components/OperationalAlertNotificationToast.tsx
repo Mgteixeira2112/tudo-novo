@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, BellRing, Database, Volume2, VolumeX, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BellRing,
+  Clock,
+  Database,
+  Tag,
+  Volume2,
+  VolumeX,
+  X
+} from 'lucide-react';
 import { OperationalAlertInboxItem } from '../services/operationalAlertsInbox.ts';
 import { playOldHotelBell } from '../services/alertBell.ts';
 
@@ -10,6 +20,18 @@ interface OperationalAlertNotificationToastProps {
   isMuted: boolean;
   onToggleMute: () => void;
 }
+
+const priorityLabel = (priority: OperationalAlertInboxItem['priority']) => {
+  if (priority === 'critical') return 'Crítica';
+  if (priority === 'attention') return 'Atenção';
+  return 'Informativa';
+};
+
+const formatAlertTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Agora mesmo';
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+};
 
 export const OperationalAlertNotificationToast: React.FC<OperationalAlertNotificationToastProps> = ({
   items,
@@ -38,6 +60,9 @@ export const OperationalAlertNotificationToast: React.FC<OperationalAlertNotific
     >
       {items.map(item => {
         const isHovered = hoveredId === item.deliveryId;
+        const sourceLabel = item.sourceType || 'Central de Alertas';
+        const sourceId = item.sourceId?.trim();
+
         return (
           <div
             key={item.deliveryId}
@@ -61,7 +86,7 @@ export const OperationalAlertNotificationToast: React.FC<OperationalAlertNotific
                     {item.title}
                   </span>
                 </div>
-                <span className="inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3ECF8E]/15 text-[#15803D] border border-[#3ECF8E]/30 shrink-0">
+                <span className="hidden sm:inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3ECF8E]/15 text-[#15803D] border border-[#3ECF8E]/30 shrink-0">
                   <Database className="w-2.5 h-2.5" />
                   <span>Supabase Realtime</span>
                 </span>
@@ -87,28 +112,44 @@ export const OperationalAlertNotificationToast: React.FC<OperationalAlertNotific
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  {item.sector && (
-                    <span className="inline-flex px-2.5 py-1 rounded-lg bg-[#2C3327] text-[#FDFBF7] font-black text-xs tracking-wide shadow-xs mb-2">
-                      Setor {item.sector}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {item.sector && (
+                      <span className="inline-flex px-2.5 py-1 rounded-lg bg-[#2C3327] text-[#FDFBF7] font-black text-xs tracking-wide shadow-xs">
+                        Setor {item.sector}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F4F1EA] border border-[#E6E3D8] text-[10px] font-bold uppercase tracking-wide text-[#6B705C]">
+                      <AlertTriangle className="w-3 h-3 text-[#D4A373]" />
+                      {priorityLabel(item.priority)}
                     </span>
-                  )}
-                  <p className="text-sm font-semibold leading-relaxed text-[#2C3327]">{item.message}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[10px] text-[#6B705C] font-medium">Prioridade</div>
-                  <div className="text-xs font-black text-[#2C3327] uppercase">
-                    {item.priority === 'critical' ? 'Crítica' : item.priority === 'attention' ? 'Atenção' : 'Info'}
                   </div>
+                  <p className="text-sm font-semibold leading-relaxed text-[#2C3327]">{item.message}</p>
                 </div>
               </div>
 
               <div className="bg-[#FDFBF7] rounded-xl p-2.5 border border-[#E6E3D8] text-[11px] text-[#6B705C]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-[#2C3327]">Origem: {item.sourceType || 'Central de Alertas'}</span>
-                  <span>Agora mesmo</span>
+                <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-[#E6E3D8]">
+                  <span className="flex items-center gap-1.5 font-semibold text-[#2C3327] min-w-0">
+                    <Tag className="w-3 h-3 text-[#588157] shrink-0" />
+                    <span className="truncate">Origem: {sourceLabel}</span>
+                  </span>
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Clock className="w-3 h-3 text-[#588157]" />
+                    {formatAlertTime(item.createdAt)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1.5">
+                  <div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E9280]">Tipo do evento</div>
+                    <div className="font-semibold text-[#2C3327] truncate">{item.type || 'Operacional'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E9280]">Referência</div>
+                    <div className="font-mono font-semibold text-[#3A5A40] truncate">{sourceId || '—'}</div>
+                  </div>
                 </div>
               </div>
             </div>
