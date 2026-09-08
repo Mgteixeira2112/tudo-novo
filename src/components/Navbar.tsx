@@ -3,10 +3,6 @@ import {
   Hotel,
   CalendarCheck,
   LayoutDashboard,
-  Kanban,
-  KeyRound,
-  Users,
-  UtensilsCrossed,
   Settings,
   Database,
   CheckCircle2,
@@ -14,7 +10,6 @@ import {
   ExternalLink,
   Copy,
   Check,
-  BedDouble,
   ShieldCheck,
   UserCheck,
   ChevronDown,
@@ -36,7 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     settings,
     mode,
     setMode,
-    activeAdminTab,
     setActiveAdminTab,
     tasks,
     rooms,
@@ -66,8 +60,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Count pending tasks
-  const pendingTasksCount = tasks.filter(t => t.status !== 'Concluido').length;
   // Count occupied rooms
   const occupiedRoomsCount = rooms.filter(r => r.status === 'Ocupado').length;
 
@@ -358,149 +350,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
             </div>
           </div>
         </div>
-
-        {/* Admin Navigation Sub-bar (Role-Protected with canAccessTab) */}
-        {mode === 'admin' && (
-          <div className="border-t border-[#E6E3D8] bg-[#F4F1EA]/80">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <nav className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto py-2 text-xs sm:text-sm font-medium scrollbar-none xl:flex-wrap xl:overflow-x-visible">
-                {canAccessTab('overview') && (
-                  <button
-                    id="subnav-overview"
-                    onClick={() => setActiveAdminTab('overview')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'overview'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <LayoutDashboard className="w-4 h-4 text-[#588157]" />
-                    <span>Visão Geral & Faturamento</span>
-                  </button>
-                )}
-
-                {canAccessTab('rooms_inventory') && (
-                  <button
-                    id="subnav-rooms-inventory"
-                    onClick={() => setActiveAdminTab('rooms_inventory')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'rooms_inventory'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <BedDouble className="w-4 h-4 text-[#588157]" />
-                    <span>Quartos & Inventário</span>
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F4F1EA] text-[#2C3327] border border-[#E6E3D8]">
-                      {rooms.length}
-                    </span>
-                  </button>
-                )}
-
-                {canAccessTab('kanbans') && (
-                  <button
-                    id="subnav-kanbans"
-                    onClick={() => setActiveAdminTab('kanbans')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'kanbans'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <Kanban className="w-4 h-4 text-[#3A5A40]" />
-                    <span>Kanbans por Setor</span>
-                    {pendingTasksCount > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E9EDC9] text-[#2C3327]">
-                        {pendingTasksCount}
-                      </span>
-                    )}
-                  </button>
-                )}
-
-                {canAccessTab('checkinout') && (
-                  <button
-                    id="subnav-checkinout"
-                    onClick={() => setActiveAdminTab('checkinout')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'checkinout'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <KeyRound className="w-4 h-4 text-[#D4A373]" />
-                    <span>Check-in / Check-out</span>
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F4F1EA] text-[#6B705C] border border-[#E6E3D8]">
-                      {occupiedRoomsCount} quartos
-                    </span>
-                  </button>
-                )}
-
-                {canAccessTab('guests') && (
-                  <button
-                    id="subnav-guests"
-                    onClick={() => setActiveAdminTab('guests')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'guests'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <Users className="w-4 h-4 text-[#588157]" />
-                    <span>Cadastro de Hóspedes</span>
-                  </button>
-                )}
-
-                {canAccessTab('fnb') && (
-                  <button
-                    id="subnav-fnb"
-                    onClick={() => setActiveAdminTab('fnb')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'fnb'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <UtensilsCrossed className="w-4 h-4 text-[#BC6C25]" />
-                    <span>Frigobar & Cozinha</span>
-                  </button>
-                )}
-
-                {canAccessTab('users') && (
-                  <button
-                    id="subnav-users"
-                    onClick={() => setActiveAdminTab('users')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'users'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <ShieldCheck className="w-4 h-4 text-[#588157]" />
-                    <span>Equipe & Controle de Acesso</span>
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F4F1EA] text-[#2C3327] border border-[#E6E3D8]">
-                      {allUsers.length}
-                    </span>
-                  </button>
-                )}
-
-                {canAccessTab('settings') && (
-                  <button
-                    id="subnav-settings"
-                    onClick={() => setActiveAdminTab('settings')}
-                    className={`flex items-center space-x-2 px-2.5 sm:px-3 py-2 rounded-xl whitespace-nowrap shrink-0 transition ${
-                      activeAdminTab === 'settings'
-                        ? 'bg-white text-[#2C3327] shadow-xs border border-[#E6E3D8] font-bold'
-                        : 'text-[#6B705C] hover:text-[#2C3327] hover:bg-white/50'
-                    }`}
-                  >
-                    <Database className="w-4 h-4 text-[#A3B18A]" />
-                    <span>Configuração & SQL Supabase</span>
-                  </button>
-                )}
-              </nav>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* SQL & Supabase Architecture Modal */}
