@@ -30,8 +30,8 @@ export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspacePr
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
-      <div>
-        <h2 className="text-2xl font-black text-[#2C3327]">Configurações & Cadastros do Hotel</h2>
+      <div className="rounded-2xl border border-[#E6E3D8] bg-white px-4 py-3 shadow-xs">
+        <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">Configurações & Cadastros do Hotel</h2>
       </div>
 
       {visibleEntries.length === 0 && !canManageSystem ? (
