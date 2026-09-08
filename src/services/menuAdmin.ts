@@ -31,6 +31,19 @@ export type MenuAdminItem = MenuItem & {
   ingredients: MenuAdminIngredient[];
 };
 
+export type InlineInventoryPayload = {
+  name: string;
+  sku?: string;
+  unit: string;
+  sector: string;
+  category: string;
+  currentStock: number;
+  minStock: number;
+  maxStock?: number;
+  costPrice: number;
+  supplier?: string;
+};
+
 export type MenuItemPayload = {
   id?: string;
   name: string;
@@ -41,18 +54,7 @@ export type MenuItemPayload = {
   available: boolean;
   operationalType: 'simple' | 'recipe';
   simpleInventoryItemId?: string;
-  newInventoryItem?: {
-    name: string;
-    sku?: string;
-    unit: string;
-    sector: string;
-    category: string;
-    currentStock: number;
-    minStock: number;
-    maxStock?: number;
-    costPrice: number;
-    supplier?: string;
-  };
+  newInventoryItem?: InlineInventoryPayload;
   ingredients?: { inventoryItemId: string; quantity: number }[];
 };
 
@@ -68,30 +70,40 @@ export async function loadMenuAdminSnapshot(): Promise<MenuAdminItem[]> {
   return (Array.isArray(data) ? data : []) as MenuAdminItem[];
 }
 
+function mapInventory(row: any): InventoryItem {
+  return {
+    id: row.id,
+    sku: row.sku,
+    name: row.name,
+    sector: row.sector,
+    category: row.category,
+    currentStock: Number(row.current_stock ?? row.currentStock ?? 0),
+    minStock: Number(row.min_stock ?? row.minStock ?? 0),
+    maxStock: row.max_stock == null && row.maxStock == null ? undefined : Number(row.max_stock ?? row.maxStock),
+    unit: row.unit,
+    costPrice: Number(row.cost_price ?? row.costPrice ?? 0),
+    sellingPrice: row.selling_price == null && row.sellingPrice == null ? undefined : Number(row.selling_price ?? row.sellingPrice),
+    supplier: row.supplier || undefined,
+    locationBarcode: row.location_barcode || row.locationBarcode || undefined,
+    linkedMinibarItemId: row.linked_minibar_item_id || row.linkedMinibarItemId || undefined,
+    linkedMenuItemId: row.linked_menu_item_id || row.linkedMenuItemId || undefined,
+    updatedAt: row.updated_at || row.updatedAt || new Date().toISOString()
+  } as InventoryItem;
+}
+
 export async function loadInventoryForMenu(): Promise<InventoryItem[]> {
   const { data, error } = await client()
     .from('inventory_items')
     .select('*')
     .order('name', { ascending: true });
   if (error) throw error;
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    sku: row.sku,
-    name: row.name,
-    sector: row.sector,
-    category: row.category,
-    currentStock: Number(row.current_stock || 0),
-    minStock: Number(row.min_stock || 0),
-    maxStock: row.max_stock == null ? undefined : Number(row.max_stock),
-    unit: row.unit,
-    costPrice: Number(row.cost_price || 0),
-    sellingPrice: row.selling_price == null ? undefined : Number(row.selling_price),
-    supplier: row.supplier || undefined,
-    locationBarcode: row.location_barcode || undefined,
-    linkedMinibarItemId: row.linked_minibar_item_id || undefined,
-    linkedMenuItemId: row.linked_menu_item_id || undefined,
-    updatedAt: row.updated_at
-  })) as InventoryItem[];
+  return (data || []).map(mapInventory);
+}
+
+export async function createInventoryItemFromMenu(payload: InlineInventoryPayload): Promise<InventoryItem> {
+  const { data, error } = await client().rpc('create_inventory_item_from_menu', { p_payload: payload });
+  if (error) throw error;
+  return mapInventory(data);
 }
 
 export async function saveMenuItemAtomic(payload: MenuItemPayload): Promise<MenuAdminItem> {
