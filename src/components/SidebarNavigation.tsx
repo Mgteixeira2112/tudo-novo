@@ -54,17 +54,6 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
   const has = (permission: PermissionKey) => currentUser?.role === 'admin' || permissions.has(permission);
 
   useEffect(() => {
-    if (!currentUser || mode !== 'admin') return;
-    const nav = document.querySelector('button[id^="subnav-"]')?.closest('nav') as HTMLElement | null;
-    if (!nav) return;
-    const previous = nav.style.display;
-    nav.style.display = 'none';
-    return () => {
-      nav.style.display = previous;
-    };
-  }, [currentUser?.id, mode]);
-
-  useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
