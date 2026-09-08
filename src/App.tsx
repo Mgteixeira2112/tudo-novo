@@ -305,8 +305,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7] text-[#3D4035]">
         <Loader2 className="w-8 h-8 text-[#588157] animate-spin mb-3" />
-        <p className="text-sm font-semibold tracking-wide">Carregando dados do SaaS Hoteleiro...</p>
-        <span className="text-xs text-[#8E9280] mt-1">Conectando ao banco SQL e API</span>
+        <p className="text-sm font-semibold tracking-wide">Carregando...</p>
       </div>
     );
   }

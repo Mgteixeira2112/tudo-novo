@@ -9,7 +9,6 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
-  Database,
   Clock,
   MapPin
 } from 'lucide-react';
@@ -66,7 +65,6 @@ export const RoomServiceNotificationToast: React.FC<RoomServiceNotificationToast
               boxShadow: '0 20px 35px -10px rgba(44, 51, 39, 0.25), 0 0 15px rgba(88, 129, 87, 0.15)'
             }}
           >
-            {/* Top accent bar with Supabase badge indicator */}
             <div className="flex items-center justify-between border-b border-[#E6E3D8] pb-2.5 mb-3">
               <div className="flex items-center space-x-2">
                 <div className="relative">
@@ -82,18 +80,6 @@ export const RoomServiceNotificationToast: React.FC<RoomServiceNotificationToast
                     Novo Pedido Room Service
                   </span>
                 </div>
-
-                {toast.source === 'supabase_realtime' ? (
-                  <span className="inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3ECF8E]/15 text-[#15803D] border border-[#3ECF8E]/30">
-                    <Database className="w-2.5 h-2.5" />
-                    <span>Supabase Realtime</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#588157]/10 text-[#3A5A40] border border-[#588157]/20">
-                    <Database className="w-2.5 h-2.5" />
-                    <span>Banco SQL Supabase</span>
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center space-x-1">
