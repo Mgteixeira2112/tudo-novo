@@ -16,10 +16,8 @@ import {
   RoomServiceNotificationToast,
   ToastItem
 } from './components/RoomServiceNotificationToast.tsx';
-import {
-  subscribeToKitchenOrdersRealtime,
-  playRoomServiceChime
-} from './services/supabase.ts';
+import { subscribeToKitchenOrdersRealtime } from './services/supabase.ts';
+import { playOldHotelBell } from './services/alertBell.ts';
 import { subscribeToRoomsRealtime } from './services/roomsRealtime.ts';
 import { api } from './services/api.ts';
 import { AdminTab, KitchenOrder } from './types.ts';
@@ -115,7 +113,7 @@ const AppContent: React.FC = () => {
       seenOrderIdsRef.current.add(order.id);
 
       if (!isMuted) {
-        playRoomServiceChime();
+        playOldHotelBell();
       }
 
       const toastId = `toast_${order.id}_${Date.now()}`;
