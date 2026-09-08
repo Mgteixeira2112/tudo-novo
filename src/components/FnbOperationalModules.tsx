@@ -54,7 +54,6 @@ export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ can
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2"><Wine className="w-5 h-5 text-[#588157]" /> Controle de Frigobar</h2>
-        <p className="text-xs sm:text-sm text-[#6B705C] mt-1">Lançamentos de consumo, estoque disponível e histórico por quarto.</p>
       </div>
 
       {!canManage && <div className="rounded-xl border border-[#DADFD1] bg-[#F7F8F2] px-4 py-3 text-xs font-semibold text-[#5F6655]">Modo consulta: seu perfil pode visualizar o Frigobar, mas não lançar consumos.</div>}
@@ -165,11 +164,10 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   };
 
   const title = mode === 'room_service' ? 'Pedidos Room Service' : 'Operação da Cozinha';
-  const subtitle = mode === 'room_service' ? 'Pedidos destinados aos quartos e fluxo de entrega do Room Service.' : 'Comandas destinadas à Cozinha e acompanhamento do preparo.';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <div><h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2">{mode === 'room_service' ? <BellRing className="w-5 h-5 text-[#D4A373]" /> : <ChefHat className="w-5 h-5 text-[#D4A373]" />}{title}</h2><p className="text-xs sm:text-sm text-[#6B705C] mt-1">{subtitle}</p></div>
+      <div><h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2">{mode === 'room_service' ? <BellRing className="w-5 h-5 text-[#D4A373]" /> : <ChefHat className="w-5 h-5 text-[#D4A373]" />}{title}</h2></div>
       {!canManage && <div className="rounded-xl border border-[#DADFD1] bg-[#F7F8F2] px-4 py-3 text-xs font-semibold text-[#5F6655]">Modo consulta: seu perfil pode acompanhar este módulo, mas não criar pedidos nem alterar status.</div>}
 
       <div className="space-y-3">
