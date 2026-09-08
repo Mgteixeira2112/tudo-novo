@@ -15,7 +15,6 @@ import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellP
 import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
 import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
 import { KdsEntry } from './components/KdsEntry.tsx';
-import { KdsSettingsPortal } from './components/KdsSettingsPortal.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -41,7 +40,6 @@ createRoot(document.getElementById('root')!).render(
         <OperationalAlertsBellPortal />
         <OperationalAlertsNavPortal />
         <OperationalAlertsCenterPortal />
-        <KdsSettingsPortal />
       </>
     )}
   </StrictMode>,
