@@ -78,11 +78,8 @@ export const FinancialDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] tracking-tight">
-            Controle Financeiro Integrado & Faturamento
+            Financeiro & Faturamento
           </h2>
-          <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Gestão em tempo real de receitas de diárias, frigobar, gastronomia, faturas em aberto e despesas.
-          </p>
         </div>
 
         <div className="flex items-center space-x-2">
