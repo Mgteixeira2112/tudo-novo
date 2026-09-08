@@ -72,7 +72,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (mode === 'admin' && currentUser && !canAccessTab(activeAdminTabTab)) {
+    if (mode === 'admin' && currentUser && !canAccessTab(activeAdminTab)) {
       const allTabs: Array<
         'kanbans' | 'rooms_inventory' | 'fnb' | 'checkinout' | 'guests' | 'overview' | 'users' | 'settings'
       > = [
