@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   }`}
                 >
                   <LayoutDashboard className="w-3.5 h-3.5 text-[#3A5A40]" />
-                  <span className="hidden sm:inline">Painel Administrativo</span>
+                  <span className="hidden sm:inline">Painel</span>
                   <span className="sm:hidden">Painel</span>
                 </button>
               </div>
@@ -203,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                             className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-[#2C3327] hover:bg-[#F4F1EA] transition"
                           >
                             <ShieldCheck className="w-4 h-4 text-[#588157]" />
-                            <span>Gerenciar Usuários & Permissões</span>
+                            <span>Usuários & Permissões</span>
                           </button>
                         )}
 
@@ -228,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                           className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-xl text-xs font-medium text-red-600 hover:bg-red-50 transition"
                         >
                           <LogOut className="w-4 h-4" />
-                          <span>Desconectar Sessão</span>
+                          <span>Sair</span>
                         </button>
                       </div>
                     </div>
@@ -241,7 +241,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                   id="btn-open-settings"
                   onClick={onOpenSettingsModal}
                   className="p-2 rounded-xl text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA] border border-transparent hover:border-[#E6E3D8] transition"
-                  title="Configurações do Hotel & Cores"
+                  title="Configurações"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
