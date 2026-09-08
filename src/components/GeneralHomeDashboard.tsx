@@ -56,7 +56,7 @@ const money = (value: number, currency: string) =>
   `${currency} ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
-  const { rooms, reservations, tasks, settings, currentUser } = useHotel();
+  const { rooms, reservations, tasks, settings } = useHotel();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
@@ -130,30 +130,20 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <section className="rounded-3xl border border-[#DADFD1] bg-gradient-to-br from-[#F8FAF2] via-white to-[#EFF4E8] p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#CCD5AE] bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#588157] mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Meu Painel · Operação
+      <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#2C3327]">Meu Painel</h2>
+          <div className="flex items-center gap-4 rounded-xl bg-[#F7F8F2] px-4 py-3">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider font-bold text-[#8A8F7D]">Ocupação agora</span>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <strong className="text-2xl font-black text-[#2C3327]">
+                  {rooms.length ? Math.round((metrics.occupied / rooms.length) * 100) : 0}%
+                </strong>
+                <span className="text-xs text-[#6B705C]">{metrics.occupied} de {rooms.length}</span>
+              </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#2C3327]">
-              {currentUser?.fullName ? `Olá, ${currentUser.fullName.split(' ')[0]}.` : 'Visão do hotel.'}
-              <span className="font-medium text-[#6B705C]"> Tudo que importa, sem procurar em várias telas.</span>
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#6B705C] max-w-2xl">
-              Esta tela apenas reorganiza os dados que o PMS já possui: quartos, reservas, hóspedes, tarefas e movimentação operacional.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white bg-white/85 px-5 py-4 shadow-sm min-w-[210px]">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-[#8A8F7D]">Ocupação agora</span>
-            <div className="mt-1 flex items-center justify-between gap-4">
-              <strong className="text-3xl font-black text-[#2C3327]">
-                {rooms.length ? Math.round((metrics.occupied / rooms.length) * 100) : 0}%
-              </strong>
-              <BedDouble className="w-7 h-7 text-[#588157]" />
-            </div>
-            <span className="text-xs text-[#6B705C]">{metrics.occupied} de {rooms.length} quartos ocupados</span>
+            <BedDouble className="w-6 h-6 text-[#588157]" />
           </div>
         </div>
       </section>
@@ -180,12 +170,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
       </section>
 
       <section className="rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
-          <div>
-            <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-[#588157]">Mapa operacional</span>
-            <h3 className="mt-1 text-xl font-black text-[#2C3327]">Quartos em cards</h3>
-            <p className="mt-1 text-xs text-[#8A8F7D]">Clique em qualquer quarto para abrir todas as informações relacionadas já disponíveis.</p>
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+          <h3 className="text-xl font-black text-[#2C3327]">Mapa de Quartos</h3>
           <button onClick={openRoomsMap} className="text-xs font-bold text-[#588157] hover:text-[#3A5A40] flex items-center gap-1">
             Abrir Mapa de Quartos <ChevronRight className="w-4 h-4" />
           </button>
@@ -222,11 +208,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
 
       <section className="rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
-          <div>
-            <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-[#588157]">Reservas</span>
-            <h3 className="mt-1 text-xl font-black text-[#2C3327]">Calendário operacional</h3>
-            <p className="mt-1 text-xs text-[#8A8F7D]">A reserva aparece em todos os dias da estadia. Clique para abrir hóspede, quarto, valores e status.</p>
-          </div>
+          <h3 className="text-xl font-black text-[#2C3327]">Calendário de Reservas</h3>
           <div className="flex items-center gap-2">
             <button onClick={() => setCalendarCursor(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1))} className="px-3 py-2 rounded-xl border border-[#E6E3D8] text-xs font-bold">Anterior</button>
             <span className="min-w-[135px] text-center text-sm font-black text-[#2C3327] capitalize">{calendarCursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
@@ -263,10 +245,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
 
       <section className="rounded-3xl border border-[#E6E3D8] bg-[#2C3327] p-5 text-white shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#CCD5AE]">Ações rápidas</span>
-            <h3 className="mt-1 text-lg font-extrabold">Abra o módulo quando precisar executar.</h3>
-          </div>
+          <h3 className="text-lg font-extrabold">Ações rápidas</h3>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => onNavigate('checkinout')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Reservas / Check-in</button>
             <button onClick={() => onNavigate('guests')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Hóspedes</button>
