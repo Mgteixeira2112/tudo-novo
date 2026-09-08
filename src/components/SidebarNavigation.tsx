@@ -88,7 +88,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       ]
     },
     {
-      title: 'A&B',
+      title: 'Alimentos e Bebidas',
       items: [
         { label: 'Frigobar', icon: Wine, tab: 'fnb', targetId: 'fnb-module-minibar', allowed: has(GRANULAR_PERMISSION_KEYS.viewMinibar) },
         { label: 'Room Service', icon: BellRing, tab: 'fnb', targetId: 'fnb-module-room-service', allowed: has(GRANULAR_PERMISSION_KEYS.viewRoomService) },
