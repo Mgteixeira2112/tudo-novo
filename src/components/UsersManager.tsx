@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Edit2, Search, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
 import { PermissionKey, StaffUser, UserRole, UserSector } from '../types.ts';
-import { PERMISSION_DEFINITIONS, ROLE_DEFINITIONS, SECTOR_DEFINITIONS } from '../services/rbac.ts';
+import { expandLegacyPermissions, PERMISSION_DEFINITIONS, ROLE_DEFINITIONS, SECTOR_DEFINITIONS } from '../services/rbac.ts';
 import { createStaffCloud, deactivateStaffCloud, loadStaffCloud, updateStaffCloud } from '../services/adminPages.ts';
 
 const roleEntries = Object.entries(ROLE_DEFINITIONS) as [UserRole, (typeof ROLE_DEFINITIONS)[UserRole]][];
 const sectorEntries = Object.entries(SECTOR_DEFINITIONS) as [UserSector, (typeof SECTOR_DEFINITIONS)[UserSector]][];
-const permissionEntries = Object.entries(PERMISSION_DEFINITIONS) as [PermissionKey, (typeof PERMISSION_DEFINITIONS)[PermissionKey]][];
+const permissionEntries = Object.entries(PERMISSION_DEFINITIONS)
+  .filter(([, def]) => !def.legacy) as [PermissionKey, (typeof PERMISSION_DEFINITIONS)[string]][];
 
 const emptyForm = {
   fullName: '', email: '', password: '', role: 'recepcionista' as UserRole,
@@ -59,7 +60,7 @@ export const UsersManager: React.FC = () => {
       password: '',
       role: user.role,
       sector: user.sector,
-      permissions: [...user.permissions]
+      permissions: expandLegacyPermissions(user.permissions)
     });
     setNotice(null);
     setModalOpen(true);
@@ -122,7 +123,7 @@ export const UsersManager: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-[#588157] text-xs font-bold uppercase tracking-wider"><ShieldCheck className="w-4 h-4" /> Administração</div>
           <h2 className="mt-1 text-2xl font-black text-[#2C3327]">Equipe & Controle de Acesso</h2>
-          <p className="mt-1 text-sm text-[#6B705C]">Colaboradores, setores, papéis e permissões usando o RBAC já existente.</p>
+          <p className="mt-1 text-sm text-[#6B705C]">Colaboradores, setores, papéis e permissões usando o RBAC granular do sistema.</p>
         </div>
         <button onClick={openNew} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2C3327] text-white text-xs font-bold shadow-sm hover:bg-[#3A4135]">
           <UserPlus className="w-4 h-4" /> Novo Colaborador
@@ -148,7 +149,9 @@ export const UsersManager: React.FC = () => {
 
       {loading ? <div className="bg-white border border-[#E6E3D8] rounded-2xl p-10 text-center text-sm text-[#6B705C]">Carregando equipe...</div> : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(user => (
+          {filtered.map(user => {
+            const visiblePermissions = expandLegacyPermissions(user.permissions).filter(p => !PERMISSION_DEFINITIONS[p]?.legacy);
+            return (
             <article key={user.id} className="bg-white rounded-2xl border border-[#E6E3D8] p-5 shadow-xs">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -164,8 +167,8 @@ export const UsersManager: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-[#EEEAE1]">
                 <span className="text-[10px] uppercase tracking-wider text-[#8E9280] font-bold">Permissões</span>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {user.permissions.slice(0,5).map(p => <span key={p} className="px-2 py-1 rounded-lg bg-[#F7F8F2] text-[#5D6355] text-[10px]">{PERMISSION_DEFINITIONS[p]?.label || p}</span>)}
-                  {user.permissions.length > 5 && <span className="px-2 py-1 text-[10px] text-[#8E9280]">+{user.permissions.length-5}</span>}
+                  {visiblePermissions.slice(0,5).map(p => <span key={p} className="px-2 py-1 rounded-lg bg-[#F7F8F2] text-[#5D6355] text-[10px]">{PERMISSION_DEFINITIONS[p]?.label || p}</span>)}
+                  {visiblePermissions.length > 5 && <span className="px-2 py-1 text-[10px] text-[#8E9280]">+{visiblePermissions.length-5}</span>}
                 </div>
               </div>
               <div className="mt-4 flex justify-end gap-2">
@@ -173,7 +176,7 @@ export const UsersManager: React.FC = () => {
                 {user.role !== 'admin' && <button onClick={()=>deactivate(user)} className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-bold">Desativar</button>}
               </div>
             </article>
-          ))}
+          )})}
         </div>
       )}
 
@@ -183,7 +186,7 @@ export const UsersManager: React.FC = () => {
             <div className="shrink-0 p-4 sm:p-5 border-b border-[#E6E3D8] flex items-center justify-between bg-white">
               <div className="min-w-0 pr-3">
                 <h3 className="font-black text-[#2C3327]">{editing?'Editar Colaborador':'Novo Colaborador'}</h3>
-                <p className="text-xs text-[#8E9280] mt-1">A conta usa Supabase Auth e as permissões RBAC já existentes.</p>
+                <p className="text-xs text-[#8E9280] mt-1">Permissões antigas são convertidas visualmente para os controles granulares equivalentes.</p>
               </div>
               <button type="button" onClick={()=>setModalOpen(false)} className="shrink-0 p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
             </div>
@@ -200,11 +203,11 @@ export const UsersManager: React.FC = () => {
 
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div><h4 className="text-sm font-black text-[#2C3327]">Permissões</h4><p className="text-xs text-[#8E9280]">Marque apenas o que este colaborador precisa acessar.</p></div>
+                    <div><h4 className="text-sm font-black text-[#2C3327]">Permissões por módulo</h4><p className="text-xs text-[#8E9280]">Marque apenas as funções que este colaborador precisa acessar.</p></div>
                     <button type="button" onClick={()=>setForm({...form,permissions:[...ROLE_DEFINITIONS[form.role].defaultPermissions]})} className="text-xs font-bold text-[#588157] self-start sm:self-auto">Restaurar padrão do papel</button>
                   </div>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {permissionEntries.map(([key,def]) => <label key={key} className="flex items-start gap-3 rounded-xl border border-[#E6E3D8] p-3 cursor-pointer hover:bg-[#FAF9F5]"><input type="checkbox" checked={form.permissions.includes(key)} onChange={()=>togglePermission(key)} className="mt-0.5" /><span><strong className="block text-xs text-[#2C3327]">{def.label}</strong><span className="block mt-0.5 text-[11px] text-[#8E9280]">{def.description}</span></span></label>)}
+                    {permissionEntries.map(([key,def]) => <label key={key} className="flex items-start gap-3 rounded-xl border border-[#E6E3D8] p-3 cursor-pointer hover:bg-[#FAF9F5]"><input type="checkbox" checked={form.permissions.includes(key)} onChange={()=>togglePermission(key)} className="mt-0.5" /><span><strong className="block text-xs text-[#2C3327]">{def.label}</strong><span className="block mt-0.5 text-[11px] text-[#8E9280]">{def.description}</span><span className="block mt-1 text-[9px] font-bold uppercase tracking-wider text-[#A3A797]">{def.module}</span></span></label>)}
                   </div>
                 </div>
               </div>
