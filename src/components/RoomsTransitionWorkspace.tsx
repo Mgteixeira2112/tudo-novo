@@ -25,7 +25,7 @@ export const RoomsTransitionWorkspace: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="rounded-2xl border border-[#E6E3D8] bg-white p-8 text-center text-sm text-[#6B705C]">
-          Seu perfil não possui acesso aos módulos de Cadastro de Quartos ou Estoque Integrado.
+          Seu perfil não possui acesso a Quartos ou Estoque.
         </div>
       </div>
     );
@@ -35,16 +35,16 @@ export const RoomsTransitionWorkspace: React.FC = () => {
     <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-[#E6E3D8] bg-white px-4 py-3 shadow-xs">
-          <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">Cadastros & Estoque</h2>
+          <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">Quartos & Estoque</h2>
           <div className="inline-flex max-w-full overflow-x-auto bg-[#F4F1EA] p-1 rounded-xl border border-[#E6E3D8] text-xs font-semibold">
             {canManageRegistry && (
               <button id="rooms-transition-registry" type="button" onClick={() => setView('registry')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'registry' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
-                <BedDouble className="w-4 h-4 text-[#A3B18A]" /> Cadastro de Quartos
+                <BedDouble className="w-4 h-4 text-[#A3B18A]" /> Quartos
               </button>
             )}
             {canViewInventory && (
               <button id="rooms-transition-inventory" type="button" onClick={() => setView('inventory')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'inventory' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
-                <Boxes className="w-4 h-4 text-[#A3B18A]" /> Estoque Integrado
+                <Boxes className="w-4 h-4 text-[#A3B18A]" /> Estoque
               </button>
             )}
           </div>
