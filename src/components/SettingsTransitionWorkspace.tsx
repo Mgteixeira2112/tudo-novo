@@ -18,9 +18,9 @@ const entries: Array<{
   eyebrow: string;
   permission: PermissionKey;
 }> = [
-  { tab: 'visual', title: 'Configurações do Hotel', description: 'Identidade, contatos, horários, moeda, taxa de serviço, Wi‑Fi e políticas de reserva.', icon: Building2, eyebrow: 'Administração', permission: 'manage_hotel_settings' },
-  { tab: 'rooms', title: 'Tarifas & Acomodações', description: 'Categorias de quartos e tarifas base utilizadas pelo motor de reservas online.', icon: BedDouble, eyebrow: 'Cadastros', permission: 'manage_room_rates' },
-  { tab: 'supabase', title: 'Sistema / Supabase', description: 'Status da persistência SQL, contagens técnicas e utilitários do banco de dados.', icon: Database, eyebrow: 'Sistema', permission: 'manage_system_settings' }
+  { tab: 'visual', title: 'Configurações do Hotel', description: 'Identidade, contatos, horários e políticas.', icon: Building2, eyebrow: 'Administração', permission: 'manage_hotel_settings' },
+  { tab: 'rooms', title: 'Tarifas & Acomodações', description: 'Categorias de quartos e tarifas base.', icon: BedDouble, eyebrow: 'Cadastros', permission: 'manage_room_rates' },
+  { tab: 'supabase', title: 'Sistema / Supabase', description: 'Persistência, diagnóstico e utilitários técnicos.', icon: Database, eyebrow: 'Sistema', permission: 'manage_system_settings' }
 ];
 
 export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspaceProps> = ({ onOpen }) => {
@@ -31,9 +31,7 @@ export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspacePr
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div>
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#588157]">Administração</span>
-        <h2 className="mt-1 text-2xl font-black text-[#2C3327]">Configurações & Cadastros do Hotel</h2>
-        <p className="mt-1 max-w-2xl text-sm text-[#6B705C]">Funções administrativas exibidas conforme as permissões do colaborador.</p>
+        <h2 className="text-2xl font-black text-[#2C3327]">Configurações & Cadastros do Hotel</h2>
       </div>
 
       {visibleEntries.length === 0 && !canManageSystem ? (
