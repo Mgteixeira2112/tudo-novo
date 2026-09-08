@@ -9,17 +9,27 @@ function getAudioContext(): AudioContext | null {
 }
 
 function strike(ctx: AudioContext, when: number, level = 1) {
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.setValueAtTime(-18, when);
+  compressor.knee.setValueAtTime(18, when);
+  compressor.ratio.setValueAtTime(5, when);
+  compressor.attack.setValueAtTime(0.003, when);
+  compressor.release.setValueAtTime(0.22, when);
+  compressor.connect(ctx.destination);
+
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, when);
-  master.gain.exponentialRampToValueAtTime(0.22 * level, when + 0.008);
-  master.gain.exponentialRampToValueAtTime(0.0001, when + 1.35);
-  master.connect(ctx.destination);
+  master.gain.exponentialRampToValueAtTime(0.42 * level, when + 0.006);
+  master.gain.exponentialRampToValueAtTime(0.0001, when + 1.6);
+  master.connect(compressor);
 
+  // Corpo metálico mais grave e presente, lembrando campainha de balcão antiga.
   const partials = [
-    { frequency: 740, gain: 0.95, decay: 1.25 },
-    { frequency: 1110, gain: 0.52, decay: 0.95 },
-    { frequency: 1485, gain: 0.28, decay: 0.72 },
-    { frequency: 2220, gain: 0.12, decay: 0.42 }
+    { frequency: 560, gain: 1.0, decay: 1.45 },
+    { frequency: 840, gain: 0.78, decay: 1.2 },
+    { frequency: 1120, gain: 0.48, decay: 0.92 },
+    { frequency: 1680, gain: 0.26, decay: 0.62 },
+    { frequency: 2520, gain: 0.12, decay: 0.34 }
   ];
 
   partials.forEach(partial => {
@@ -27,21 +37,47 @@ function strike(ctx: AudioContext, when: number, level = 1) {
     const gain = ctx.createGain();
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(partial.frequency, when);
-    oscillator.frequency.exponentialRampToValueAtTime(partial.frequency * 0.996, when + partial.decay);
+    oscillator.frequency.exponentialRampToValueAtTime(partial.frequency * 0.994, when + partial.decay);
     gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(partial.gain, when + 0.004);
+    gain.gain.exponentialRampToValueAtTime(partial.gain, when + 0.003);
     gain.gain.exponentialRampToValueAtTime(0.0001, when + partial.decay);
     oscillator.connect(gain);
     gain.connect(master);
     oscillator.start(when);
     oscillator.stop(when + partial.decay + 0.05);
   });
+
+  // Ataque curto para o "clac" mecânico da campainha chamar atenção imediatamente.
+  const attackOsc = ctx.createOscillator();
+  const attackGain = ctx.createGain();
+  attackOsc.type = 'triangle';
+  attackOsc.frequency.setValueAtTime(3200, when);
+  attackOsc.frequency.exponentialRampToValueAtTime(1450, when + 0.055);
+  attackGain.gain.setValueAtTime(0.22 * level, when);
+  attackGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.075);
+  attackOsc.connect(attackGain);
+  attackGain.connect(compressor);
+  attackOsc.start(when);
+  attackOsc.stop(when + 0.08);
+
+  // Pequeno impacto grave dá presença em caixas de TV e notebooks.
+  const thumpOsc = ctx.createOscillator();
+  const thumpGain = ctx.createGain();
+  thumpOsc.type = 'sine';
+  thumpOsc.frequency.setValueAtTime(190, when);
+  thumpOsc.frequency.exponentialRampToValueAtTime(125, when + 0.09);
+  thumpGain.gain.setValueAtTime(0.12 * level, when);
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.11);
+  thumpOsc.connect(thumpGain);
+  thumpGain.connect(compressor);
+  thumpOsc.start(when);
+  thumpOsc.stop(when + 0.12);
 }
 
 function ring(ctx: AudioContext) {
   const now = ctx.currentTime + 0.01;
   strike(ctx, now, 1);
-  strike(ctx, now + 0.34, 0.72);
+  strike(ctx, now + 0.28, 0.88);
 }
 
 export async function enableOldHotelBell(): Promise<boolean> {
@@ -50,7 +86,7 @@ export async function enableOldHotelBell(): Promise<boolean> {
     if (!ctx) return false;
     if (ctx.state === 'suspended') await ctx.resume();
     if (ctx.state !== 'running') return false;
-    strike(ctx, ctx.currentTime + 0.02, 0.72);
+    strike(ctx, ctx.currentTime + 0.02, 0.82);
     return true;
   } catch {
     return false;
