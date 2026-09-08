@@ -12,7 +12,6 @@ import { installTaskAlertIntegration } from './services/taskAlertIntegration.ts'
 import { installKitchenOrderAlertIntegration } from './services/kitchenOrderAlertIntegration.ts';
 import { installGovernanceCheckoutAlertIntegration } from './services/governanceCheckoutAlertIntegration.ts';
 import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
-import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
 import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
 import { KdsEntry } from './components/KdsEntry.tsx';
 
@@ -38,7 +37,6 @@ createRoot(document.getElementById('root')!).render(
       <>
         <App />
         <OperationalAlertsBellPortal />
-        <OperationalAlertsNavPortal />
         <OperationalAlertsCenterPortal />
       </>
     )}
