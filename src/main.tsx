@@ -14,7 +14,7 @@ import { installGovernanceCheckoutAlertIntegration } from './services/governance
 import { OperationalAlertsBellPortal } from './components/OperationalAlertsBellPortal.tsx';
 import { OperationalAlertsNavPortal } from './components/OperationalAlertsNavPortal.tsx';
 import { OperationalAlertsCenterPortal } from './components/OperationalAlertsCenterPortal.tsx';
-import { KdsDisplay } from './components/KdsDisplay.tsx';
+import { KdsEntry } from './components/KdsEntry.tsx';
 import { KdsSettingsPortal } from './components/KdsSettingsPortal.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
@@ -34,7 +34,7 @@ const kdsToken = typeof window !== 'undefined'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {kdsToken ? (
-      <KdsDisplay token={kdsToken} />
+      <KdsEntry token={kdsToken} />
     ) : (
       <>
         <App />
