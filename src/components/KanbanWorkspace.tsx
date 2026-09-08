@@ -291,10 +291,6 @@ function RoomsKanbanView({
           );
         })}
       </div>
-
-      <div className="rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-4 py-3 text-[11px] text-[#6B705C]">
-        <strong className="text-[#3D4035]">Proteção operacional ativa.</strong> O Kanban não permite criar ou remover o estado Ocupado. Check-in e checkout continuam sendo os únicos fluxos que controlam ocupação.
-      </div>
     </div>
   );
 }
@@ -387,7 +383,6 @@ export const KanbanWorkspace: React.FC = () => {
               <Sparkles className="h-5 w-5 text-[#588157]" />
               <h3 className="text-lg font-black text-[#2C3327]">Governança</h3>
             </div>
-            <p className="mt-1 text-xs text-[#6B705C]">Quartos em Limpeza e tarefas de Governança reunidos no mesmo contexto operacional.</p>
           </div>
           <RoomsKanbanView lockedStatus="Limpeza" />
           <KanbanBoard lockedSector="Governanca" />
@@ -401,7 +396,6 @@ export const KanbanWorkspace: React.FC = () => {
               <Wrench className="h-5 w-5 text-[#BC6C25]" />
               <h3 className="text-lg font-black text-[#2C3327]">Manutenção</h3>
             </div>
-            <p className="mt-1 text-xs text-[#6B705C]">Quartos em Manutenção e chamados técnicos reunidos no mesmo contexto operacional.</p>
           </div>
           <RoomsKanbanView lockedStatus="Manutencao" />
           <KanbanBoard lockedSector="Manutencao" />
