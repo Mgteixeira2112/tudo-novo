@@ -129,19 +129,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
               <div className={`p-2.5 rounded-xl shadow-sm ${getThemeBadgeClass()}`}>
                 <Hotel className="w-6 h-6" />
               </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-lg font-bold text-[#2C3327] tracking-tight">
-                    {settings?.hotelName || 'SaaS Hoteleiro'}
-                  </h1>
-                  <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#F4F1EA] text-[#6B705C] border border-[#E6E3D8]">
-                    {settings?.cityState || 'PMS'}
-                  </span>
-                </div>
-                <p className="text-xs text-[#6B705C] hidden sm:block truncate max-w-md">
-                  {settings?.tagline || 'Gestão Hoteleira e Motor de Reservas'}
-                </p>
-              </div>
+              <h1 className="text-lg font-bold text-[#2C3327] tracking-tight">
+                {settings?.hotelName || 'SaaS Hoteleiro'}
+              </h1>
             </div>
 
             {/* Supabase Status Pill, Mode Toggle & Staff User Dropdown */}
