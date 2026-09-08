@@ -205,9 +205,6 @@ function RoomsKanbanView({
                 {lockedStatus ? `Quartos — ${statusLabel(lockedStatus)}` : 'Kanban de Quartos'}
               </h3>
             </div>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#6B705C]">
-              Cada card é o próprio quarto cadastrado. Mudanças permitidas atualizam diretamente <strong>rooms.status</strong>; tarefas continuam independentes.
-            </p>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
@@ -334,7 +331,6 @@ export const KanbanWorkspace: React.FC = () => {
       <div className="flex flex-col gap-4 rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-black tracking-tight text-[#2C3327]">Operação Hoteleira</h2>
-          <p className="mt-1 text-xs text-[#6B705C]">Central geral preservada e módulos setoriais independentes para Governança e Manutenção.</p>
         </div>
 
         <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
