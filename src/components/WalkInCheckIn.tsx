@@ -108,9 +108,6 @@ export const WalkInCheckIn: React.FC = () => {
             <span>Walk-in / Balcão</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] mt-1">Novo Check-in Direto</h2>
-          <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Para hóspedes que chegam sem reserva. O sistema cria a hospedagem e efetua o check-in em uma única operação.
-          </p>
         </div>
         <div className="px-3 py-2 rounded-xl bg-[#F2F5E8] border border-[#CCD5AE] text-xs text-[#3A5A40] font-bold">
           {availableRooms.length} quartos disponíveis agora
