@@ -60,6 +60,33 @@ export interface PublicKdsMaintenanceRoom {
   status: 'Manutencao';
 }
 
+export interface PublicKdsFrontdeskRoom {
+  id: string;
+  number: string;
+  floor: number;
+  type_name: string;
+  status: string;
+  current_guest_name?: string | null;
+}
+
+export interface PublicKdsFrontdeskReservation {
+  id: string;
+  code?: string | null;
+  guest_name: string;
+  room_number?: string | null;
+  room_type_name?: string | null;
+  check_in_date?: string | null;
+  check_out_date?: string | null;
+  status: string;
+}
+
+export interface PublicKdsFrontdeskOverview {
+  server_date: string;
+  rooms: PublicKdsFrontdeskRoom[];
+  arrivals: PublicKdsFrontdeskReservation[];
+  departures: PublicKdsFrontdeskReservation[];
+}
+
 function getClient() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
@@ -125,6 +152,18 @@ export async function getPublicKdsMaintenanceRooms(token: string): Promise<Publi
   const { data, error } = await getClient().rpc('get_kds_maintenance_rooms', { p_token: token });
   if (error) throw new Error(error.message || 'Não foi possível carregar os quartos em manutenção.');
   return Array.isArray(data) ? (data as PublicKdsMaintenanceRoom[]) : [];
+}
+
+export async function getPublicKdsFrontdeskOverview(token: string): Promise<PublicKdsFrontdeskOverview> {
+  const { data, error } = await getClient().rpc('get_kds_frontdesk_overview', { p_token: token });
+  if (error) throw new Error(error.message || 'Não foi possível carregar a visão da recepção.');
+  const overview = (data || {}) as Partial<PublicKdsFrontdeskOverview>;
+  return {
+    server_date: String(overview.server_date || ''),
+    rooms: Array.isArray(overview.rooms) ? overview.rooms : [],
+    arrivals: Array.isArray(overview.arrivals) ? overview.arrivals : [],
+    departures: Array.isArray(overview.departures) ? overview.departures : []
+  };
 }
 
 export async function validateKdsDisplayToken(token: string): Promise<boolean> {
