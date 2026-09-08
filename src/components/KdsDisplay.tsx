@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BedDouble, ChefHat, Clock3, Loader2, Monitor, ShieldCheck, Sparkles, UtensilsCrossed, Wifi, WifiOff } from 'lucide-react';
+import { BedDouble, ChefHat, Clock3, Loader2, Monitor, ShieldCheck, Sparkles, UtensilsCrossed, Wifi, WifiOff, Wrench } from 'lucide-react';
 import {
   getPublicKdsDisplay,
   getPublicKdsHousekeepingRooms,
   getPublicKdsKitchenOrders,
+  getPublicKdsMaintenanceRooms,
   heartbeatKdsDisplay,
   PublicKdsDisplay,
   PublicKdsHousekeepingRoom,
   PublicKdsKitchenOrder,
+  PublicKdsMaintenanceRoom,
   validateKdsDisplayToken
 } from '../services/kdsDisplays.ts';
 
@@ -36,6 +38,8 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [housekeepingRooms, setHousekeepingRooms] = useState<PublicKdsHousekeepingRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [maintenanceRooms, setMaintenanceRooms] = useState<PublicKdsMaintenanceRoom[]>([]);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
 
   const presetLabel = useMemo(() => display ? (PRESET_LABELS[display.preset] || display.preset) : '', [display]);
 
@@ -151,6 +155,38 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
     return () => {
       active = false;
       if (roomsTimer) window.clearInterval(roomsTimer);
+    };
+  }, [display, token, valid]);
+
+  useEffect(() => {
+    if (!display || display.preset !== 'maintenance' || !valid) {
+      setMaintenanceRooms([]);
+      return;
+    }
+
+    let active = true;
+    let maintenanceTimer: number | null = null;
+
+    const loadMaintenanceRooms = async (showLoading = false) => {
+      try {
+        if (showLoading) setMaintenanceLoading(true);
+        const rooms = await getPublicKdsMaintenanceRooms(token);
+        if (!active) return;
+        setMaintenanceRooms(rooms);
+      } catch {
+        if (!active) return;
+        setConnected(false);
+      } finally {
+        if (active && showLoading) setMaintenanceLoading(false);
+      }
+    };
+
+    loadMaintenanceRooms(true);
+    maintenanceTimer = window.setInterval(() => loadMaintenanceRooms(false), 5000);
+
+    return () => {
+      active = false;
+      if (maintenanceTimer) window.clearInterval(maintenanceTimer);
     };
   }, [display, token, valid]);
 
@@ -322,6 +358,66 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
     </main>
   );
 
+  const renderMaintenance = () => (
+    <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-[#D4A373]">
+            <Wrench className="h-5 w-5" />
+            <span className="text-xs font-black uppercase tracking-[0.2em]">Fila de manutenção</span>
+          </div>
+          <h2 className="mt-1 text-2xl font-black sm:text-3xl">Quartos em manutenção</h2>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-white/45">
+          <Clock3 className="h-4 w-4" /> Atualização automática a cada 5s
+        </div>
+      </div>
+
+      {maintenanceLoading ? (
+        <div className="flex min-h-[45vh] items-center justify-center">
+          <Loader2 className="h-9 w-9 animate-spin text-[#D4A373]" />
+        </div>
+      ) : maintenanceRooms.length === 0 ? (
+        <div className="flex min-h-[45vh] items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.025] p-8 text-center">
+          <div>
+            <Wrench className="mx-auto h-10 w-10 text-[#D4A373]" />
+            <h3 className="mt-4 text-xl font-black">Nenhum quarto em manutenção</h3>
+            <p className="mt-2 text-sm text-white/45">Quando um quarto entrar em Manutencao, ele aparecerá aqui automaticamente.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {maintenanceRooms.map(room => (
+            <article key={room.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-[#D4A373]/20 p-3">
+                    <Wrench className="h-6 w-6 text-[#F2D6B1]" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black">Quarto {room.number}</div>
+                    <div className="mt-0.5 text-sm font-semibold text-white/55">{room.type_name}</div>
+                  </div>
+                </div>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-black text-[#D4A373]">{room.floor}º andar</span>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#D4A373]/25 bg-[#D4A373]/10 px-3 py-2 text-sm font-black text-[#F2D6B1]">
+                <Wrench className="h-4 w-4" /> Manutenção necessária
+              </div>
+
+              {room.notes ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-white/65">
+                  {room.notes}
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+
   return (
     <div className="min-h-screen bg-[#11130F] text-white flex flex-col">
       <header className="border-b border-white/10 bg-black/20 px-6 py-4 sm:px-8">
@@ -350,19 +446,21 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
         ? renderKitchen()
         : display.preset === 'housekeeping'
           ? renderHousekeeping()
-          : (
-            <main className="flex flex-1 items-center justify-center p-6 sm:p-10">
-              <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center sm:p-12">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
-                  <Monitor className="h-10 w-10 text-[#CCD5AE]" />
+          : display.preset === 'maintenance'
+            ? renderMaintenance()
+            : (
+              <main className="flex flex-1 items-center justify-center p-6 sm:p-10">
+                <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center sm:p-12">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
+                    <Monitor className="h-10 w-10 text-[#CCD5AE]" />
+                  </div>
+                  <h2 className="mt-6 text-3xl font-black">KDS conectado</h2>
+                  <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/55">
+                    A tela, o link revogável e o heartbeat estão ativos. O conteúdo operacional do preset <strong className="text-white/80">{presetLabel}</strong> ainda será ligado em uma próxima etapa do KDS.
+                  </p>
                 </div>
-                <h2 className="mt-6 text-3xl font-black">KDS conectado</h2>
-                <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/55">
-                  A tela, o link revogável e o heartbeat estão ativos. O conteúdo operacional do preset <strong className="text-white/80">{presetLabel}</strong> ainda será ligado em uma próxima etapa do KDS.
-                </p>
-              </div>
-            </main>
-          )}
+              </main>
+            )}
     </div>
   );
 };
