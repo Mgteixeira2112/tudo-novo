@@ -341,6 +341,7 @@ export const KanbanWorkspace: React.FC = () => {
 
         <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
           <button
+            id="tab-operations-rooms"
             onClick={() => setView('rooms')}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'rooms' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
