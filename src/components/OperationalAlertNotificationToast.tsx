@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, BellRing, Database, Volume2, VolumeX, X } from 'lucide-react';
 import { OperationalAlertInboxItem } from '../services/operationalAlertsInbox.ts';
+import { playOldHotelBell } from '../services/alertBell.ts';
 
 interface OperationalAlertNotificationToastProps {
   items: OperationalAlertInboxItem[];
@@ -18,6 +19,15 @@ export const OperationalAlertNotificationToast: React.FC<OperationalAlertNotific
   onToggleMute
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const soundedIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isMuted) return;
+    const unseen = items.filter(item => !soundedIdsRef.current.has(item.deliveryId));
+    if (unseen.length === 0) return;
+    unseen.forEach(item => soundedIdsRef.current.add(item.deliveryId));
+    playOldHotelBell();
+  }, [items, isMuted]);
 
   if (items.length === 0) return null;
 
