@@ -25,9 +25,7 @@ import { api } from './services/api.ts';
 import { AdminTab, KitchenOrder } from './types.ts';
 import {
   Hotel,
-  Database,
   Loader2,
-  BellRing,
   Home
 } from 'lucide-react';
 
@@ -373,27 +371,11 @@ const AppContent: React.FC = () => {
       />
 
       <footer className="bg-white border-t border-[#E6E3D8] py-6 text-xs text-[#6B705C] mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center sm:justify-start">
           <div className="flex items-center space-x-2">
             <Hotel className="w-4 h-4 text-[#588157]" />
             <span className="font-bold text-[#2C3327]">{settings?.hotelName || 'SaaS Hoteleiro'}</span>
             <span>&bull; Sistema de Gestão & Reservas Online</span>
-          </div>
-
-          <div className="flex items-center space-x-4 text-[11px]">
-            <button
-              onClick={handleTestSimulation}
-              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#F4F1EA] hover:bg-[#EBE7DD] text-[#3A5A40] font-semibold border border-[#CCD5AE]/40 transition cursor-pointer"
-              title="Simular disparo de pedido de Room Service no banco"
-            >
-              <BellRing className="w-3.5 h-3.5 text-[#588157]" />
-              <span>Testar Alerta Room Service</span>
-            </button>
-            <span className="text-[#E6E3D8]">|</span>
-            <span className="flex items-center space-x-1 text-[#3A5A40] font-medium">
-              <Database className="w-3.5 h-3.5" />
-              <span>Persistência SQL Backend (Sem LocalStorage)</span>
-            </span>
           </div>
         </div>
       </footer>
