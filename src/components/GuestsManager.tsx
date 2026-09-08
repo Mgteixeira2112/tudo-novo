@@ -146,29 +146,34 @@ export const GuestsManager: React.FC = () => {
         </div>
       )}
 
-      {modalOpen && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-[#E6E3D8] my-6">
-          <div className="p-5 border-b border-[#E6E3D8] flex items-center justify-between">
-            <div><h3 className="font-black text-[#2C3327]">{editing?'Editar Hóspede':'Novo Hóspede'}</h3></div>
-            <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-[#F4F1EA]"><X className="w-4 h-4" /></button>
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-start sm:items-center justify-center overflow-hidden">
+          <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#E6E3D8] overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-[#E6E3D8] flex items-center justify-between shrink-0">
+              <h3 className="font-black text-[#2C3327]">{editing ? 'Editar Hóspede' : 'Novo Hóspede'}</h3>
+              <button type="button" onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-[#F4F1EA]" aria-label="Fechar formulário"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={save} className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto">
+              <Field label="Nome Completo *"><input required value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} className="input" /></Field>
+              <Field label="Status"><select value={form.status} onChange={e=>setForm({...form,status:e.target.value as Guest['status']})} className="input"><option>Ativo</option><option>VIP</option><option value="Restricao">Restrição</option></select></Field>
+              <Field label="Tipo de Documento"><select value={form.documentType} onChange={e=>setForm({...form,documentType:e.target.value as Guest['documentType']})} className="input"><option>CPF</option><option>RG</option><option>Passaporte</option></select></Field>
+              <Field label="Documento"><input value={form.document} onChange={e=>setForm({...form,document:e.target.value})} className="input" /></Field>
+              <Field label="E-mail"><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="input" /></Field>
+              <Field label="Telefone / WhatsApp"><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="input" /></Field>
+              <Field label="Cidade"><input value={form.city} onChange={e=>setForm({...form,city:e.target.value})} className="input" /></Field>
+              <Field label="Estado"><input value={form.state} onChange={e=>setForm({...form,state:e.target.value})} className="input" /></Field>
+              <Field label="Data de Nascimento"><input type="date" value={form.birthDate} onChange={e=>setForm({...form,birthDate:e.target.value})} className="input" /></Field>
+              <Field label="Endereço"><input value={form.address} onChange={e=>setForm({...form,address:e.target.value})} className="input" /></Field>
+              <div className="sm:col-span-2"><Field label="Preferências"><textarea rows={2} value={form.preferences} onChange={e=>setForm({...form,preferences:e.target.value})} className="input" /></Field></div>
+              <div className="sm:col-span-2"><Field label="Restrições Médicas / Alergias"><textarea rows={2} value={form.allergiesNotes} onChange={e=>setForm({...form,allergiesNotes:e.target.value})} className="input" /></Field></div>
+              <div className="sm:col-span-2 sticky bottom-0 -mx-5 -mb-5 mt-1 flex justify-end gap-2 border-t border-[#E6E3D8] bg-white px-5 py-4">
+                <button type="button" onClick={()=>setModalOpen(false)} className="px-4 py-2 rounded-xl bg-[#F4F1EA] text-xs font-bold">Cancelar</button>
+                <button disabled={saving} type="submit" className="px-4 py-2 rounded-xl bg-[#2C3327] text-white text-xs font-bold disabled:opacity-50">{saving?'Salvando...':'Salvar Hóspede'}</button>
+              </div>
+            </form>
           </div>
-          <form onSubmit={save} className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Nome Completo *"><input required value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} className="input" /></Field>
-            <Field label="Status"><select value={form.status} onChange={e=>setForm({...form,status:e.target.value as Guest['status']})} className="input"><option>Ativo</option><option>VIP</option><option value="Restricao">Restrição</option></select></Field>
-            <Field label="Tipo de Documento"><select value={form.documentType} onChange={e=>setForm({...form,documentType:e.target.value as Guest['documentType']})} className="input"><option>CPF</option><option>RG</option><option>Passaporte</option></select></Field>
-            <Field label="Documento"><input value={form.document} onChange={e=>setForm({...form,document:e.target.value})} className="input" /></Field>
-            <Field label="E-mail"><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="input" /></Field>
-            <Field label="Telefone / WhatsApp"><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="input" /></Field>
-            <Field label="Cidade"><input value={form.city} onChange={e=>setForm({...form,city:e.target.value})} className="input" /></Field>
-            <Field label="Estado"><input value={form.state} onChange={e=>setForm({...form,state:e.target.value})} className="input" /></Field>
-            <Field label="Data de Nascimento"><input type="date" value={form.birthDate} onChange={e=>setForm({...form,birthDate:e.target.value})} className="input" /></Field>
-            <Field label="Endereço"><input value={form.address} onChange={e=>setForm({...form,address:e.target.value})} className="input" /></Field>
-            <div className="sm:col-span-2"><Field label="Preferências"><textarea rows={2} value={form.preferences} onChange={e=>setForm({...form,preferences:e.target.value})} className="input" /></Field></div>
-            <div className="sm:col-span-2"><Field label="Restrições Médicas / Alergias"><textarea rows={2} value={form.allergiesNotes} onChange={e=>setForm({...form,allergiesNotes:e.target.value})} className="input" /></Field></div>
-            <div className="sm:col-span-2 flex justify-end gap-2 pt-2"><button type="button" onClick={()=>setModalOpen(false)} className="px-4 py-2 rounded-xl bg-[#F4F1EA] text-xs font-bold">Cancelar</button><button disabled={saving} className="px-4 py-2 rounded-xl bg-[#2C3327] text-white text-xs font-bold disabled:opacity-50">{saving?'Salvando...':'Salvar Hóspede'}</button></div>
-          </form>
         </div>
-      </div>}
+      )}
       <style>{`.input{width:100%;padding:.65rem .75rem;border:1px solid #E6E3D8;border-radius:.75rem;outline:none;color:#3D4035;background:white}.input:focus{box-shadow:0 0 0 2px #CCD5AE}`}</style>
     </div>
   );
