@@ -12,6 +12,7 @@ import {
   PublicKdsMaintenanceRoom,
   validateKdsDisplayToken
 } from '../services/kdsDisplays.ts';
+import { KdsFrontdeskView } from './KdsFrontdeskView.tsx';
 
 const PRESET_LABELS: Record<string, string> = {
   operations: 'Operação geral',
@@ -448,19 +449,21 @@ export const KdsDisplay: React.FC<{ token: string }> = ({ token }) => {
           ? renderHousekeeping()
           : display.preset === 'maintenance'
             ? renderMaintenance()
-            : (
-              <main className="flex flex-1 items-center justify-center p-6 sm:p-10">
-                <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center sm:p-12">
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
-                    <Monitor className="h-10 w-10 text-[#CCD5AE]" />
+            : display.preset === 'frontdesk'
+              ? <KdsFrontdeskView token={token} onConnectionError={() => setConnected(false)} />
+              : (
+                <main className="flex flex-1 items-center justify-center p-6 sm:p-10">
+                  <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center sm:p-12">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
+                      <Monitor className="h-10 w-10 text-[#CCD5AE]" />
+                    </div>
+                    <h2 className="mt-6 text-3xl font-black">KDS conectado</h2>
+                    <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/55">
+                      A tela, o link revogável e o heartbeat estão ativos. O conteúdo operacional do preset <strong className="text-white/80">{presetLabel}</strong> ainda será ligado em uma próxima etapa do KDS.
+                    </p>
                   </div>
-                  <h2 className="mt-6 text-3xl font-black">KDS conectado</h2>
-                  <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/55">
-                    A tela, o link revogável e o heartbeat estão ativos. O conteúdo operacional do preset <strong className="text-white/80">{presetLabel}</strong> ainda será ligado em uma próxima etapa do KDS.
-                  </p>
-                </div>
-              </main>
-            )}
+                </main>
+              )}
     </div>
   );
 };
