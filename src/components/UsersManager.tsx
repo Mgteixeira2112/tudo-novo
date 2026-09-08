@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Edit2, Search, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
+import { AlertTriangle, Edit2, Eye, Search, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
 import { PermissionKey, StaffUser, UserRole, UserSector } from '../types.ts';
 import { expandLegacyPermissions, PERMISSION_DEFINITIONS, ROLE_DEFINITIONS, SECTOR_DEFINITIONS } from '../services/rbac.ts';
 import { createStaffCloud, deactivateStaffCloud, loadStaffCloud, updateStaffCloud } from '../services/adminPages.ts';
+import { useHotel } from '../context/HotelContext.tsx';
 
 const roleEntries = Object.entries(ROLE_DEFINITIONS) as [UserRole, (typeof ROLE_DEFINITIONS)[UserRole]][];
 const sectorEntries = Object.entries(SECTOR_DEFINITIONS) as [UserSector, (typeof SECTOR_DEFINITIONS)[UserSector]][];
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 export const UsersManager: React.FC = () => {
+  const { currentUser, switchUser } = useHotel();
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +173,10 @@ export const UsersManager: React.FC = () => {
                   {visiblePermissions.length > 5 && <span className="px-2 py-1 text-[10px] text-[#8E9280]">+{visiblePermissions.length-5}</span>}
                 </div>
               </div>
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                {currentUser?.id !== user.id && (
+                  <button onClick={()=>switchUser(user)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#CCD5AE] bg-[#F7F8F2] text-[#3A5A40] text-xs font-bold"><Eye className="w-3.5 h-3.5" /> Simular acesso</button>
+                )}
                 <button onClick={()=>openEdit(user)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#F4F1EA] text-xs font-bold"><Edit2 className="w-3.5 h-3.5" /> Editar</button>
                 {user.role !== 'admin' && <button onClick={()=>deactivate(user)} className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-bold">Desativar</button>}
               </div>
