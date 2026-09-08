@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { KdsDisplay } from './KdsDisplay.tsx';
 import { KdsOperationsDisplay } from './KdsOperationsDisplay.tsx';
+import { KdsOperationalAlertToast } from './KdsOperationalAlertToast.tsx';
 import { getPublicKdsDisplay, PublicKdsDisplay } from '../services/kdsDisplays.ts';
 
 export const KdsEntry: React.FC<{ token: string }> = ({ token }) => {
@@ -38,9 +39,16 @@ export const KdsEntry: React.FC<{ token: string }> = ({ token }) => {
     );
   }
 
-  if (display?.preset === 'operations') {
-    return <KdsOperationsDisplay token={token} display={display} />;
+  if (!display) {
+    return <KdsDisplay token={token} />;
   }
 
-  return <KdsDisplay token={token} />;
+  return (
+    <>
+      <KdsOperationalAlertToast token={token} />
+      {display.preset === 'operations'
+        ? <KdsOperationsDisplay token={token} display={display} />
+        : <KdsDisplay token={token} />}
+    </>
+  );
 };
