@@ -137,9 +137,6 @@ export const ReservationsManager: React.FC = () => {
             <span>Central de Reservas</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] mt-1">Calendário & Lista de Reservas</h2>
-          <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
-            Visualização administrativa das reservas reais sincronizadas com o PMS.
-          </p>
         </div>
         <button
           type="button"
