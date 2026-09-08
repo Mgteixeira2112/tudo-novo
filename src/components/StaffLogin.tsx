@@ -2,22 +2,17 @@ import React, { useState } from 'react';
 import {
   Hotel,
   ShieldCheck,
-  KeyRound,
   Mail,
   Lock,
   ArrowRight,
-  UserCheck,
-  Building2,
-  Sparkles,
   AlertCircle,
-  Loader2,
-  Database
+  Loader2
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
-import { resendSupabaseConfirmation, getSupabaseClient } from '../services/supabase.ts';
+import { resendSupabaseConfirmation } from '../services/supabase.ts';
 
 export const StaffLogin: React.FC = () => {
-  const { login, bootstrapAdmin, settings, supabaseStatus } = useHotel();
+  const { login, bootstrapAdmin, settings } = useHotel();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +48,7 @@ export const StaffLogin: React.FC = () => {
     try {
       const result = await bootstrapAdmin(email.trim(), password);
       if (result.requiresEmailConfirmation) {
-        setErrorMessage('Conta criada. Confirme o e-mail no Supabase e depois use o botão de login.');
+        setErrorMessage('Conta criada. Confirme o e-mail recebido e depois use o botão de login.');
       }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Não foi possível criar o administrador inicial.');
@@ -79,12 +74,10 @@ export const StaffLogin: React.FC = () => {
     }
   };
 
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl border border-[#E6E3D8] shadow-2xl overflow-hidden animate-fade-in">
-        {/* Left Col: Hotel Brand & Quick Sector Pickers */}
-        <div className="md:col-span-6 bg-[#FDFBF7] p-6 sm:p-8 border-b md:border-b-0 md:border-r border-[#E6E3D8] flex flex-col justify-between">
+        <div className="md:col-span-6 bg-[#FDFBF7] p-6 sm:p-8 border-b md:border-b-0 md:border-r border-[#E6E3D8] flex flex-col justify-center">
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-3 bg-[#2C3327] text-[#FDFBF7] rounded-2xl shadow-sm">
@@ -95,31 +88,21 @@ export const StaffLogin: React.FC = () => {
                   {settings?.hotelName || 'SaaS Hoteleiro'}
                 </h2>
                 <span className="text-xs text-[#6B705C]">
-                  Portal do Colaborador & Controle de Acesso (RBAC)
+                  Portal do Colaborador & Controle de Acesso
                 </span>
               </div>
             </div>
 
             <p className="text-xs text-[#3D4035] leading-relaxed mb-6">
-              Acesso seguro com <strong>Supabase Auth</strong> e setorização operacional. O sistema filtra automaticamente as abas, relatórios financeiros e ações conforme o cargo do colaborador.
+              Acesso seguro conforme o perfil e as permissões do colaborador.
             </p>
 
             <div className="p-4 rounded-2xl bg-white border border-[#E6E3D8] text-xs text-[#6B705C] leading-relaxed">
-              O acesso administrativo exige uma conta ativa no Supabase Auth e um perfil de colaborador ativo no hotel.
-              Não existem mais atalhos de demonstração ou troca de usuário sem autenticação.
+              Use uma conta ativa vinculada ao seu perfil de colaborador.
             </div>
-          </div>
-
-          <div className="pt-4 mt-6 border-t border-[#E6E3D8] flex items-center justify-between text-[11px] text-[#6B705C]">
-            <span className="flex items-center space-x-1.5">
-              <Database className="w-3.5 h-3.5 text-[#588157]" />
-              <span>{supabaseStatus?.connected || getSupabaseClient() ? 'Supabase Auth Online' : 'Supabase Auth não configurado'}</span>
-            </span>
-            <span className="font-mono text-[10px] text-[#8E9280]">v2.4 RBAC</span>
           </div>
         </div>
 
-        {/* Right Col: Direct Login Form */}
         <div className="md:col-span-6 p-6 sm:p-8 flex flex-col justify-center">
           <div className="max-w-sm mx-auto w-full space-y-6">
             <div>
@@ -129,7 +112,7 @@ export const StaffLogin: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-[#2C3327]">Entrar no Sistema</h3>
               <p className="text-xs text-[#6B705C] mt-1">
-                Digite as credenciais corporativas do seu usuário Supabase.
+                Digite seu e-mail e senha.
               </p>
             </div>
 
