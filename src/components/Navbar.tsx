@@ -4,20 +4,11 @@ import {
   CalendarCheck,
   LayoutDashboard,
   Settings,
-  Database,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
-  Copy,
-  Check,
   ShieldCheck,
-  UserCheck,
   ChevronDown,
   RotateCcw,
-  Building2,
   Eye,
-  LogOut,
-  Sparkles
+  LogOut
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { ROLE_DEFINITIONS, SECTOR_DEFINITIONS } from '../services/rbac.ts';
@@ -32,9 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     mode,
     setMode,
     setActiveAdminTab,
-    tasks,
-    rooms,
-    supabaseStatus,
     currentUser,
     allUsers,
     isImpersonating,
@@ -44,12 +32,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     logout
   } = useHotel();
 
-  const [showSqlDialog, setShowSqlDialog] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [copied, setCopied] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -59,20 +44,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Count occupied rooms
-  const occupiedRoomsCount = rooms.filter(r => r.status === 'Ocupado').length;
-
-  const handleCopySql = () => {
-    fetch('/api/supabase/schema-sql')
-      .then(res => res.text())
-      .then(sql => {
-        navigator.clipboard.writeText(sql);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      })
-      .catch(err => console.error(err));
-  };
 
   const getThemeBadgeClass = () => {
     switch (settings?.primaryColor) {
@@ -97,7 +68,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
   return (
     <>
       <header id="main-header" className="sticky top-0 z-40 bg-[#FDFBF7]/95 backdrop-blur border-b border-[#E6E3D8]">
-        {/* Impersonation / RBAC Testing Alert Banner */}
         {isImpersonating && currentUser && (
           <div className="bg-[#588157] text-white px-4 py-2 text-xs border-b border-[#436342] shadow-inner">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -121,10 +91,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
           </div>
         )}
 
-        {/* Top bar with hotel branding, mode switcher, and staff profile */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo and Hotel Name */}
             <div className="flex items-center space-x-3">
               <div className={`p-2.5 rounded-xl shadow-sm ${getThemeBadgeClass()}`}>
                 <Hotel className="w-6 h-6" />
@@ -134,23 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
               </h1>
             </div>
 
-            {/* Supabase Status Pill, Mode Toggle & Staff User Dropdown */}
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Supabase Database Status */}
-              <button
-                id="btn-supabase-status"
-                onClick={() => setShowSqlDialog(true)}
-                className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1.5 text-xs rounded-xl border border-[#E6E3D8] bg-[#F4F1EA] hover:bg-[#EFECE4] text-[#3D4035] transition"
-                title="Status de Persistência SQL Supabase"
-              >
-                <Database className="w-3.5 h-3.5 text-[#588157]" />
-                <span className="font-medium">
-                  {supabaseStatus?.connected ? 'Supabase SQL Conectado' : 'Banco SQL Backend Ativo'}
-                </span>
-                <span className="inline-block w-2 h-2 rounded-full bg-[#588157] animate-pulse"></span>
-              </button>
-
-              {/* Mode Switcher: Online Booking vs Admin PMS */}
               <div className="flex bg-[#F4F1EA] p-1 rounded-xl border border-[#E6E3D8] text-xs font-medium">
                 <button
                   id="tab-mode-booking"
@@ -180,7 +132,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                 </button>
               </div>
 
-              {/* Staff User Profile & RBAC Dropdown */}
               {currentUser && (
                 <div className="relative" ref={userMenuRef}>
                   <button
@@ -213,10 +164,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                     <ChevronDown className="w-3.5 h-3.5 text-[#6B705C]" />
                   </button>
 
-                  {/* Dropdown Menu */}
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-[#E6E3D8] shadow-xl p-3 z-50 animate-fade-in">
-                      {/* User Header */}
                       <div className="p-2.5 bg-[#FDFBF7] rounded-xl border border-[#E6E3D8] mb-3">
                         <div className="flex items-center space-x-2.5">
                           <img
@@ -246,7 +195,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                         </div>
                       </div>
 
-                      {/* Quick RBAC Simulator - Test each role & sector */}
                       <div className="mb-3">
                         <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B705C] block px-1 mb-1.5">
                           Testar Setorização & Políticas (Simulador)
@@ -282,7 +230,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                         </div>
                       </div>
 
-                      {/* Action Links */}
                       <div className="pt-2 border-t border-[#E6E3D8] space-y-1">
                         {canAccessTab('users') && (
                           <button
@@ -326,7 +273,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
                 </div>
               )}
 
-              {/* Quick Settings Button */}
               {canAccessTab('settings') && (
                 <button
                   id="btn-open-settings"
@@ -341,96 +287,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettingsModal }) => {
           </div>
         </div>
       </header>
-
-      {/* SQL & Supabase Architecture Modal */}
-      {showSqlDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#FDFBF7] rounded-3xl border border-[#E6E3D8] shadow-2xl max-w-2xl w-full p-6 space-y-5 overflow-hidden">
-            <div className="flex items-center justify-between pb-4 border-b border-[#E6E3D8]">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-2xl bg-[#E9EDC9] text-[#2C3327]">
-                  <Database className="w-6 h-6 text-[#588157]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-[#2C3327]">
-                    Persistência Supabase SQL & Autenticação
-                  </h3>
-                  <p className="text-xs text-[#6B705C]">
-                    Integração PostgreSQL e Supabase Auth com RBAC
-                  </p>
-                </div>
-              </div>
-              <button
-                id="btn-close-sql-modal"
-                onClick={() => setShowSqlDialog(false)}
-                className="p-2 rounded-xl text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA] transition"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs text-[#3D4035]">
-              <div className="p-4 rounded-2xl bg-white border border-[#E6E3D8] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#2C3327]">Status Atual:</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                      supabaseStatus?.connected
-                        ? 'bg-[#E9EDC9] text-[#2C3327]'
-                        : 'bg-[#CCD5AE]/40 text-[#2C3327]'
-                    }`}
-                  >
-                    {supabaseStatus?.connected ? '✓ Supabase Cloud Conectado' : '● Backend SQL Dedicado'}
-                  </span>
-                </div>
-                <p className="text-[#6B705C] leading-relaxed">
-                  {supabaseStatus?.message}
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-2xl border border-[#E6E3D8] space-y-2">
-                <span className="font-bold text-[#2C3327] block">Tabelas no Banco SQL:</span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="p-2 bg-[#F4F1EA] rounded-xl border border-[#E6E3D8]">
-                    <span className="font-bold text-sm text-[#2C3327]">{allUsers.length}</span>
-                    <span className="block text-[10px] text-[#6B705C]">staff_users</span>
-                  </div>
-                  <div className="p-2 bg-[#F4F1EA] rounded-xl border border-[#E6E3D8]">
-                    <span className="font-bold text-sm text-[#2C3327]">{rooms.length}</span>
-                    <span className="block text-[10px] text-[#6B705C]">rooms</span>
-                  </div>
-                  <div className="p-2 bg-[#F4F1EA] rounded-xl border border-[#E6E3D8]">
-                    <span className="font-bold text-sm text-[#2C3327]">{tasks.length}</span>
-                    <span className="block text-[10px] text-[#6B705C]">kanban_tasks</span>
-                  </div>
-                  <div className="p-2 bg-[#F4F1EA] rounded-xl border border-[#E6E3D8]">
-                    <span className="font-bold text-sm text-[#2C3327]">{occupiedRoomsCount}</span>
-                    <span className="block text-[10px] text-[#6B705C]">reservations</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-[#E6E3D8] flex items-center justify-between">
-              <button
-                id="btn-copy-sql-schema"
-                onClick={handleCopySql}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#2C3327] hover:bg-[#3D4035] text-white text-xs font-semibold transition"
-              >
-                {copied ? <Check className="w-4 h-4 text-[#CCD5AE]" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'SQL Copiado com Sucesso!' : 'Copiar DDL SQL Completo'}</span>
-              </button>
-
-              <button
-                onClick={() => setShowSqlDialog(false)}
-                className="px-4 py-2 text-xs font-medium text-[#6B705C] hover:text-[#2C3327] hover:bg-[#F4F1EA] rounded-xl transition"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };
