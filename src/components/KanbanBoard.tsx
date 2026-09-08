@@ -308,10 +308,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] tracking-tight">
               {lockedSector ? `Tarefas — ${sectorLabel(lockedSector)}` : 'Kanbans em Tempo Real por Setor'}
             </h2>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F2F5E8] text-[#2C3327] border border-[#CCD5AE]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#588157] mr-1.5 animate-pulse"></span>
-              Sincronizado via SQL
-            </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6B705C] mt-1">
             {lockedSector
