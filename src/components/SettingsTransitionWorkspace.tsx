@@ -15,12 +15,11 @@ const entries: Array<{
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  eyebrow: string;
   permission: PermissionKey;
 }> = [
-  { tab: 'visual', title: 'Configurações do Hotel', description: 'Identidade, contatos, horários e políticas.', icon: Building2, eyebrow: 'Administração', permission: 'manage_hotel_settings' },
-  { tab: 'rooms', title: 'Tarifas & Acomodações', description: 'Categorias de quartos e tarifas base.', icon: BedDouble, eyebrow: 'Cadastros', permission: 'manage_room_rates' },
-  { tab: 'supabase', title: 'Sistema / Supabase', description: 'Persistência, diagnóstico e utilitários técnicos.', icon: Database, eyebrow: 'Sistema', permission: 'manage_system_settings' }
+  { tab: 'visual', title: 'Configurações do Hotel', description: 'Identidade, contatos, horários e políticas.', icon: Building2, permission: 'manage_hotel_settings' },
+  { tab: 'rooms', title: 'Tarifas & Acomodações', description: 'Categorias de quartos e tarifas base.', icon: BedDouble, permission: 'manage_room_rates' },
+  { tab: 'supabase', title: 'Sistema / Supabase', description: 'Persistência, diagnóstico e utilitários técnicos.', icon: Database, permission: 'manage_system_settings' }
 ];
 
 export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspaceProps> = ({ onOpen }) => {
@@ -31,7 +30,7 @@ export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspacePr
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="rounded-2xl border border-[#E6E3D8] bg-white px-4 py-3 shadow-xs">
-        <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">Configurações & Cadastros do Hotel</h2>
+        <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">Configurações</h2>
       </div>
 
       {visibleEntries.length === 0 && !canManageSystem ? (
@@ -44,10 +43,7 @@ export const SettingsTransitionWorkspace: React.FC<SettingsTransitionWorkspacePr
                 const Icon = entry.icon;
                 return (
                   <button id={`settings-entry-${entry.tab}`} key={entry.tab} type="button" onClick={() => onOpen(entry.tab)} className="group rounded-2xl border border-[#E6E3D8] bg-white p-5 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[#CCD5AE] hover:shadow-md">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] p-3 text-[#588157]"><Icon className="h-5 w-5" /></div>
-                      <span className="rounded-full bg-[#F4F1EA] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#6B705C]">{entry.eyebrow}</span>
-                    </div>
+                    <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] p-3 text-[#588157] w-fit"><Icon className="h-5 w-5" /></div>
                     <h3 className="mt-4 text-base font-black text-[#2C3327]">{entry.title}</h3>
                     <p className="mt-2 text-xs leading-relaxed text-[#6B705C]">{entry.description}</p>
                     <span className="mt-4 inline-flex text-xs font-bold text-[#3A5A40] group-hover:underline">Abrir módulo</span>

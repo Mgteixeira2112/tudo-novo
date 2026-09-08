@@ -22,7 +22,7 @@ export const ReceptionManager: React.FC = () => {
             }`}
           >
             <CalendarDays className="w-4 h-4 text-[#588157]" />
-            <span>Reservas & Calendário</span>
+            <span>Reservas</span>
           </button>
           <button
             id="tab-reception-checkinout"
@@ -48,7 +48,7 @@ export const ReceptionManager: React.FC = () => {
             }`}
           >
             <DoorOpen className="w-4 h-4 text-[#588157]" />
-            <span>Novo Check-in / Balcão</span>
+            <span>Check-in Direto</span>
           </button>
         </div>
       </div>
