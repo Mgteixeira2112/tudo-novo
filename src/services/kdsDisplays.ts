@@ -42,6 +42,15 @@ export interface PublicKdsKitchenOrder {
   created_at: string;
 }
 
+export interface PublicKdsHousekeepingRoom {
+  id: string;
+  number: string;
+  floor: number;
+  type_name: string;
+  notes?: string | null;
+  status: 'Limpeza';
+}
+
 function getClient() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
@@ -95,6 +104,12 @@ export async function getPublicKdsKitchenOrders(token: string): Promise<PublicKd
   const { data, error } = await getClient().rpc('get_kds_kitchen_orders', { p_token: token });
   if (error) throw new Error(error.message || 'Não foi possível carregar os pedidos do KDS.');
   return Array.isArray(data) ? (data as PublicKdsKitchenOrder[]) : [];
+}
+
+export async function getPublicKdsHousekeepingRooms(token: string): Promise<PublicKdsHousekeepingRoom[]> {
+  const { data, error } = await getClient().rpc('get_kds_housekeeping_rooms', { p_token: token });
+  if (error) throw new Error(error.message || 'Não foi possível carregar os quartos em limpeza.');
+  return Array.isArray(data) ? (data as PublicKdsHousekeepingRoom[]) : [];
 }
 
 export async function validateKdsDisplayToken(token: string): Promise<boolean> {
