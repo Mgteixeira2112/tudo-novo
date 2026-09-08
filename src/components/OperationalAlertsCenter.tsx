@@ -79,7 +79,6 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
 
   const refresh = async () => {
     try {
@@ -101,7 +100,6 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
     getSupabaseAuthUser().then(user => {
       if (!active) return;
       const id = user?.id || null;
-      setUserId(id);
       refresh();
       if (id) unsubscribe = subscribeToOperationalAlertsInbox(id, refresh);
       fallback = window.setInterval(refresh, 30000);
@@ -157,10 +155,7 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F2F5E8] text-[#588157] border border-[#CCD5AE]/50">
             <Bell className="h-5 w-5" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-[#2C3327]">Central de Alertas</h2>
-            <p className="text-xs text-[#6B705C]">Histórico operacional destinado ao seu usuário.</p>
-          </div>
+          <h2 className="text-xl font-bold text-[#2C3327]">Central de Alertas</h2>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh} className="flex items-center gap-2 rounded-xl border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-semibold text-[#3D4035] hover:bg-[#F4F1EA]">
@@ -216,7 +211,6 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-[#8E9280]">
                     {item.sector && <span className="rounded-lg bg-[#F4F1EA] px-2 py-1">Setor: {item.sector}</span>}
-                    <span className="rounded-lg bg-[#F4F1EA] px-2 py-1">Origem: {item.sourceType}</span>
                     {!item.readAt && <span className="font-bold text-[#588157]">Não lida</span>}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -235,8 +229,6 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
           );
         })}
       </div>
-
-      {!userId && !loading && <p className="text-center text-[10px] text-[#8E9280]">Sessão Supabase não identificada.</p>}
     </div>
   );
 };
