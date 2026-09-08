@@ -6,6 +6,17 @@ const DEFAULT_SUPABASE_URL = 'https://izuymcuzbggrdkezwxyu.supabase.co';
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';
 const DEFAULT_AUTH_REDIRECT_URL = 'https://mgteixeira2112.github.io/tudo-novo/';
 
+const LEGACY_STAFF_PERMISSION_KEYS = new Set<PermissionKey>([
+  'manage_rooms',
+  'view_fnb',
+  'manage_fnb',
+  'manage_settings'
+]);
+
+function normalizeStaffPermissions(permissions: PermissionKey[]): PermissionKey[] {
+  return [...new Set(permissions.filter(permission => !LEGACY_STAFF_PERMISSION_KEYS.has(permission)))];
+}
+
 function client() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
@@ -104,7 +115,7 @@ export async function updateStaffCloud(id: string, updates: {
   if (updates.role !== undefined) payload.role = updates.role;
   if (updates.sector !== undefined) payload.sector = updates.sector;
   if (updates.status !== undefined) payload.active = updates.status === 'Ativo';
-  if (updates.permissions !== undefined) payload.permissions = updates.permissions;
+  if (updates.permissions !== undefined) payload.permissions = normalizeStaffPermissions(updates.permissions);
   const { data, error } = await client().from('staff_users').update(payload).eq('id', id).select('*').single();
   if (error) throw error;
   return mapStaff(data);
@@ -159,7 +170,7 @@ export async function createStaffCloud(input: {
     full_name: input.fullName.trim(),
     role: input.role,
     sector: input.sector,
-    permissions: input.permissions,
+    permissions: normalizeStaffPermissions(input.permissions),
     active: true
   }).select('*').single();
 
