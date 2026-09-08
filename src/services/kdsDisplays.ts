@@ -87,6 +87,44 @@ export interface PublicKdsFrontdeskOverview {
   departures: PublicKdsFrontdeskReservation[];
 }
 
+export interface PublicKdsOperationsReservation {
+  id: string;
+  guest_name: string;
+  room_number?: string | null;
+  status: string;
+}
+
+export interface PublicKdsOperationsKitchenOrder {
+  id: string;
+  order_number: string;
+  room_number?: string | null;
+  status: 'Recebido' | 'Em Preparo' | 'Pronto';
+  created_at: string;
+}
+
+export interface PublicKdsOperationsRoomRef {
+  id: string;
+  number: string;
+  floor: number;
+}
+
+export interface PublicKdsOperationsOverview {
+  server_date: string;
+  room_status: {
+    total: number;
+    available: number;
+    occupied: number;
+    cleaning: number;
+    maintenance: number;
+    blocked: number;
+  };
+  arrivals: PublicKdsOperationsReservation[];
+  departures: PublicKdsOperationsReservation[];
+  kitchen_orders: PublicKdsOperationsKitchenOrder[];
+  housekeeping_rooms: PublicKdsOperationsRoomRef[];
+  maintenance_rooms: PublicKdsOperationsRoomRef[];
+}
+
 function getClient() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
@@ -163,6 +201,29 @@ export async function getPublicKdsFrontdeskOverview(token: string): Promise<Publ
     rooms: Array.isArray(overview.rooms) ? overview.rooms : [],
     arrivals: Array.isArray(overview.arrivals) ? overview.arrivals : [],
     departures: Array.isArray(overview.departures) ? overview.departures : []
+  };
+}
+
+export async function getPublicKdsOperationsOverview(token: string): Promise<PublicKdsOperationsOverview> {
+  const { data, error } = await getClient().rpc('get_kds_operations_overview', { p_token: token });
+  if (error) throw new Error(error.message || 'Não foi possível carregar a visão operacional geral.');
+  const overview = (data || {}) as Partial<PublicKdsOperationsOverview>;
+  const status = overview.room_status || {} as PublicKdsOperationsOverview['room_status'];
+  return {
+    server_date: String(overview.server_date || ''),
+    room_status: {
+      total: Number(status.total || 0),
+      available: Number(status.available || 0),
+      occupied: Number(status.occupied || 0),
+      cleaning: Number(status.cleaning || 0),
+      maintenance: Number(status.maintenance || 0),
+      blocked: Number(status.blocked || 0)
+    },
+    arrivals: Array.isArray(overview.arrivals) ? overview.arrivals : [],
+    departures: Array.isArray(overview.departures) ? overview.departures : [],
+    kitchen_orders: Array.isArray(overview.kitchen_orders) ? overview.kitchen_orders : [],
+    housekeeping_rooms: Array.isArray(overview.housekeeping_rooms) ? overview.housekeeping_rooms : [],
+    maintenance_rooms: Array.isArray(overview.maintenance_rooms) ? overview.maintenance_rooms : []
   };
 }
 
