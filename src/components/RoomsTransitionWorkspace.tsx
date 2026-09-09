@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BedDouble, Boxes, Shirt, WashingMachine } from 'lucide-react';
+import { AlertTriangle, BedDouble, Boxes, Shirt, ShoppingCart, WashingMachine } from 'lucide-react';
 import { RoomsRegistryManager } from './RoomsRegistryManager.tsx';
 import { IntegratedInventoryManager } from './IntegratedInventoryManager.tsx';
 import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
 import { LaundryKanban } from './LaundryKanban.tsx';
 import { LossDamagePanel } from './LossDamagePanel.tsx';
+import { PurchaseNeedPanel } from './PurchaseNeedPanel.tsx';
 import { useHotel } from '../context/HotelContext.tsx';
 
 export const RoomsTransitionWorkspace: React.FC = () => {
@@ -12,12 +13,12 @@ export const RoomsTransitionWorkspace: React.FC = () => {
   const canManageRegistry = hasPermission('manage_room_registry');
   const canViewInventory = hasPermission('view_inventory');
 
-  const initialView = useMemo<'registry' | 'inventory' | 'linen' | 'laundry' | 'lossDamage'>(() => {
+  const initialView = useMemo<'registry' | 'inventory' | 'linen' | 'laundry' | 'lossDamage' | 'purchases'>(() => {
     if (canManageRegistry) return 'registry';
     return 'inventory';
   }, [canManageRegistry]);
 
-  const [view, setView] = useState<'registry' | 'inventory' | 'linen' | 'laundry' | 'lossDamage'>(initialView);
+  const [view, setView] = useState<'registry' | 'inventory' | 'linen' | 'laundry' | 'lossDamage' | 'purchases'>(initialView);
 
   const safeView =
     view === 'registry' && canManageRegistry ? 'registry' :
@@ -25,6 +26,7 @@ export const RoomsTransitionWorkspace: React.FC = () => {
     view === 'linen' && canViewInventory ? 'linen' :
     view === 'laundry' && canViewInventory ? 'laundry' :
     view === 'lossDamage' && canViewInventory ? 'lossDamage' :
+    view === 'purchases' && canViewInventory ? 'purchases' :
     initialView;
 
   if (!canManageRegistry && !canViewInventory) {
@@ -68,6 +70,11 @@ export const RoomsTransitionWorkspace: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 text-[#A3B18A]" /> Perdas/Avarias
               </button>
             )}
+            {canViewInventory && (
+              <button id="rooms-transition-purchases" type="button" onClick={() => setView('purchases')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'purchases' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
+                <ShoppingCart className="w-4 h-4 text-[#A3B18A]" /> Compras
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -84,6 +91,9 @@ export const RoomsTransitionWorkspace: React.FC = () => {
       )}
       {safeView === 'lossDamage' && canViewInventory && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><LossDamagePanel /></div>
+      )}
+      {safeView === 'purchases' && canViewInventory && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><PurchaseNeedPanel /></div>
       )}
     </div>
   );
