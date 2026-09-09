@@ -13,9 +13,6 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '64kb' }));
 
-// -------------------------------------------------------
-// Public endpoint safety: rate limiting + strict payloads
-// -------------------------------------------------------
 type PublicRateEntry = { count: number; resetAt: number };
 const publicRateStore = new Map<string, PublicRateEntry>();
 
@@ -115,9 +112,6 @@ function sanitizePublicOrder(body: any) {
   return { roomId, items, destination, deliverySector, specialInstructions };
 }
 
-// -------------------------------------------------------
-// Authentication middleware (Supabase Bearer token)
-// -------------------------------------------------------
 async function requireSupabaseAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const authorization = req.header('authorization') || '';
@@ -202,13 +196,7 @@ function requirePermission(permission: string) {
   };
 }
 
-// -------------------------------------------------------------
-// API Endpoints
-// -------------------------------------------------------------
-
-// Phase 2.7: endpoints below this list still use the legacy in-memory/JSON DB on the Express server.
-// They are intentionally blocked in production so JSON can never become a second source of truth.
-// GitHub Pages uses authenticated direct Supabase repositories for these modules.
+// Endpoints legados que persistem em JSON permanecem bloqueados em produção.
 function blockLegacyJsonPersistenceInProduction(req: Request, res: Response, next: NextFunction) {
   if (process.env.NODE_ENV === 'production') {
     return res.status(503).json({
@@ -220,12 +208,10 @@ function blockLegacyJsonPersistenceInProduction(req: Request, res: Response, nex
 
 app.use(['/api/minibar', '/api/financial', '/api/inventory'], blockLegacyJsonPersistenceInProduction);
 
-// Health check
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Public hotel presentation settings (sanitized)
 app.get('/api/public/settings', async (req: Request, res: Response) => {
   try {
     const settings = await dbManager.getSettingsPersistent();
@@ -236,7 +222,6 @@ app.get('/api/public/settings', async (req: Request, res: Response) => {
   }
 });
 
-// Settings (Front-end configurável)
 app.get('/api/settings', requireSupabaseAuth, requirePermission('manage_settings'), async (req: Request, res: Response) => {
   try {
     const settings = await dbManager.getSettingsPersistent();
@@ -255,7 +240,6 @@ app.put('/api/settings', requireSupabaseAuth, requirePermission('manage_settings
   }
 });
 
-// Supabase Status & SQL Schema Generator
 app.get('/api/supabase/status', requireSupabaseAuth, requirePermission('manage_settings'), (req: Request, res: Response) => {
   try {
     const status = dbManager.getSupabaseStatus();
@@ -285,7 +269,6 @@ app.post('/api/supabase/reconnect', requireSupabaseAuth, requirePermission('mana
   }
 });
 
-// Guests (Cadastro de Hóspedes)
 app.get('/api/guests', requireSupabaseAuth, requirePermission('view_guests'), async (req: Request, res: Response) => {
   try {
     const guests = await dbManager.getGuestsPersistent();
@@ -324,7 +307,6 @@ app.delete('/api/guests/:id', requireSupabaseAuth, requirePermission('manage_gue
   }
 });
 
-// Rooms
 app.get('/api/rooms', requireSupabaseAuth, requirePermission('view_rooms'), async (req: Request, res: Response) => {
   try {
     const rooms = await dbManager.getRoomsPersistent();
@@ -374,7 +356,6 @@ app.delete('/api/rooms/:id', requireSupabaseAuth, requirePermission('manage_room
   }
 });
 
-// Reservations (Online Booking Engine & Internal)
 app.get('/api/reservations', requireSupabaseAuth, requirePermission('view_checkinout'), async (req: Request, res: Response) => {
   try {
     const reservations = await dbManager.getReservationsPersistent();
@@ -404,7 +385,6 @@ app.put('/api/reservations/:id', requireSupabaseAuth, requirePermission('manage_
   }
 });
 
-// Check-in & Check-out Flows
 app.post('/api/checkin', requireSupabaseAuth, requirePermission('manage_checkinout'), async (req: Request, res: Response) => {
   try {
     const authorization = req.header('authorization') || '';
@@ -451,7 +431,6 @@ app.post('/api/checkout', requireSupabaseAuth, requirePermission('manage_checkin
   }
 });
 
-// Minibar (Frigobar)
 app.get('/api/minibar/items', requireSupabaseAuth, requirePermission('view_fnb'), (req: Request, res: Response) => {
   try {
     const items = dbManager.getMinibarItems();
@@ -520,7 +499,6 @@ app.post('/api/minibar/consumptions', requireSupabaseAuth, requirePermission('ma
   }
 });
 
-// Kitchen & Room Service (Cozinha & Room Service)
 app.get('/api/kitchen/menu', async (req: Request, res: Response) => {
   try {
     const menu = (await getMenuItemsCloud()) ?? dbManager.getMenuItems();
@@ -574,7 +552,6 @@ app.patch('/api/kitchen/orders/:id/status', requireSupabaseAuth, requirePermissi
   }
 });
 
-// Kanbans por Setor em Tempo Real
 app.get('/api/tasks', requireSupabaseAuth, requirePermission('view_kanbans'), async (req: Request, res: Response) => {
   try {
     const sector = req.query.sector as any;
@@ -617,7 +594,6 @@ app.delete('/api/tasks/:id', requireSupabaseAuth, async (req: Request, res: Resp
   }
 });
 
-// Financial Control & Stats (Faturamento e Controle Financeiro)
 app.get('/api/financial/transactions', requireSupabaseAuth, requirePermission('view_financial'), (req: Request, res: Response) => {
   try {
     const transactions = dbManager.getTransactions();
@@ -645,9 +621,6 @@ app.get('/api/financial/stats', requireSupabaseAuth, requirePermission('view_fin
   }
 });
 
-// -------------------------------------------------------------
-// Integrated Real-Time Inventory & Kardex Routes
-// -------------------------------------------------------------
 app.get('/api/inventory/items', requireSupabaseAuth, requirePermission('view_inventory'), (req: Request, res: Response) => {
   try {
     const sector = req.query.sector as string | undefined;
@@ -741,9 +714,6 @@ app.post('/api/inventory/replenish-order', requireSupabaseAuth, requirePermissio
   }
 });
 
-// -------------------------------------------------------------
-// Staff Users & Supabase Auth RBAC Endpoints
-// -------------------------------------------------------------
 app.get('/api/auth/me', requireSupabaseAuth, (req: Request, res: Response) => {
   const authUser = (req as Request & { authUser?: { staffUser?: any } }).authUser;
   res.json(authUser?.staffUser);
@@ -792,7 +762,6 @@ app.delete('/api/users/:id', requireSupabaseAuth, requirePermission('manage_user
   }
 });
 
-// Login endpoint: credentials are always verified by Supabase Auth.
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body || {};
@@ -831,8 +800,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 
     const user = dbManager.getUserByEmail(verifiedEmail);
 
-    // Supabase identity alone never grants hotel staff access.
-    // A staff profile must be provisioned beforehand by an authorized manager/admin.
+    // Supabase Auth não concede acesso ao hotel sem um perfil de colaborador provisionado.
     if (!user) {
       return res.status(403).json({
         error: 'Conta autenticada, mas sem perfil de colaborador autorizado neste hotel.'
@@ -882,10 +850,6 @@ app.post('/api/auth/register', requireSupabaseAuth, requirePermission('manage_us
   }
 });
 
-
-// -------------------------------------------------------------
-// Vite Middleware / Static Serving
-// -------------------------------------------------------------
 async function start() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
