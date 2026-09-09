@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { BedDouble, Boxes } from 'lucide-react';
+import { BedDouble, Boxes, Shirt } from 'lucide-react';
 import { RoomsRegistryManager } from './RoomsRegistryManager.tsx';
 import { IntegratedInventoryManager } from './IntegratedInventoryManager.tsx';
+import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
 import { useHotel } from '../context/HotelContext.tsx';
 
 export const RoomsTransitionWorkspace: React.FC = () => {
@@ -9,16 +10,17 @@ export const RoomsTransitionWorkspace: React.FC = () => {
   const canManageRegistry = hasPermission('manage_room_registry');
   const canViewInventory = hasPermission('view_inventory');
 
-  const initialView = useMemo<'registry' | 'inventory'>(() => {
+  const initialView = useMemo<'registry' | 'inventory' | 'linen'>(() => {
     if (canManageRegistry) return 'registry';
     return 'inventory';
   }, [canManageRegistry]);
 
-  const [view, setView] = useState<'registry' | 'inventory'>(initialView);
+  const [view, setView] = useState<'registry' | 'inventory' | 'linen'>(initialView);
 
   const safeView =
     view === 'registry' && canManageRegistry ? 'registry' :
     view === 'inventory' && canViewInventory ? 'inventory' :
+    view === 'linen' && canViewInventory ? 'linen' :
     initialView;
 
   if (!canManageRegistry && !canViewInventory) {
@@ -47,6 +49,11 @@ export const RoomsTransitionWorkspace: React.FC = () => {
                 <Boxes className="w-4 h-4 text-[#A3B18A]" /> Estoque
               </button>
             )}
+            {canViewInventory && (
+              <button id="rooms-transition-linen" type="button" onClick={() => setView('linen')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'linen' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
+                <Shirt className="w-4 h-4 text-[#A3B18A]" /> Enxoval
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -54,6 +61,9 @@ export const RoomsTransitionWorkspace: React.FC = () => {
       {safeView === 'registry' && canManageRegistry && <RoomsRegistryManager />}
       {safeView === 'inventory' && canViewInventory && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><IntegratedInventoryManager /></div>
+      )}
+      {safeView === 'linen' && canViewInventory && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><LinenCirculationPanel /></div>
       )}
     </div>
   );
