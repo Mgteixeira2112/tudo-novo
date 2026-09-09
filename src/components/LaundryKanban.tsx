@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Archive,
   ArrowRight,
   BedDouble,
   CheckCircle2,
@@ -29,7 +30,7 @@ const COLUMNS: Array<{
 }> = [
   { status: 'A_Fazer', label: 'Aguardando lavagem', description: 'Lotes recebidos da Governança', icon: Clock3 },
   { status: 'Em_Andamento', label: 'Em lavagem', description: 'Processamento em andamento', icon: WashingMachine },
-  { status: 'Concluido', label: 'Pronto', description: 'Aguardando ou já retornado à Rouparia', icon: CheckCircle2 }
+  { status: 'Concluido', label: 'Pronto', description: 'Aguardando retorno à Rouparia', icon: CheckCircle2 }
 ];
 
 export const LaundryKanban: React.FC = () => {
@@ -42,6 +43,7 @@ export const LaundryKanban: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const load = async () => {
@@ -69,6 +71,18 @@ export const LaundryKanban: React.FC = () => {
   const availableItems = useMemo(
     () => roomPositions.filter(position => position.roomNumber === selectedRoom),
     [roomPositions, selectedRoom]
+  );
+
+  const activeBatches = useMemo(
+    () => batches.filter(batch => !batch.returnedAt),
+    [batches]
+  );
+
+  const archivedBatches = useMemo(
+    () => batches
+      .filter(batch => Boolean(batch.returnedAt))
+      .sort((a, b) => new Date(b.returnedAt || b.createdAt).getTime() - new Date(a.returnedAt || a.createdAt).getTime()),
+    [batches]
   );
 
   useEffect(() => {
@@ -128,7 +142,7 @@ export const LaundryKanban: React.FC = () => {
       setBusyId(batch.id);
       setMessage(null);
       await returnLaundryBatch(batch.id);
-      setMessage({ type: 'success', text: 'Lote retornado à Rouparia sem alterar o total físico do enxoval.' });
+      setMessage({ type: 'success', text: 'Lote retornado à Rouparia e arquivado. O total físico do enxoval foi preservado.' });
       await load();
       await refreshData();
     } catch (err: any) {
@@ -151,7 +165,7 @@ export const LaundryKanban: React.FC = () => {
             <p className="mt-1 text-[10px] font-mono text-[#8E9280]">{batch.id}</p>
           </div>
           {batch.returnedAt && (
-            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-700">Retornado</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-700">Arquivado</span>
           )}
         </div>
 
@@ -168,7 +182,9 @@ export const LaundryKanban: React.FC = () => {
 
         <div className="mt-3 flex items-center justify-between border-t border-[#EFECE3] pt-3">
           <span className="text-[10px] text-[#8E9280]">
-            {new Date(batch.createdAt).toLocaleString('pt-BR')}
+            {batch.returnedAt
+              ? `Arquivado em ${new Date(batch.returnedAt).toLocaleString('pt-BR')}`
+              : new Date(batch.createdAt).toLocaleString('pt-BR')}
           </span>
 
           {batch.status === 'A_Fazer' && (
@@ -225,9 +241,18 @@ export const LaundryKanban: React.FC = () => {
             </div>
             <p className="mt-1 text-xs text-[#6B705C]">Cada card representa um lote de enxoval recolhido de um quarto.</p>
           </div>
-          <button type="button" onClick={load} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-bold text-[#2C3327]">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowArchived(current => !current)}
+              className="flex items-center gap-2 rounded-xl border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-bold text-[#2C3327]"
+            >
+              <Archive className="h-4 w-4" /> Arquivados ({archivedBatches.length})
+            </button>
+            <button type="button" onClick={load} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-bold text-[#2C3327]">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -290,7 +315,7 @@ export const LaundryKanban: React.FC = () => {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {COLUMNS.map(column => {
           const Icon = column.icon;
-          const columnBatches = batches.filter(batch => batch.status === column.status);
+          const columnBatches = activeBatches.filter(batch => batch.status === column.status);
           return (
             <section key={column.status} className="rounded-2xl border border-[#E6E3D8] bg-[#F8F7F2] p-3">
               <header className="mb-3 flex items-start justify-between gap-2 px-1 pt-1">
@@ -313,6 +338,25 @@ export const LaundryKanban: React.FC = () => {
           );
         })}
       </div>
+
+      {showArchived && (
+        <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-xs">
+          <div className="mb-4 flex items-center gap-2">
+            <Archive className="h-5 w-5 text-[#588157]" />
+            <div>
+              <h4 className="font-black text-[#2C3327]">Lotes arquivados</h4>
+              <p className="text-[10px] text-[#8E9280]">Ciclos concluídos e já retornados à Rouparia. Somente consulta.</p>
+            </div>
+          </div>
+          {archivedBatches.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#DADFD1] bg-[#F8F7F2] p-6 text-center text-xs text-[#8E9280]">Nenhum lote arquivado.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {archivedBatches.map(renderBatch)}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };
