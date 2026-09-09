@@ -20,6 +20,7 @@ import { useHotel } from '../context/HotelContext.tsx';
 import { KanbanTask, SectorType, TaskPriority, TaskStatus } from '../types.ts';
 import { api } from '../services/api.ts';
 import { TaskHistoryModal } from './TaskHistoryModal.tsx';
+import { GovernanceTaskCompletionModal } from './GovernanceTaskCompletionModal.tsx';
 
 const SECTORS: { id: SectorType | 'Todos'; label: string; icon: string; color: string }[] = [
   { id: 'Todos', label: 'Todos os Setores', icon: '🏢', color: 'bg-gray-100 text-gray-800' },
@@ -46,6 +47,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [completionTask, setCompletionTask] = useState<KanbanTask | null>(null);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
 
   const [taskTitle, setTaskTitle] = useState('');
@@ -108,6 +110,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
   });
 
   const handleMoveStatus = async (taskId: string, newStatus: TaskStatus) => {
+    const currentTask = tasks.find(task => task.id === taskId);
+    if (
+      currentTask?.sector === 'Governanca' &&
+      currentTask.status === 'Em_Andamento' &&
+      newStatus === 'Concluido'
+    ) {
+      setCompletionTask(currentTask);
+      return;
+    }
+
     try {
       await api.updateTask(taskId, { status: newStatus });
       setArchiveClock(Date.now());
@@ -115,6 +127,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
     } catch (err) {
       console.error('Error updating task:', err);
     }
+  };
+
+  const handleGovernanceCompleted = async () => {
+    setArchiveClock(Date.now());
+    await refreshData();
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -447,6 +464,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
       </div>
 
       {showHistory && !lockedSector && <TaskHistoryModal onClose={() => setShowHistory(false)} />}
+
+      {completionTask && (
+        <GovernanceTaskCompletionModal
+          task={completionTask}
+          onClose={() => setCompletionTask(null)}
+          onCompleted={handleGovernanceCompleted}
+        />
+      )}
 
       {showNewTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
