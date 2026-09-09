@@ -76,7 +76,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
     {
       title: 'Recepção',
       items: [
-        { label: 'Mapa de Quartos', icon: BedDouble, tab: 'kanbans', targetId: 'tab-operations-rooms', allowed: has('view_rooms') },
+        { label: 'Mapa de Quartos', icon: BedDouble, page: 'roomMap', allowed: has('view_rooms') },
         { label: 'Reservas & Calendário', icon: CalendarDays, page: 'reservations', allowed: canAccessTab('checkinout') },
         { label: 'Check-in / Check-out', icon: KeyRound, page: 'checkinout', allowed: canAccessTab('checkinout') },
         { label: 'Novo Check-in / Balcão', icon: DoorOpen, page: 'walkin', allowed: has('manage_checkinout') },
@@ -86,8 +86,9 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
     {
       title: 'Operação',
       items: [
-        { label: 'Governança', icon: Sparkles, tab: 'kanbans', targetId: 'tab-operations-housekeeping', allowed: has('view_kanbans') },
-        { label: 'Manutenção', icon: Wrench, tab: 'kanbans', targetId: 'tab-operations-maintenance', allowed: has('view_kanbans') },
+        { label: 'Tarefas', icon: ClipboardList, page: 'tasks', allowed: has('view_kanbans') },
+        { label: 'Governança', icon: Sparkles, page: 'housekeeping', allowed: has('view_kanbans') },
+        { label: 'Manutenção', icon: Wrench, page: 'maintenance', allowed: has('view_kanbans') },
         { label: 'Lavanderia', icon: WashingMachine, page: 'laundry', allowed: has('view_inventory') }
       ]
     },
