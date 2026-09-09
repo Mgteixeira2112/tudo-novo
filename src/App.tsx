@@ -14,6 +14,7 @@ import { StaffLogin } from './components/StaffLogin.tsx';
 import { HotelSettingsModal } from './components/HotelSettingsModal.tsx';
 import { SettingsTransitionWorkspace, SettingsEntryTab } from './components/SettingsTransitionWorkspace.tsx';
 import { HomeDashboard } from './components/HomeDashboard.tsx';
+import { StandaloneModulePage, StandaloneModule } from './components/StandaloneModulePage.tsx';
 import {
   RoomServiceNotificationToast,
   ToastItem
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
 
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showHome, setShowHome] = useState(false);
+  const [standaloneModule, setStandaloneModule] = useState<StandaloneModule | null>(null);
 
   const openSettingsAt = (tab: SettingsEntryTab) => {
     setSettingsModalOpen(true);
@@ -55,6 +57,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     setShowHome(Boolean(currentUser));
+    setStandaloneModule(null);
   }, [currentUser?.id]);
 
   useEffect(() => {
@@ -62,6 +65,7 @@ const AppContent: React.FC = () => {
       const target = event.target as HTMLElement | null;
       if (target?.closest('button[id^="subnav-"]')) {
         setShowHome(false);
+        setStandaloneModule(null);
       }
     };
 
@@ -92,12 +96,14 @@ const AppContent: React.FC = () => {
 
   const navigateFromHome = (tab: AdminTab) => {
     setShowHome(false);
+    setStandaloneModule(null);
     setMode('admin');
     setActiveAdminTab(tab);
   };
 
   const navigateFromSidebar = (tab: AdminTab, targetId?: string) => {
     setShowHome(false);
+    setStandaloneModule(null);
     setMode('admin');
     setActiveAdminTab(tab);
 
@@ -118,6 +124,12 @@ const AppContent: React.FC = () => {
       if (attempt < 6) window.setTimeout(openTarget, 80);
     };
     window.setTimeout(openTarget, 0);
+  };
+
+  const navigateStandalone = (module: StandaloneModule) => {
+    setShowHome(false);
+    setMode('admin');
+    setStandaloneModule(module);
   };
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -324,8 +336,9 @@ const AppContent: React.FC = () => {
 
       <Navbar onOpenSettingsModal={() => openSettingsAt('visual')} />
       <SidebarNavigation
-        onHome={() => setShowHome(true)}
+        onHome={() => { setShowHome(true); setStandaloneModule(null); }}
         onNavigate={navigateFromSidebar}
+        onNavigatePage={navigateStandalone}
       />
 
       <main className="flex-1">
@@ -337,6 +350,8 @@ const AppContent: React.FC = () => {
           <div className="animate-fade-in">
             {showHome ? (
               <HomeDashboard onNavigate={navigateFromHome} />
+            ) : standaloneModule ? (
+              <StandaloneModulePage module={standaloneModule} />
             ) : (
               <>
                 {activeAdminTab === 'overview' && <FinancialDashboard />}
@@ -355,7 +370,7 @@ const AppContent: React.FC = () => {
 
       {mode === 'admin' && currentUser && !showHome && (
         <button
-          onClick={() => setShowHome(true)}
+          onClick={() => { setShowHome(true); setStandaloneModule(null); }}
           className="fixed right-5 bottom-5 z-30 flex items-center gap-2 rounded-2xl bg-[#2C3327] px-4 py-3 text-xs font-bold text-white shadow-xl hover:bg-[#3A4135] transition"
           title="Voltar ao Meu Painel"
         >

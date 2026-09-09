@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   BellRing,
   BedDouble,
@@ -17,8 +18,11 @@ import {
   Monitor,
   Settings,
   ShieldCheck,
+  Shirt,
+  ShoppingCart,
   Sparkles,
   Users,
+  WashingMachine,
   Wine,
   Wrench,
   X
@@ -26,10 +30,12 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 import { expandLegacyPermissions, GRANULAR_PERMISSION_KEYS } from '../services/rbac.ts';
 import { AdminTab, PermissionKey } from '../types.ts';
+import type { StandaloneModule } from './StandaloneModulePage.tsx';
 
 interface SidebarNavigationProps {
   onHome: () => void;
   onNavigate: (tab: AdminTab, targetId?: string) => void;
+  onNavigatePage: (page: StandaloneModule) => void;
 }
 
 type Item = {
@@ -37,13 +43,14 @@ type Item = {
   icon: React.ComponentType<{ className?: string }>;
   tab?: AdminTab;
   targetId?: string;
+  page?: StandaloneModule;
   allowed: boolean;
   action?: 'alerts';
 };
 
 type Group = { title: string; items: Item[] };
 
-export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, onNavigate }) => {
+export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, onNavigate, onNavigatePage }) => {
   const { currentUser, mode, canAccessTab } = useHotel();
   const [open, setOpen] = useState(false);
 
@@ -76,15 +83,11 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       ]
     },
     {
-      title: 'Governança',
+      title: 'Operação',
       items: [
-        { label: 'Quartos & Tarefas', icon: Sparkles, tab: 'kanbans', targetId: 'tab-operations-housekeeping', allowed: has('view_kanbans') }
-      ]
-    },
-    {
-      title: 'Manutenção',
-      items: [
-        { label: 'Quartos & Chamados', icon: Wrench, tab: 'kanbans', targetId: 'tab-operations-maintenance', allowed: has('view_kanbans') }
+        { label: 'Governança', icon: Sparkles, tab: 'kanbans', targetId: 'tab-operations-housekeeping', allowed: has('view_kanbans') },
+        { label: 'Manutenção', icon: Wrench, tab: 'kanbans', targetId: 'tab-operations-maintenance', allowed: has('view_kanbans') },
+        { label: 'Lavanderia', icon: WashingMachine, page: 'laundry', allowed: has('view_inventory') }
       ]
     },
     {
@@ -96,9 +99,12 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       ]
     },
     {
-      title: 'Estoque',
+      title: 'Estoque & Suprimentos',
       items: [
-        { label: 'Estoque Integrado', icon: Boxes, tab: 'rooms_inventory', targetId: 'rooms-transition-inventory', allowed: has('view_inventory') }
+        { label: 'Estoque', icon: Boxes, page: 'inventory', allowed: has('view_inventory') },
+        { label: 'Enxoval', icon: Shirt, page: 'linen', allowed: has('view_inventory') },
+        { label: 'Perdas & Avarias', icon: AlertTriangle, page: 'lossDamage', allowed: has('view_inventory') },
+        { label: 'Compras', icon: ShoppingCart, page: 'purchases', allowed: has('view_inventory') }
       ]
     },
     {
@@ -110,7 +116,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
     {
       title: 'Cadastros',
       items: [
-        { label: 'Quartos', icon: BedDouble, tab: 'rooms_inventory', targetId: 'rooms-transition-registry', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRegistry) },
+        { label: 'Quartos', icon: BedDouble, page: 'rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRegistry) },
         { label: 'Tarifas & Acomodações', icon: ClipboardList, tab: 'settings', targetId: 'settings-entry-rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRates) }
       ]
     },
@@ -134,6 +140,11 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
   const choose = (item: Item) => {
     if (item.action === 'alerts') {
       window.dispatchEvent(new CustomEvent('hotel:open_operational_alerts'));
+      setOpen(false);
+      return;
+    }
+    if (item.page) {
+      onNavigatePage(item.page);
       setOpen(false);
       return;
     }
