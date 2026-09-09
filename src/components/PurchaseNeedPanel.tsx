@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw, Search, ShoppingCart } from 'lucide-react';
 import { loadPurchaseNeedDashboard, PurchaseNeedItem } from '../services/purchaseNeed.ts';
+import { MenuDemandForecastPanel } from './MenuDemandForecastPanel.tsx';
 
 const fmt = (value: number) => Number(value || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 const money = (value: number) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -45,7 +46,7 @@ export const PurchaseNeedPanel: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-[#588157]/10 flex items-center justify-center text-[#588157]"><ShoppingCart className="w-6 h-6" /></div>
             <div>
               <h2 className="text-xl font-black text-[#2C3327]">Necessidade de Compras</h2>
-              <p className="text-sm text-[#6B705C]">Sugestão calculada pelo estoque atual e consumo real dos últimos 7 dias.</p>
+              <p className="text-sm text-[#6B705C]">Sugestão calculada pelo consumo real e pela previsão de produção do cardápio para amanhã.</p>
             </div>
           </div>
           <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#DAD7CC] text-sm font-bold text-[#2C3327] hover:bg-[#F4F1EA] disabled:opacity-50">
@@ -53,6 +54,8 @@ export const PurchaseNeedPanel: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <MenuDemandForecastPanel onChanged={() => void load()} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-2xl border border-[#E6E3D8] bg-white p-4"><p className="text-xs font-bold uppercase text-[#6B705C]">Itens sugeridos</p><p className="text-2xl font-black text-[#2C3327] mt-1">{suggested.length}</p></div>
@@ -76,7 +79,7 @@ export const PurchaseNeedPanel: React.FC = () => {
 
       <div className="rounded-2xl border border-[#E6E3D8] bg-white overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="min-w-[1180px] w-full text-sm">
+          <table className="min-w-[1280px] w-full text-sm">
             <thead className="bg-[#F4F1EA] text-[#596052]">
               <tr>
                 <th className="text-left px-4 py-3">Item</th>
@@ -86,6 +89,7 @@ export const PurchaseNeedPanel: React.FC = () => {
                 <th className="text-right px-3 py-3">Hoje</th>
                 <th className="text-right px-3 py-3">7 dias</th>
                 <th className="text-right px-3 py-3">Média/dia</th>
+                <th className="text-right px-3 py-3">Cardápio amanhã</th>
                 <th className="text-right px-3 py-3">Demanda prevista</th>
                 <th className="text-right px-3 py-3">Segurança</th>
                 <th className="text-right px-3 py-3">Comprar</th>
@@ -94,9 +98,9 @@ export const PurchaseNeedPanel: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-[#EFECE3]">
               {loading ? (
-                <tr><td colSpan={11} className="px-4 py-10 text-center text-[#6B705C]">Calculando necessidade de compras...</td></tr>
+                <tr><td colSpan={12} className="px-4 py-10 text-center text-[#6B705C]">Calculando necessidade de compras...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={11} className="px-4 py-10 text-center text-[#6B705C]">Nenhum item encontrado.</td></tr>
+                <tr><td colSpan={12} className="px-4 py-10 text-center text-[#6B705C]">Nenhum item encontrado.</td></tr>
               ) : filtered.map(item => (
                 <tr key={item.itemId} className="hover:bg-[#FAF9F5] align-top">
                   <td className="px-4 py-3 min-w-[300px]">
@@ -109,6 +113,7 @@ export const PurchaseNeedPanel: React.FC = () => {
                   <td className="text-right px-3 py-3">{fmt(item.consumptionToday)}</td>
                   <td className="text-right px-3 py-3">{fmt(item.consumption7d)}</td>
                   <td className="text-right px-3 py-3">{fmt(item.dailyAverage)}</td>
+                  <td className={`text-right px-3 py-3 font-semibold ${item.menuForecastDemand > 0 ? 'text-[#588157]' : ''}`}>{fmt(item.menuForecastDemand)}</td>
                   <td className="text-right px-3 py-3">{fmt(item.forecastDemand)}</td>
                   <td className="text-right px-3 py-3">{fmt(item.safetyStock)}</td>
                   <td className={`text-right px-3 py-3 font-black ${item.suggestedQuantity > 0 ? 'text-[#9E2A2B]' : 'text-[#588157]'}`}>{fmt(item.suggestedQuantity)} {item.unit}</td>
@@ -121,7 +126,7 @@ export const PurchaseNeedPanel: React.FC = () => {
       </div>
 
       <div className="rounded-xl border border-[#E6E3D8] bg-[#F8F6F0] px-4 py-3 text-xs text-[#676D5F]">
-        Fórmula atual: demanda prevista = média diária das saídas dos últimos 7 dias; estoque de segurança = mínimo; compra sugerida = demanda prevista + segurança − estoque atual. Nenhuma compra é criada automaticamente.
+        Fórmula atual: demanda prevista = média diária das saídas dos últimos 7 dias + ingredientes exigidos pela previsão do cardápio de amanhã; estoque de segurança = mínimo; compra sugerida = demanda prevista + segurança − estoque atual. Criar uma receita, por si só, não gera compra.
       </div>
     </div>
   );
