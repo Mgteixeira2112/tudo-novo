@@ -6,8 +6,20 @@ import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
 import { LaundryKanban } from './LaundryKanban.tsx';
 import { LossDamagePanel } from './LossDamagePanel.tsx';
 import { PurchaseNeedPanel } from './PurchaseNeedPanel.tsx';
+import { ReservationsManager } from './ReservationsManager.tsx';
+import { CheckInCheckOutModal } from './CheckInCheckOutModal.tsx';
+import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 
-export type StandaloneModule = 'rooms' | 'inventory' | 'linen' | 'laundry' | 'lossDamage' | 'purchases';
+export type StandaloneModule =
+  | 'rooms'
+  | 'inventory'
+  | 'linen'
+  | 'laundry'
+  | 'lossDamage'
+  | 'purchases'
+  | 'reservations'
+  | 'checkinout'
+  | 'walkin';
 
 const TITLES: Record<StandaloneModule, string> = {
   rooms: 'Quartos',
@@ -15,14 +27,27 @@ const TITLES: Record<StandaloneModule, string> = {
   linen: 'Enxoval',
   laundry: 'Lavanderia',
   lossDamage: 'Perdas & Avarias',
-  purchases: 'Compras'
+  purchases: 'Compras',
+  reservations: 'Reservas',
+  checkinout: 'Check-in / Check-out',
+  walkin: 'Check-in Direto'
 };
 
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
-  const { hasPermission } = useHotel();
+  const { hasPermission, canAccessTab } = useHotel();
   const canManageRooms = hasPermission('manage_room_registry');
   const canViewInventory = hasPermission('view_inventory');
-  const allowed = module === 'rooms' ? canManageRooms : canViewInventory;
+  const canAccessReception = canAccessTab('checkinout');
+  const canManageCheckInOut = hasPermission('manage_checkinout');
+
+  const allowed =
+    module === 'rooms'
+      ? canManageRooms
+      : ['inventory', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
+        ? canViewInventory
+        : module === 'walkin'
+          ? canManageCheckInOut
+          : canAccessReception;
 
   if (!allowed) {
     return (
@@ -58,6 +83,9 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'purchases' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><PurchaseNeedPanel /></div>
       )}
+      {module === 'reservations' && <ReservationsManager />}
+      {module === 'checkinout' && <CheckInCheckOutModal />}
+      {module === 'walkin' && <WalkInCheckIn />}
     </div>
   );
 };
