@@ -147,7 +147,6 @@ export const MenuManagementModule: React.FC = () => {
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#588157]" /> Administração do Cardápio</h2>
-        <p className="text-xs text-[#6B705C] mt-1">Produto simples = estoque físico. Receita composta = ficha técnica de ingredientes.</p>
       </div>
       <button onClick={openNew} className="px-4 py-2.5 rounded-xl bg-[#2C3327] text-white text-xs font-bold flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Novo item</button>
     </div>
@@ -215,10 +214,18 @@ export const MenuManagementModule: React.FC = () => {
 
           {form.ingredients.map((row, index) => {
             const inv = inventory.find(i => i.id === row.inventoryItemId);
+            const currentStock = Number(inv?.currentStock || 0);
+            const minStock = Number(inv?.minStock || 0);
+            const stockStatus = !inv || currentStock <= 0 ? 'Sem estoque' : currentStock <= minStock ? 'Baixo' : 'OK';
             return <div key={`${row.inventoryItemId}-${index}`} className="grid grid-cols-12 gap-2 items-end rounded-xl bg-white border p-3">
-              <label className="col-span-12 md:col-span-6 text-[11px] font-semibold">Ingrediente<select value={row.inventoryItemId} onChange={e => setForm(f => ({ ...f, ingredients: f.ingredients.map((x, i) => i === index ? { ...x, inventoryItemId: e.target.value } : x) }))} className="input">{inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
-              <label className="col-span-5 md:col-span-2 text-[11px] font-semibold">Quantidade<input type="number" min="0.0001" step="0.0001" value={row.quantity} onChange={e => setForm(f => ({ ...f, ingredients: f.ingredients.map((x, i) => i === index ? { ...x, quantity: Number(e.target.value) } : x) }))} className="input" /></label>
-              <div className="col-span-5 md:col-span-3 text-[11px] text-[#6B705C]"><div>Unidade: <b>{inv?.unit || '—'}</b></div><div>Estoque: <b>{inv?.currentStock ?? '—'}</b></div><div>Custo: <b>R$ {((inv?.costPrice || 0) * row.quantity).toFixed(2)}</b></div></div>
+              <label className="col-span-12 md:col-span-4 text-[11px] font-semibold">Ingrediente<select value={row.inventoryItemId} onChange={e => setForm(f => ({ ...f, ingredients: f.ingredients.map((x, i) => i === index ? { ...x, inventoryItemId: e.target.value } : x) }))} className="input">{inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
+              <label className="col-span-6 md:col-span-2 text-[11px] font-semibold">Necessário<input type="number" min="0.0001" step="0.0001" value={row.quantity} onChange={e => setForm(f => ({ ...f, ingredients: f.ingredients.map((x, i) => i === index ? { ...x, quantity: Number(e.target.value) } : x) }))} className="input" /></label>
+              <div className="col-span-6 md:col-span-5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <Metric label="Estoque atual" value={inv ? String(currentStock) : '—'} />
+                <Metric label="Mínimo" value={inv ? String(minStock) : '—'} />
+                <Metric label="Unidade" value={inv?.unit || '—'} />
+                <Metric label="Situação" value={stockStatus} />
+              </div>
               <button type="button" onClick={() => setForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== index) }))} className="col-span-2 md:col-span-1 h-9 rounded-lg border flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
             </div>;
           })}
