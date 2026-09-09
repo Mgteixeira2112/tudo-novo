@@ -25,7 +25,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (choice !== 'yes' || items.length > 0 || loading) return;
+    if (choice !== 'yes' || items.length > 0) return;
     let active = true;
     setLoading(true);
     api.getInventoryItems('Governanca_Enxoval')
@@ -39,7 +39,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [choice, items.length, loading]);
+  }, [choice, items.length]);
 
   const selectedMaterials = useMemo(() => {
     return items
