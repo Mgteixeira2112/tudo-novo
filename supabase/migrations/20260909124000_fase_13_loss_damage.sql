@@ -1,5 +1,3 @@
--- FASE 13 — Perdas e Avarias
-
 create table if not exists public.inventory_loss_damage_events (
   id text primary key default ('loss_' || replace(gen_random_uuid()::text, '-', '')),
   item_id text not null references public.inventory_items(id) on delete restrict,
