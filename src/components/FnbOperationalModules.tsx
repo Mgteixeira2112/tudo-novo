@@ -73,7 +73,7 @@ export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ can
               <label className="block text-xs font-semibold text-[#6B705C] mb-1">Item do Frigobar *</label>
               <select value={selectedItemId} onChange={e => setSelectedItemId(e.target.value)} required className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl">
                 <option value="">Selecione o Produto...</option>
-                {items.map(item => <option key={item.id} value={item.id} disabled={item.stockQty <= 0}>{item.name} - {currency} {item.price.toFixed(2)} (Estoque: {item.stockQty})</option>)}
+                {items.map(item => <option key={item.id} value={item.id}>{item.name} - {currency} {item.price.toFixed(2)}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -82,11 +82,6 @@ export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ can
             </div>
             <button type="submit" disabled={submitting || !selectedRoomId || !selectedItemId} className="w-full py-2.5 bg-[#2C3327] text-white rounded-xl text-xs font-bold disabled:opacity-50">{submitting ? 'Lançando...' : 'Lançar na Conta do Quarto'}</button>
           </>}
-
-          <div className="pt-3 border-t border-[#E6E3D8] space-y-1.5">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#6B705C]">Estoque do Frigobar</p>
-            {items.map(item => <div key={item.id} className="flex justify-between items-center p-2 bg-[#F4F1EA] rounded-lg text-xs"><span className="font-medium text-[#2C3327]">{item.name}</span><span className="font-bold text-[#588157]">{item.stockQty} un</span></div>)}
-          </div>
         </form>
 
         <div className="lg:col-span-2 space-y-3">
