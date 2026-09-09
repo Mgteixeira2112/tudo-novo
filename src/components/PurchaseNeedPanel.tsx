@@ -78,22 +78,39 @@ export const PurchaseNeedPanel: React.FC = () => {
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{error}</div>}
 
       <div className="rounded-2xl border border-[#E6E3D8] bg-white overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="min-w-[1280px] w-full text-sm">
+        <div className="px-4 py-2 border-b border-[#EFECE3] bg-[#FCFBF8] text-[11px] text-[#7A806F] lg:hidden">
+          Deslize horizontalmente para conferir todas as colunas.
+        </div>
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="min-w-[1070px] w-full table-fixed text-[12px] xl:text-[13px]">
+            <colgroup>
+              <col className="w-[280px]" />
+              <col className="w-[78px]" />
+              <col className="w-[55px]" />
+              <col className="w-[55px]" />
+              <col className="w-[58px]" />
+              <col className="w-[62px]" />
+              <col className="w-[74px]" />
+              <col className="w-[88px]" />
+              <col className="w-[88px]" />
+              <col className="w-[72px]" />
+              <col className="w-[82px]" />
+              <col className="w-[90px]" />
+            </colgroup>
             <thead className="bg-[#F4F1EA] text-[#596052]">
               <tr>
-                <th className="text-left px-4 py-3">Item</th>
-                <th className="text-right px-3 py-3">Atual</th>
-                <th className="text-right px-3 py-3">Mín.</th>
-                <th className="text-right px-3 py-3">Máx.</th>
-                <th className="text-right px-3 py-3">Hoje</th>
-                <th className="text-right px-3 py-3">7 dias</th>
-                <th className="text-right px-3 py-3">Média/dia</th>
-                <th className="text-right px-3 py-3">Cardápio amanhã</th>
-                <th className="text-right px-3 py-3">Demanda prevista</th>
-                <th className="text-right px-3 py-3">Segurança</th>
-                <th className="text-right px-3 py-3">Comprar</th>
-                <th className="text-right px-4 py-3">Custo</th>
+                <th className="text-left px-3 py-3">Item</th>
+                <th className="text-right px-2 py-3">Atual</th>
+                <th className="text-right px-2 py-3">Mín.</th>
+                <th className="text-right px-2 py-3">Máx.</th>
+                <th className="text-right px-2 py-3">Hoje</th>
+                <th className="text-right px-2 py-3">7 dias</th>
+                <th className="text-right px-2 py-3">Média/dia</th>
+                <th className="text-right px-2 py-3 leading-tight">Cardápio<br />amanhã</th>
+                <th className="text-right px-2 py-3 leading-tight">Demanda<br />prevista</th>
+                <th className="text-right px-2 py-3">Segurança</th>
+                <th className="text-right px-2 py-3">Comprar</th>
+                <th className="text-right px-3 py-3">Custo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EFECE3]">
@@ -103,21 +120,21 @@ export const PurchaseNeedPanel: React.FC = () => {
                 <tr><td colSpan={12} className="px-4 py-10 text-center text-[#6B705C]">Nenhum item encontrado.</td></tr>
               ) : filtered.map(item => (
                 <tr key={item.itemId} className="hover:bg-[#FAF9F5] align-top">
-                  <td className="px-4 py-3 min-w-[300px]">
-                    <p className="font-bold text-[#2C3327]">{item.itemName}</p>
-                    <p className="text-xs text-[#7A806F] mt-0.5">{item.sector} · {item.reason}</p>
+                  <td className="px-3 py-3">
+                    <p className="font-bold text-[#2C3327] leading-tight break-words">{item.itemName}</p>
+                    <p className="text-[11px] text-[#7A806F] mt-1 leading-snug break-words">{item.sector} · {item.reason}</p>
                   </td>
-                  <td className="text-right px-3 py-3 font-semibold">{fmt(item.currentStock)} {item.unit}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.minStock)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.maxStock)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.consumptionToday)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.consumption7d)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.dailyAverage)}</td>
-                  <td className={`text-right px-3 py-3 font-semibold ${item.menuForecastDemand > 0 ? 'text-[#588157]' : ''}`}>{fmt(item.menuForecastDemand)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.forecastDemand)}</td>
-                  <td className="text-right px-3 py-3">{fmt(item.safetyStock)}</td>
-                  <td className={`text-right px-3 py-3 font-black ${item.suggestedQuantity > 0 ? 'text-[#9E2A2B]' : 'text-[#588157]'}`}>{fmt(item.suggestedQuantity)} {item.unit}</td>
-                  <td className="text-right px-4 py-3 font-bold">{money(item.estimatedCost)}</td>
+                  <td className="text-right px-2 py-3 font-semibold whitespace-nowrap">{fmt(item.currentStock)} {item.unit}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.minStock)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.maxStock)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.consumptionToday)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.consumption7d)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.dailyAverage)}</td>
+                  <td className={`text-right px-2 py-3 font-semibold whitespace-nowrap ${item.menuForecastDemand > 0 ? 'text-[#588157]' : ''}`}>{fmt(item.menuForecastDemand)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.forecastDemand)}</td>
+                  <td className="text-right px-2 py-3 whitespace-nowrap">{fmt(item.safetyStock)}</td>
+                  <td className={`text-right px-2 py-3 font-black whitespace-nowrap ${item.suggestedQuantity > 0 ? 'text-[#9E2A2B]' : 'text-[#588157]'}`}>{fmt(item.suggestedQuantity)} {item.unit}</td>
+                  <td className="text-right px-3 py-3 font-bold whitespace-nowrap">{money(item.estimatedCost)}</td>
                 </tr>
               ))}
             </tbody>
