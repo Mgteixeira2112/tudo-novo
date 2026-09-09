@@ -4,6 +4,7 @@ import {
   Bell,
   BellRing,
   BedDouble,
+  BookOpen,
   Boxes,
   CalendarDays,
   ChefHat,
@@ -93,9 +94,10 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
     {
       title: 'Alimentos e Bebidas',
       items: [
-        { label: 'Frigobar', icon: Wine, tab: 'fnb', targetId: 'fnb-module-minibar', allowed: has(GRANULAR_PERMISSION_KEYS.viewMinibar) },
-        { label: 'Room Service', icon: BellRing, tab: 'fnb', targetId: 'fnb-module-room-service', allowed: has(GRANULAR_PERMISSION_KEYS.viewRoomService) },
-        { label: 'Cozinha', icon: ChefHat, tab: 'fnb', targetId: 'fnb-module-kitchen', allowed: has(GRANULAR_PERMISSION_KEYS.viewKitchen) }
+        { label: 'Frigobar', icon: Wine, page: 'minibar', allowed: has(GRANULAR_PERMISSION_KEYS.viewMinibar) },
+        { label: 'Room Service', icon: BellRing, page: 'roomService', allowed: has(GRANULAR_PERMISSION_KEYS.viewRoomService) },
+        { label: 'Cozinha', icon: ChefHat, page: 'kitchen', allowed: has(GRANULAR_PERMISSION_KEYS.viewKitchen) },
+        { label: 'Cardápio', icon: BookOpen, page: 'menu', allowed: has(GRANULAR_PERMISSION_KEYS.manageMenu) }
       ]
     },
     {
