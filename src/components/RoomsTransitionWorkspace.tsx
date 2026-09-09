@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { BedDouble, Boxes, Shirt } from 'lucide-react';
+import { BedDouble, Boxes, Shirt, WashingMachine } from 'lucide-react';
 import { RoomsRegistryManager } from './RoomsRegistryManager.tsx';
 import { IntegratedInventoryManager } from './IntegratedInventoryManager.tsx';
 import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
+import { LaundryKanban } from './LaundryKanban.tsx';
 import { useHotel } from '../context/HotelContext.tsx';
 
 export const RoomsTransitionWorkspace: React.FC = () => {
@@ -10,17 +11,18 @@ export const RoomsTransitionWorkspace: React.FC = () => {
   const canManageRegistry = hasPermission('manage_room_registry');
   const canViewInventory = hasPermission('view_inventory');
 
-  const initialView = useMemo<'registry' | 'inventory' | 'linen'>(() => {
+  const initialView = useMemo<'registry' | 'inventory' | 'linen' | 'laundry'>(() => {
     if (canManageRegistry) return 'registry';
     return 'inventory';
   }, [canManageRegistry]);
 
-  const [view, setView] = useState<'registry' | 'inventory' | 'linen'>(initialView);
+  const [view, setView] = useState<'registry' | 'inventory' | 'linen' | 'laundry'>(initialView);
 
   const safeView =
     view === 'registry' && canManageRegistry ? 'registry' :
     view === 'inventory' && canViewInventory ? 'inventory' :
     view === 'linen' && canViewInventory ? 'linen' :
+    view === 'laundry' && canViewInventory ? 'laundry' :
     initialView;
 
   if (!canManageRegistry && !canViewInventory) {
@@ -54,6 +56,11 @@ export const RoomsTransitionWorkspace: React.FC = () => {
                 <Shirt className="w-4 h-4 text-[#A3B18A]" /> Enxoval
               </button>
             )}
+            {canViewInventory && (
+              <button id="rooms-transition-laundry" type="button" onClick={() => setView('laundry')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition ${safeView === 'laundry' ? 'bg-[#2C3327] text-white shadow-xs font-bold' : 'text-[#6B705C] hover:text-[#2C3327]'}`}>
+                <WashingMachine className="w-4 h-4 text-[#A3B18A]" /> Lavanderia
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -64,6 +71,9 @@ export const RoomsTransitionWorkspace: React.FC = () => {
       )}
       {safeView === 'linen' && canViewInventory && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><LinenCirculationPanel /></div>
+      )}
+      {safeView === 'laundry' && canViewInventory && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><LaundryKanban /></div>
       )}
     </div>
   );
