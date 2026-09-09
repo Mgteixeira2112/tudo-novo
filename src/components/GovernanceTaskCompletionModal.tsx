@@ -30,7 +30,14 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
     setLoading(true);
     api.getInventoryItems('Governanca_Enxoval')
       .then(result => {
-        if (active) setItems(result.filter(item => item.currentStock > 0));
+        if (!active) return;
+        const consumables = result
+          .filter(item => item.currentStock > 0 && item.category !== 'Enxoval & Rouparia')
+          .sort((a, b) => {
+            const amenityOrder = Number(b.category === 'Amenities de Quarto') - Number(a.category === 'Amenities de Quarto');
+            return amenityOrder || a.name.localeCompare(b.name, 'pt-BR');
+          });
+        setItems(consumables);
       })
       .catch(err => {
         if (active) setError(err?.message || 'Não foi possível carregar os materiais da Governança.');
@@ -110,21 +117,25 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
 
           {choice === 'yes' && (
             <div className="space-y-3 rounded-xl border border-[#E6E3D8] bg-[#FDFBF7] p-4">
-              <div className="flex items-center gap-2">
-                <PackageCheck className="h-4 w-4 text-[#588157]" />
-                <p className="text-xs font-extrabold uppercase tracking-wide text-[#6B705C]">Materiais utilizados</p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <PackageCheck className="h-4 w-4 text-[#588157]" />
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-[#6B705C]">Amenities e materiais consumíveis</p>
+                </div>
+                <p className="mt-1 text-[11px] text-[#8E9280]">Amenities de Quarto aparecem primeiro. Enxoval reutilizável é tratado separadamente e não entra como consumo.</p>
               </div>
 
               {loading ? (
                 <p className="py-4 text-center text-xs text-[#8E9280]">Carregando estoque da Governança...</p>
               ) : items.length === 0 ? (
-                <p className="py-4 text-center text-xs text-[#8E9280]">Nenhum material com saldo disponível foi encontrado.</p>
+                <p className="py-4 text-center text-xs text-[#8E9280]">Nenhum amenity ou material consumível com saldo disponível foi encontrado.</p>
               ) : (
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {items.map(item => (
                     <div key={item.id} className="grid grid-cols-[1fr_110px] items-center gap-3 rounded-lg border border-[#E6E3D8] bg-white p-3">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-[#2C3327]">{item.name}</p>
+                        <p className="mt-0.5 text-[11px] font-semibold text-[#588157]">{item.category}</p>
                         <p className="mt-0.5 text-[11px] text-[#6B705C]">Disponível: {item.currentStock} {item.unit}</p>
                       </div>
                       <input
