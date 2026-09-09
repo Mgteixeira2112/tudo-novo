@@ -1,8 +1,3 @@
--- FASE 6 — Frigobar e inventário central
--- Garante que todo item de frigobar tenha vínculo único com inventory_items,
--- usa inventory_items.current_stock como referência operacional e mantém
--- minibar_items.stock_qty sincronizado para compatibilidade com a interface atual.
-
 create unique index if not exists inventory_items_linked_minibar_item_id_uidx
   on public.inventory_items(linked_minibar_item_id)
   where linked_minibar_item_id is not null;
@@ -36,7 +31,6 @@ where not exists (
   where i.linked_minibar_item_id = m.id
 );
 
--- Para itens já integrados, o inventário central é a referência.
 update public.minibar_items m
 set stock_qty = i.current_stock::integer
 from public.inventory_items i
@@ -139,7 +133,6 @@ begin
       updated_at = v_now
   where id = v_inv.id;
 
-  -- Mantém a coluna legada do frigobar como espelho do inventário central.
   update public.minibar_items
   set stock_qty = v_next::integer
   where id = v_item.id;
