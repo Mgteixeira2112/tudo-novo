@@ -21,6 +21,7 @@ import { KanbanTask, SectorType, TaskPriority, TaskStatus } from '../types.ts';
 import { api } from '../services/api.ts';
 import { TaskHistoryModal } from './TaskHistoryModal.tsx';
 import { GovernanceTaskCompletionModal } from './GovernanceTaskCompletionModal.tsx';
+import { MaintenanceTaskCompletionModal } from './MaintenanceTaskCompletionModal.tsx';
 
 const SECTORS: { id: SectorType | 'Todos'; label: string; icon: string; color: string }[] = [
   { id: 'Todos', label: 'Todos os Setores', icon: '🏢', color: 'bg-gray-100 text-gray-800' },
@@ -112,7 +113,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
   const handleMoveStatus = async (taskId: string, newStatus: TaskStatus) => {
     const currentTask = tasks.find(task => task.id === taskId);
     if (
-      currentTask?.sector === 'Governanca' &&
+      (currentTask?.sector === 'Governanca' || currentTask?.sector === 'Manutencao') &&
       currentTask.status === 'Em_Andamento' &&
       newStatus === 'Concluido'
     ) {
@@ -129,7 +130,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
     }
   };
 
-  const handleGovernanceCompleted = async () => {
+  const handleOperationalCompleted = async () => {
     setArchiveClock(Date.now());
     await refreshData();
   };
@@ -465,11 +466,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
 
       {showHistory && !lockedSector && <TaskHistoryModal onClose={() => setShowHistory(false)} />}
 
-      {completionTask && (
+      {completionTask?.sector === 'Governanca' && (
         <GovernanceTaskCompletionModal
           task={completionTask}
           onClose={() => setCompletionTask(null)}
-          onCompleted={handleGovernanceCompleted}
+          onCompleted={handleOperationalCompleted}
+        />
+      )}
+
+      {completionTask?.sector === 'Manutencao' && (
+        <MaintenanceTaskCompletionModal
+          task={completionTask}
+          onClose={() => setCompletionTask(null)}
+          onCompleted={handleOperationalCompleted}
         />
       )}
 
