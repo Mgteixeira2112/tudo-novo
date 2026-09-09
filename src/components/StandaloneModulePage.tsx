@@ -11,6 +11,7 @@ import { CheckInCheckOutModal } from './CheckInCheckOutModal.tsx';
 import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
 import { MenuManagementModule } from './MenuManagementModule.tsx';
+import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
 
 export type StandaloneModule =
   | 'rooms'
@@ -25,7 +26,11 @@ export type StandaloneModule =
   | 'minibar'
   | 'roomService'
   | 'kitchen'
-  | 'menu';
+  | 'menu'
+  | 'roomMap'
+  | 'tasks'
+  | 'housekeeping'
+  | 'maintenance';
 
 const TITLES: Record<StandaloneModule, string> = {
   rooms: 'Quartos',
@@ -40,12 +45,18 @@ const TITLES: Record<StandaloneModule, string> = {
   minibar: 'Frigobar',
   roomService: 'Room Service',
   kitchen: 'Cozinha',
-  menu: 'Cardápio'
+  menu: 'Cardápio',
+  roomMap: 'Mapa de Quartos',
+  tasks: 'Tarefas',
+  housekeeping: 'Governança',
+  maintenance: 'Manutenção'
 };
 
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
   const { hasPermission, canAccessTab } = useHotel();
   const canManageRooms = hasPermission('manage_room_registry');
+  const canViewRooms = hasPermission('view_rooms');
+  const canViewKanbans = hasPermission('view_kanbans');
   const canViewInventory = hasPermission('view_inventory');
   const canAccessReception = canAccessTab('checkinout');
   const canManageCheckInOut = hasPermission('manage_checkinout');
@@ -60,19 +71,23 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
   const allowed =
     module === 'rooms'
       ? canManageRooms
-      : ['inventory', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
-        ? canViewInventory
-        : module === 'walkin'
-          ? canManageCheckInOut
-          : ['reservations', 'checkinout'].includes(module)
-            ? canAccessReception
-            : module === 'minibar'
-              ? canViewMinibar
-              : module === 'roomService'
-                ? canViewRoomService
-                : module === 'kitchen'
-                  ? canViewKitchen
-                  : canManageMenu;
+      : module === 'roomMap'
+        ? canViewRooms
+        : ['tasks', 'housekeeping', 'maintenance'].includes(module)
+          ? canViewKanbans
+          : ['inventory', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
+            ? canViewInventory
+            : module === 'walkin'
+              ? canManageCheckInOut
+              : ['reservations', 'checkinout'].includes(module)
+                ? canAccessReception
+                : module === 'minibar'
+                  ? canViewMinibar
+                  : module === 'roomService'
+                    ? canViewRoomService
+                    : module === 'kitchen'
+                      ? canViewKitchen
+                      : canManageMenu;
 
   if (!allowed) {
     return (
@@ -115,6 +130,10 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'roomService' && <OrdersOperationalModule mode="room_service" canManage={canManageRoomService} />}
       {module === 'kitchen' && <OrdersOperationalModule mode="kitchen" canManage={canManageKitchen} />}
       {module === 'menu' && <MenuManagementModule />}
+      {module === 'roomMap' && <OperationalStandalonePage view="roomMap" />}
+      {module === 'tasks' && <OperationalStandalonePage view="tasks" />}
+      {module === 'housekeeping' && <OperationalStandalonePage view="housekeeping" />}
+      {module === 'maintenance' && <OperationalStandalonePage view="maintenance" />}
     </div>
   );
 };
