@@ -1,5 +1,3 @@
--- FASE 15 — Impacto de novos itens do cardápio na previsão
-
 create table if not exists public.menu_item_demand_forecasts (
   id text primary key default ('forecast_' || replace(gen_random_uuid()::text, '-', '')),
   menu_item_id text not null references public.menu_items(id) on delete cascade,

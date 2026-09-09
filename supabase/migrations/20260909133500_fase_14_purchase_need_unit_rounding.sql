@@ -1,5 +1,3 @@
--- FASE 14 — arredondamento operacional por unidade
-
 create or replace function public.get_purchase_need_dashboard()
 returns table (
   item_id text,

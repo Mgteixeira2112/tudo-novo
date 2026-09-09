@@ -1,8 +1,3 @@
--- FASE 16 — Previsão Operacional Futura
--- Usa somente sinais já confiáveis: histórico real de pedidos, ocupação/reservas não encerradas,
--- hóspedes previstos, check-ins/check-outs e dia da semana quando houver amostra suficiente.
--- Sazonalidade/eventos permanecem neutros enquanto não houver fonte de verdade cadastrada.
-
 create or replace function public.get_operational_forecast(
   p_target_date date default (current_date + 1)
 )

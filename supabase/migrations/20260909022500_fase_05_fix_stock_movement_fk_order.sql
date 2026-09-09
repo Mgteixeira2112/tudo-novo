@@ -1,7 +1,3 @@
--- FASE 5 — corrige a ordem transacional entre kitchen_orders e stock_movements
--- Valida todo o estoque primeiro, cria o pedido e só então grava as baixas/Kardex.
--- Qualquer erro posterior reverte pedido, estoque, Kardex e financeiro na mesma transação.
-
 create or replace function public.create_kitchen_order_atomic(
   p_room_id text,
   p_items jsonb,
@@ -95,7 +91,7 @@ begin
     ));
   end loop;
 
-  -- Primeiro passe: trava e valida todo o estoque, sem alterar nenhum saldo.
+  -- Valida todas as necessidades antes de alterar saldos.
   for v_req in
     with order_items as (
       select e.value->>'menuItemId' as menu_item_id,
@@ -135,7 +131,7 @@ begin
 
   if p_destination = 'Quarto' then v_fee := 15; end if;
 
-  -- O pedido precisa existir antes do Kardex porque stock_movements.related_order_id possui FK.
+  -- O pedido precisa existir antes do Kardex por causa da FK related_order_id.
   insert into public.kitchen_orders(
     id, order_number, room_id, room_number, reservation_id, guest_name,
     items, total_amount, delivery_fee, destination, delivery_sector,
@@ -146,7 +142,6 @@ begin
     'Recebido', nullif(p_special_instructions,''), v_now, null
   ) returning * into v_order;
 
-  -- Segundo passe: baixa e gera Kardex após o pedido existir.
   for v_req in
     with order_items as (
       select e.value->>'menuItemId' as menu_item_id,

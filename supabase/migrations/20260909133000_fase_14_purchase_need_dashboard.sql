@@ -1,5 +1,3 @@
--- FASE 14 — Painel de Necessidade de Compras
-
 create or replace function public.get_purchase_need_dashboard()
 returns table (
   item_id text,
