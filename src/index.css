@@ -126,3 +126,13 @@ body {
   font-weight: 400;
   margin: 0 0.25rem;
 }
+
+/* Floating navigation rail: keep it below the persistent top header. */
+div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][class~="left-3"] {
+  top: 96px !important;
+  bottom: 12px !important;
+}
+
+div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][class~="left-3"] > aside {
+  height: 100% !important;
+}
