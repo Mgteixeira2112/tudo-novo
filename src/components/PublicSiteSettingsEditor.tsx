@@ -6,6 +6,7 @@ import {
   PublicSiteSettings,
   savePublicSiteDraft
 } from '../services/publicSite.ts';
+import { PublicSiteSectionContentFields } from './PublicSiteSectionContentFields.tsx';
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   hotelId: 'hotel_1',
@@ -31,15 +32,16 @@ const DEFAULT_SETTINGS: PublicSiteSettings = {
   showAbout: true,
   showLocation: true,
   showContact: true,
-  sectionOrder: ['hero', 'booking', 'accommodations', 'about', 'services', 'gallery', 'location', 'contact']
+  sectionOrder: ['hero', 'booking', 'accommodations', 'about', 'services', 'gallery', 'location', 'contact'],
+  sectionContent: {}
 };
 
 const SECTION_FIELDS: Array<{ key: keyof PublicSiteSettings; label: string; description: string }> = [
   { key: 'showBookingBar', label: 'Motor de reservas', description: 'Busca por datas e hóspedes.' },
   { key: 'showAccommodations', label: 'Acomodações', description: 'Exibe categorias disponíveis.' },
   { key: 'showAbout', label: 'Sobre o hotel', description: 'Apresentação institucional.' },
-  { key: 'showServices', label: 'Serviços e comodidades', description: 'Itens cadastrados nas acomodações.' },
-  { key: 'showGallery', label: 'Galeria', description: 'Imagens das acomodações.' },
+  { key: 'showServices', label: 'Serviços e comodidades', description: 'Itens do hotel ou personalizados.' },
+  { key: 'showGallery', label: 'Galeria', description: 'Imagens das acomodações ou URLs personalizadas.' },
   { key: 'showLocation', label: 'Localização', description: 'Endereço e acesso ao mapa.' },
   { key: 'showContact', label: 'Contato', description: 'Telefone, e-mail e CTA final.' }
 ];
@@ -62,13 +64,6 @@ export const PublicSiteSettingsEditor: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const reload = async () => {
-    const state = await loadPublicSiteAdminState('hotel_1');
-    setPublished(state.published);
-    setForm(state.draft);
-    setHasDraft(state.hasDraft);
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -143,11 +138,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-16 text-sm text-[#6B705C]">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando configurações do site...
-      </div>
-    );
+    return <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-16 text-sm text-[#6B705C]"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando configurações do site...</div>;
   }
 
   return (
@@ -155,9 +146,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
       <div className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[#588157]">
-              <Sparkles className="h-4 w-4" /> Site Público
-            </div>
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[#588157]"><Sparkles className="h-4 w-4" /> Site Público</div>
             <h3 className="mt-1 text-2xl font-black text-[#2C3327]">CMS do site público</h3>
             <p className="mt-1 text-sm text-[#6B705C]">Edite, visualize e só depois publique. O rascunho não altera o que o hóspede vê.</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
@@ -166,15 +155,9 @@ export const PublicSiteSettingsEditor: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setPreviewOpen(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#D8D3C4] bg-white px-4 py-2.5 text-sm font-black text-[#2C3327] hover:bg-[#F8F6F0]">
-              <Eye className="h-4 w-4" /> {previewOpen ? 'Fechar preview' : 'Pré-visualizar'}
-            </button>
-            <button type="button" onClick={handleSaveDraft} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#6B705C] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar rascunho
-            </button>
-            <button type="button" onClick={handlePublish} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">
-              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />} Publicar
-            </button>
+            <button type="button" onClick={() => setPreviewOpen(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#D8D3C4] bg-white px-4 py-2.5 text-sm font-black text-[#2C3327] hover:bg-[#F8F6F0]"><Eye className="h-4 w-4" /> {previewOpen ? 'Fechar preview' : 'Pré-visualizar'}</button>
+            <button type="button" onClick={handleSaveDraft} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#6B705C] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar rascunho</button>
+            <button type="button" onClick={handlePublish} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">{publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />} Publicar</button>
           </div>
         </div>
         {message && <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"><Check className="h-4 w-4" /> {message}</div>}
@@ -183,9 +166,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
 
       {previewOpen && (
         <section className="overflow-hidden rounded-2xl border border-[#D8D3C4] bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#EEEADF] px-5 py-3">
-            <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p><p className="text-xs text-[#6B705C]">Nada desta prévia é publicado automaticamente.</p></div>
-          </div>
+          <div className="border-b border-[#EEEADF] px-5 py-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p><p className="text-xs text-[#6B705C]">Nada desta prévia é publicado automaticamente.</p></div>
           <div style={{ backgroundColor: form.backgroundColor, color: form.textColor, fontFamily: form.bodyFont }}>
             <div className="px-6 py-10 text-center" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>
               <p className="text-3xl font-black" style={{ fontFamily: form.headingFont }}>{form.heroTitle || 'Nome do hotel'}</p>
@@ -193,13 +174,10 @@ export const PublicSiteSettingsEditor: React.FC = () => {
               {form.showBookingBar && <span className="mt-5 inline-block px-4 py-2 text-xs font-black" style={{ backgroundColor: form.accentColor, color: form.primaryColor, borderRadius: form.borderRadius }}>{form.primaryCtaLabel}</span>}
             </div>
             <div className="p-5">
-              <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: form.secondaryColor }}>Ordem visual dos blocos institucionais</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {institutionalOrder.map(key => {
-                  const section = ORDERABLE_SECTIONS.find(item => item.key === key);
-                  return <span key={key} className="border bg-white px-3 py-2 text-xs font-bold" style={{ borderRadius: form.borderRadius }}>{section?.label || key}</span>;
-                })}
-              </div>
+              <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: form.secondaryColor }}>Conteúdo institucional</p>
+              <p className="mt-2 text-lg font-black" style={{ fontFamily: form.headingFont }}>{form.sectionContent.aboutTitle || 'Uma estadia pensada para receber bem'}</p>
+              <p className="mt-1 text-sm opacity-75">{form.sectionContent.aboutBody || 'O texto padrão continua sendo usado enquanto este campo estiver vazio.'}</p>
+              <div className="mt-4 flex flex-wrap gap-2">{institutionalOrder.map(key => { const section = ORDERABLE_SECTIONS.find(item => item.key === key); return <span key={key} className="border bg-white px-3 py-2 text-xs font-bold" style={{ borderRadius: form.borderRadius }}>{section?.label || key}</span>; })}</div>
             </div>
           </div>
         </section>
@@ -209,72 +187,48 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
           <h4 className="text-lg font-black text-[#2C3327]">Identidade visual</h4>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {([
-              ['primaryColor', 'Cor principal'], ['secondaryColor', 'Cor secundária'], ['accentColor', 'Cor de destaque'], ['backgroundColor', 'Cor de fundo'], ['textColor', 'Cor do texto']
-            ] as Array<[keyof PublicSiteSettings, string]>).map(([key, label]) => (
-              <label key={key} className="block">
-                <span className="text-xs font-bold text-[#565B4B]">{label}</span>
-                <div className="mt-1 flex items-center gap-2 rounded-xl border border-[#DDD8C9] bg-[#FBFAF6] p-2">
-                  <input type="color" value={String(form[key])} onChange={event => update(key, event.target.value as never)} className="h-9 w-11 cursor-pointer rounded-lg border-0 bg-transparent p-0" />
-                  <input type="text" value={String(form[key])} onChange={event => update(key, event.target.value as never)} className="min-w-0 flex-1 bg-transparent text-sm font-mono outline-none" />
-                </div>
-              </label>
+            {([['primaryColor','Cor principal'],['secondaryColor','Cor secundária'],['accentColor','Cor de destaque'],['backgroundColor','Cor de fundo'],['textColor','Cor do texto']] as Array<[keyof PublicSiteSettings,string]>).map(([key,label]) => (
+              <label key={key} className="block"><span className="text-xs font-bold text-[#565B4B]">{label}</span><div className="mt-1 flex items-center gap-2 rounded-xl border border-[#DDD8C9] bg-[#FBFAF6] p-2"><input type="color" value={String(form[key])} onChange={e => update(key, e.target.value as never)} className="h-9 w-11 cursor-pointer rounded-lg border-0 bg-transparent p-0" /><input type="text" value={String(form[key])} onChange={e => update(key, e.target.value as never)} className="min-w-0 flex-1 bg-transparent text-sm font-mono outline-none" /></div></label>
             ))}
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos títulos</span><input value={form.headingFont} onChange={event => update('headingFont', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos textos</span><input value={form.bodyFont} onChange={event => update('bodyFont', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Arredondamento</span><select value={form.borderRadius} onChange={event => update('borderRadius', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="0px">Reto</option><option value="8px">Discreto</option><option value="16px">Padrão</option><option value="24px">Arredondado</option></select></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Template</span><select value={form.templateKey} onChange={event => update('templateKey', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="classic">Clássico</option></select></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos títulos</span><input value={form.headingFont} onChange={e => update('headingFont', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos textos</span><input value={form.bodyFont} onChange={e => update('bodyFont', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Arredondamento</span><select value={form.borderRadius} onChange={e => update('borderRadius', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="0px">Reto</option><option value="8px">Discreto</option><option value="16px">Padrão</option><option value="24px">Arredondado</option></select></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Template</span><select value={form.templateKey} onChange={e => update('templateKey', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="classic">Clássico</option></select></label>
           </div>
         </section>
 
         <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
           <h4 className="text-lg font-black text-[#2C3327]">Hero</h4>
           <div className="mt-4 space-y-4">
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Título principal</span><input value={form.heroTitle} onChange={event => update('heroTitle', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Subtítulo</span><textarea value={form.heroSubtitle} onChange={event => update('heroSubtitle', event.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Texto do botão principal</span><input value={form.primaryCtaLabel} onChange={event => update('primaryCtaLabel', event.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">URL da imagem do Hero</span><input value={form.heroMediaUrl || ''} onChange={event => update('heroMediaUrl', event.target.value || undefined)} placeholder="https://..." className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Título principal</span><input value={form.heroTitle} onChange={e => update('heroTitle', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Subtítulo</span><textarea value={form.heroSubtitle} onChange={e => update('heroSubtitle', e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Texto do botão principal</span><input value={form.primaryCtaLabel} onChange={e => update('primaryCtaLabel', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">URL da imagem do Hero</span><input value={form.heroMediaUrl || ''} onChange={e => update('heroMediaUrl', e.target.value || undefined)} placeholder="https://..." className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
           </div>
         </section>
       </div>
 
       <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
         <h4 className="text-lg font-black text-[#2C3327]">Seções da página inicial</h4>
-        <p className="mt-1 text-sm text-[#6B705C]">Ative ou desative blocos. Hero, reservas e acomodações permanecem na estrutura principal; os blocos institucionais podem ser reordenados abaixo.</p>
+        <p className="mt-1 text-sm text-[#6B705C]">Ative ou desative blocos. Hero, reservas e acomodações permanecem na estrutura principal.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SECTION_FIELDS.map(item => (
-            <label key={item.key} className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-[#E6E3D8] bg-[#FBFAF6] p-4">
-              <div><p className="text-sm font-black text-[#2C3327]">{item.label}</p><p className="mt-1 text-xs leading-5 text-[#6B705C]">{item.description}</p></div>
-              <input type="checkbox" checked={Boolean(form[item.key])} onChange={event => update(item.key, event.target.checked as never)} className="mt-1 h-5 w-5 accent-[#588157]" />
-            </label>
-          ))}
+          {SECTION_FIELDS.map(item => <label key={item.key} className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-[#E6E3D8] bg-[#FBFAF6] p-4"><div><p className="text-sm font-black text-[#2C3327]">{item.label}</p><p className="mt-1 text-xs leading-5 text-[#6B705C]">{item.description}</p></div><input type="checkbox" checked={Boolean(form[item.key])} onChange={e => update(item.key, e.target.checked as never)} className="mt-1 h-5 w-5 accent-[#588157]" /></label>)}
         </div>
       </section>
+
+      <PublicSiteSectionContentFields value={form.sectionContent} onChange={value => update('sectionContent', value)} />
 
       <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
         <h4 className="text-lg font-black text-[#2C3327]">Ordem dos blocos institucionais</h4>
         <p className="mt-1 text-sm text-[#6B705C]">Use as setas para definir a ordem de Sobre, Serviços, Galeria, Localização e Contato.</p>
         <div className="mt-4 space-y-2">
-          {institutionalOrder.map((key, index) => {
-            const item = ORDERABLE_SECTIONS.find(section => section.key === key);
-            return (
-              <div key={key} className="flex items-center justify-between rounded-xl border border-[#E6E3D8] bg-[#FBFAF6] px-4 py-3">
-                <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E9E6DC] text-xs font-black text-[#2C3327]">{index + 1}</span><span className="text-sm font-black text-[#2C3327]">{item?.label || key}</span></div>
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => moveSection(key, -1)} disabled={index === 0} className="rounded-lg border border-[#D8D3C4] bg-white p-2 disabled:opacity-30" aria-label={`Mover ${item?.label} para cima`}><ArrowUp className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => moveSection(key, 1)} disabled={index === institutionalOrder.length - 1} className="rounded-lg border border-[#D8D3C4] bg-white p-2 disabled:opacity-30" aria-label={`Mover ${item?.label} para baixo`}><ArrowDown className="h-4 w-4" /></button>
-                </div>
-              </div>
-            );
-          })}
+          {institutionalOrder.map((key,index) => { const item = ORDERABLE_SECTIONS.find(section => section.key === key); return <div key={key} className="flex items-center justify-between rounded-xl border border-[#E6E3D8] bg-[#FBFAF6] px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E9E6DC] text-xs font-black text-[#2C3327]">{index+1}</span><span className="text-sm font-black text-[#2C3327]">{item?.label || key}</span></div><div className="flex gap-1"><button type="button" onClick={() => moveSection(key,-1)} disabled={index===0} className="rounded-lg border border-[#D8D3C4] bg-white p-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button><button type="button" onClick={() => moveSection(key,1)} disabled={index===institutionalOrder.length-1} className="rounded-lg border border-[#D8D3C4] bg-white p-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button></div></div>; })}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">
-        Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. Alterações só chegam ao site público depois de clicar em <strong>Publicar</strong>.
-      </section>
+      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. Alterações só chegam ao site público depois de clicar em <strong>Publicar</strong>.</section>
     </div>
   );
 };

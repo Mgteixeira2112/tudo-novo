@@ -3,6 +3,23 @@ import { getSupabaseClient } from './supabase.ts';
 export type PublicSiteStatus = 'draft' | 'published';
 export type PublicSiteMediaType = 'image' | 'video' | 'none';
 
+export interface PublicSiteSectionContent {
+  aboutTitle?: string;
+  aboutBody?: string;
+  servicesTitle?: string;
+  servicesBody?: string;
+  servicesItems?: string[];
+  galleryTitle?: string;
+  galleryImageUrls?: string[];
+  locationTitle?: string;
+  locationBody?: string;
+  locationMapQuery?: string;
+  contactTitle?: string;
+  contactBody?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+}
+
 export interface PublicSiteSettings {
   hotelId: string;
   status: PublicSiteStatus;
@@ -29,6 +46,7 @@ export interface PublicSiteSettings {
   showLocation: boolean;
   showContact: boolean;
   sectionOrder: string[];
+  sectionContent: PublicSiteSectionContent;
   customDomain?: string;
   subdomainSlug?: string;
   updatedAt?: string;
@@ -39,6 +57,30 @@ export interface PublicSiteAdminState {
   draft: PublicSiteSettings;
   hasDraft: boolean;
   draftUpdatedAt?: string;
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
+}
+
+function mapSectionContent(value: any): PublicSiteSectionContent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return {
+    aboutTitle: value.aboutTitle ? String(value.aboutTitle) : undefined,
+    aboutBody: value.aboutBody ? String(value.aboutBody) : undefined,
+    servicesTitle: value.servicesTitle ? String(value.servicesTitle) : undefined,
+    servicesBody: value.servicesBody ? String(value.servicesBody) : undefined,
+    servicesItems: normalizeStringArray(value.servicesItems),
+    galleryTitle: value.galleryTitle ? String(value.galleryTitle) : undefined,
+    galleryImageUrls: normalizeStringArray(value.galleryImageUrls),
+    locationTitle: value.locationTitle ? String(value.locationTitle) : undefined,
+    locationBody: value.locationBody ? String(value.locationBody) : undefined,
+    locationMapQuery: value.locationMapQuery ? String(value.locationMapQuery) : undefined,
+    contactTitle: value.contactTitle ? String(value.contactTitle) : undefined,
+    contactBody: value.contactBody ? String(value.contactBody) : undefined,
+    contactPhone: value.contactPhone ? String(value.contactPhone) : undefined,
+    contactEmail: value.contactEmail ? String(value.contactEmail) : undefined
+  };
 }
 
 function mapPublicSiteSettings(data: any, hotelId = 'hotel_1'): PublicSiteSettings {
@@ -74,6 +116,7 @@ function mapPublicSiteSettings(data: any, hotelId = 'hotel_1'): PublicSiteSettin
       : Array.isArray(data?.sectionOrder)
         ? data.sectionOrder.map(String)
         : [],
+    sectionContent: mapSectionContent(data?.section_content ?? data?.sectionContent),
     customDomain: data?.custom_domain || data?.customDomain || undefined,
     subdomainSlug: data?.subdomain_slug || data?.subdomainSlug || undefined,
     updatedAt: data?.updated_at || data?.updatedAt || undefined
@@ -104,7 +147,8 @@ function toEditablePayload(settings: PublicSiteSettings) {
     showAbout: settings.showAbout,
     showLocation: settings.showLocation,
     showContact: settings.showContact,
-    sectionOrder: settings.sectionOrder
+    sectionOrder: settings.sectionOrder,
+    sectionContent: settings.sectionContent || {}
   };
 }
 
@@ -164,7 +208,6 @@ export async function publishPublicSiteSettings(hotelId = 'hotel_1'): Promise<Pu
   return refreshed;
 }
 
-// Compatibilidade com a FASE 2A. O editor novo usa rascunho/publicação separados.
 export async function savePublicSiteSettings(settings: PublicSiteSettings): Promise<PublicSiteSettings> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
