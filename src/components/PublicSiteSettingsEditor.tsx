@@ -7,7 +7,6 @@ import {
   savePublicSiteDraft
 } from '../services/publicSite.ts';
 import { PublicSiteSectionContentFields } from './PublicSiteSectionContentFields.tsx';
-import { PublicSiteTemplatePreview } from './PublicSiteTemplatePreview.tsx';
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   hotelId: 'hotel_1',
@@ -147,8 +146,8 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[#588157]"><Sparkles className="h-4 w-4" /> Site Público</div>
-            <h3 className="mt-1 text-2xl font-black text-[#2C3327]">Editor visual do site público</h3>
-            <p className="mt-1 text-sm text-[#6B705C]">As alterações aparecem abaixo em tempo real. Nada muda para o hóspede até você clicar em Publicar.</p>
+            <h3 className="mt-1 text-2xl font-black text-[#2C3327]">CMS do site público</h3>
+            <p className="mt-1 text-sm text-[#6B705C]">Configure o conteúdo e a identidade visual aqui. A visualização é feita diretamente no site público após publicar.</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Publicado</span>
               {hasDraft && <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Rascunho pendente</span>}
@@ -162,19 +161,6 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         {message && <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"><Check className="h-4 w-4" /> {message}</div>}
         {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
       </div>
-
-      <section className="overflow-hidden rounded-2xl border border-[#D8D3C4] bg-white shadow-sm">
-        <div className="flex flex-col gap-1 border-b border-[#EEEADF] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Site em tempo real</p>
-            <p className="text-xs text-[#6B705C]">Edite qualquer campo abaixo e acompanhe a mudança imediatamente nesta página.</p>
-          </div>
-          <span className="mt-2 inline-flex w-fit rounded-full bg-[#F2F5EF] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#588157] sm:mt-0">Não publicado</span>
-        </div>
-        <div className="p-3 sm:p-4">
-          <PublicSiteTemplatePreview settings={form} institutionalOrder={institutionalOrder} />
-        </div>
-      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
@@ -221,7 +207,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. O painel "Site em tempo real" mostra suas alterações locais imediatamente, mas elas só chegam ao site público depois de clicar em <strong>Publicar</strong>.</section>
+      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. Para conferir alterações visuais, publique e abra o próprio site público.</section>
     </div>
   );
 };
