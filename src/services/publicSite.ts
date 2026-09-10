@@ -76,3 +76,44 @@ export async function loadPublicSiteSettings(hotelId = 'hotel_1'): Promise<Publi
     updatedAt: data.updated_at || undefined
   };
 }
+
+export async function savePublicSiteSettings(settings: PublicSiteSettings): Promise<PublicSiteSettings> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const payload = {
+    templateKey: settings.templateKey,
+    primaryColor: settings.primaryColor,
+    secondaryColor: settings.secondaryColor,
+    accentColor: settings.accentColor,
+    backgroundColor: settings.backgroundColor,
+    textColor: settings.textColor,
+    headingFont: settings.headingFont,
+    bodyFont: settings.bodyFont,
+    borderRadius: settings.borderRadius,
+    heroTitle: settings.heroTitle,
+    heroSubtitle: settings.heroSubtitle,
+    heroMediaUrl: settings.heroMediaUrl || null,
+    heroMediaType: settings.heroMediaType,
+    primaryCtaLabel: settings.primaryCtaLabel,
+    primaryCtaTarget: settings.primaryCtaTarget,
+    showBookingBar: settings.showBookingBar,
+    showAccommodations: settings.showAccommodations,
+    showServices: settings.showServices,
+    showGallery: settings.showGallery,
+    showAbout: settings.showAbout,
+    showLocation: settings.showLocation,
+    showContact: settings.showContact
+  };
+
+  const { error } = await supabase.rpc('save_public_site_settings', {
+    p_hotel_id: settings.hotelId,
+    p_payload: payload
+  });
+
+  if (error) throw error;
+
+  const refreshed = await loadPublicSiteSettings(settings.hotelId);
+  if (!refreshed) throw new Error('Configuração pública não encontrada após salvar.');
+  return refreshed;
+}
