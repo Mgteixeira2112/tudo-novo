@@ -7,6 +7,7 @@ import {
   savePublicSiteDraft
 } from '../services/publicSite.ts';
 import { PublicSiteSectionContentFields } from './PublicSiteSectionContentFields.tsx';
+import { PublicSiteTemplatePreview } from './PublicSiteTemplatePreview.tsx';
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   hotelId: 'hotel_1',
@@ -166,20 +167,12 @@ export const PublicSiteSettingsEditor: React.FC = () => {
 
       {previewOpen && (
         <section className="overflow-hidden rounded-2xl border border-[#D8D3C4] bg-white shadow-sm">
-          <div className="border-b border-[#EEEADF] px-5 py-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p><p className="text-xs text-[#6B705C]">Nada desta prévia é publicado automaticamente.</p></div>
-          <div style={{ backgroundColor: form.backgroundColor, color: form.textColor, fontFamily: form.bodyFont }}>
-            <div className="px-6 py-10 text-center" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>
-              <p className="text-xs font-black uppercase tracking-[0.18em] opacity-70">Template {form.templateKey}</p>
-              <p className="mt-2 text-3xl font-black" style={{ fontFamily: form.headingFont }}>{form.heroTitle || 'Nome do hotel'}</p>
-              <p className="mx-auto mt-2 max-w-2xl text-sm opacity-80">{form.heroSubtitle || 'Subtítulo do hotel'}</p>
-              {form.showBookingBar && <span className="mt-5 inline-block px-4 py-2 text-xs font-black" style={{ backgroundColor: form.accentColor, color: form.primaryColor, borderRadius: form.borderRadius }}>{form.primaryCtaLabel}</span>}
-            </div>
-            <div className="p-5">
-              <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: form.secondaryColor }}>Conteúdo institucional</p>
-              <p className="mt-2 text-lg font-black" style={{ fontFamily: form.headingFont }}>{form.sectionContent.aboutTitle || 'Uma estadia pensada para receber bem'}</p>
-              <p className="mt-1 text-sm opacity-75">{form.sectionContent.aboutBody || 'O texto padrão continua sendo usado enquanto este campo estiver vazio.'}</p>
-              <div className="mt-4 flex flex-wrap gap-2">{institutionalOrder.map(key => { const section = ORDERABLE_SECTIONS.find(item => item.key === key); return <span key={key} className="border bg-white px-3 py-2 text-xs font-bold" style={{ borderRadius: form.borderRadius }}>{section?.label || key}</span>; })}</div>
-            </div>
+          <div className="border-b border-[#EEEADF] px-5 py-3">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p>
+            <p className="text-xs text-[#6B705C]">A prévia abaixo reproduz as diferenças visuais do template selecionado sem publicar nada.</p>
+          </div>
+          <div className="p-4 sm:p-5">
+            <PublicSiteTemplatePreview settings={form} institutionalOrder={institutionalOrder} />
           </div>
         </section>
       )}
