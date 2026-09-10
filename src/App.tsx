@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HotelProvider, useHotel } from './context/HotelContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { SidebarNavigation } from './components/SidebarNavigation.tsx';
-import { OnlineBookingEngine } from './components/OnlineBookingEngine.tsx';
+import { PublicBookingExperience } from './components/PublicBookingExperience.tsx';
 import { KanbanWorkspace } from './components/KanbanWorkspace.tsx';
 import { ReceptionManager } from './components/ReceptionManager.tsx';
 import { GuestsManager } from './components/GuestsManager.tsx';
@@ -343,7 +343,7 @@ const AppContent: React.FC = () => {
 
       <main className="flex-1">
         {mode === 'booking' ? (
-          <OnlineBookingEngine />
+          <PublicBookingExperience />
         ) : !currentUser ? (
           <StaffLogin />
         ) : (
