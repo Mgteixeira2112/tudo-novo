@@ -108,6 +108,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       title: 'Estoque & Suprimentos',
       items: [
         { label: 'Estoque', icon: Boxes, page: 'inventory', allowed: has('view_inventory') },
+        { label: 'Kardex', icon: ClipboardList, page: 'kardex', allowed: has('view_inventory') },
+        { label: 'Reposição', icon: ShoppingCart, page: 'replenishment', allowed: has('view_inventory') },
         { label: 'Enxoval', icon: Shirt, page: 'linen', allowed: has('view_inventory') },
         { label: 'Perdas & Avarias', icon: AlertTriangle, page: 'lossDamage', allowed: has('view_inventory') },
         { label: 'Compras', icon: ShoppingCart, page: 'purchases', allowed: has('view_inventory') }
