@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Database,
   DoorOpen,
+  Globe2,
   Home,
   LayoutDashboard,
   LogIn,
@@ -148,6 +149,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       icon: Settings,
       items: [
         { label: 'Equipe & Permissões', icon: ShieldCheck, tab: 'users', allowed: canAccessTab('users') },
+        { label: 'Site Público', icon: Globe2, page: 'publicSiteSettings', allowed: has(GRANULAR_PERMISSION_KEYS.manageHotelSettings) },
         { label: 'Configurações do Hotel', icon: Settings, tab: 'settings', targetId: 'settings-entry-visual', allowed: has(GRANULAR_PERMISSION_KEYS.manageHotelSettings) },
         { label: 'Telas KDS', icon: Monitor, tab: 'settings', targetId: 'kds-displays-manager', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) },
         { label: 'Sistema / Supabase', icon: Database, tab: 'settings', targetId: 'settings-entry-supabase', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) }
