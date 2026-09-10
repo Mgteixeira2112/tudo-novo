@@ -12,6 +12,7 @@ import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
 import { MenuManagementModule } from './MenuManagementModule.tsx';
 import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
+import { SettingsStandalonePage } from './SettingsStandalonePage.tsx';
 
 export type StandaloneModule =
   | 'rooms'
@@ -30,7 +31,11 @@ export type StandaloneModule =
   | 'roomMap'
   | 'tasks'
   | 'housekeeping'
-  | 'maintenance';
+  | 'maintenance'
+  | 'hotelSettings'
+  | 'roomRates'
+  | 'systemSettings'
+  | 'kdsDisplays';
 
 const TITLES: Record<StandaloneModule, string> = {
   rooms: 'Quartos',
@@ -49,7 +54,11 @@ const TITLES: Record<StandaloneModule, string> = {
   roomMap: 'Mapa de Quartos',
   tasks: 'Tarefas',
   housekeeping: 'Governança',
-  maintenance: 'Manutenção'
+  maintenance: 'Manutenção',
+  hotelSettings: 'Configurações do Hotel',
+  roomRates: 'Tarifas & Acomodações',
+  systemSettings: 'Sistema / Supabase',
+  kdsDisplays: 'Telas KDS'
 };
 
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
@@ -67,6 +76,9 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
   const canViewKitchen = hasPermission('view_kitchen');
   const canManageKitchen = hasPermission('manage_kitchen');
   const canManageMenu = hasPermission('manage_menu');
+  const canManageHotelSettings = hasPermission('manage_hotel_settings');
+  const canManageRoomRates = hasPermission('manage_room_rates');
+  const canManageSystemSettings = hasPermission('manage_system_settings');
 
   const allowed =
     module === 'rooms'
@@ -87,7 +99,13 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
                     ? canViewRoomService
                     : module === 'kitchen'
                       ? canViewKitchen
-                      : canManageMenu;
+                      : module === 'menu'
+                        ? canManageMenu
+                        : module === 'hotelSettings'
+                          ? canManageHotelSettings
+                          : module === 'roomRates'
+                            ? canManageRoomRates
+                            : canManageSystemSettings;
 
   if (!allowed) {
     return (
@@ -134,6 +152,10 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'tasks' && <OperationalStandalonePage view="tasks" />}
       {module === 'housekeeping' && <OperationalStandalonePage view="housekeeping" />}
       {module === 'maintenance' && <OperationalStandalonePage view="maintenance" />}
+      {module === 'hotelSettings' && <SettingsStandalonePage view="hotel" />}
+      {module === 'roomRates' && <SettingsStandalonePage view="rooms" />}
+      {module === 'systemSettings' && <SettingsStandalonePage view="system" />}
+      {module === 'kdsDisplays' && <SettingsStandalonePage view="kds" />}
     </div>
   );
 };
