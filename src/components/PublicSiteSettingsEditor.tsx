@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Eye, Globe2, Loader2, Save, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Globe2, Loader2, Save, Sparkles } from 'lucide-react';
 import {
   loadPublicSiteAdminState,
   publishPublicSiteSettings,
@@ -62,7 +62,6 @@ export const PublicSiteSettingsEditor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,15 +147,14 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[#588157]"><Sparkles className="h-4 w-4" /> Site Público</div>
-            <h3 className="mt-1 text-2xl font-black text-[#2C3327]">CMS do site público</h3>
-            <p className="mt-1 text-sm text-[#6B705C]">Edite, visualize e só depois publique. O rascunho não altera o que o hóspede vê.</p>
+            <h3 className="mt-1 text-2xl font-black text-[#2C3327]">Editor visual do site público</h3>
+            <p className="mt-1 text-sm text-[#6B705C]">As alterações aparecem abaixo em tempo real. Nada muda para o hóspede até você clicar em Publicar.</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Publicado</span>
               {hasDraft && <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Rascunho pendente</span>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setPreviewOpen(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#D8D3C4] bg-white px-4 py-2.5 text-sm font-black text-[#2C3327] hover:bg-[#F8F6F0]"><Eye className="h-4 w-4" /> {previewOpen ? 'Fechar preview' : 'Pré-visualizar'}</button>
             <button type="button" onClick={handleSaveDraft} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#6B705C] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar rascunho</button>
             <button type="button" onClick={handlePublish} disabled={saving || publishing} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">{publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />} Publicar</button>
           </div>
@@ -165,17 +163,18 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
       </div>
 
-      {previewOpen && (
-        <section className="overflow-hidden rounded-2xl border border-[#D8D3C4] bg-white shadow-sm">
-          <div className="border-b border-[#EEEADF] px-5 py-3">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p>
-            <p className="text-xs text-[#6B705C]">A prévia abaixo reproduz as diferenças visuais do template selecionado sem publicar nada.</p>
+      <section className="overflow-hidden rounded-2xl border border-[#D8D3C4] bg-white shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-[#EEEADF] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Site em tempo real</p>
+            <p className="text-xs text-[#6B705C]">Edite qualquer campo abaixo e acompanhe a mudança imediatamente nesta página.</p>
           </div>
-          <div className="p-4 sm:p-5">
-            <PublicSiteTemplatePreview settings={form} institutionalOrder={institutionalOrder} />
-          </div>
-        </section>
-      )}
+          <span className="mt-2 inline-flex w-fit rounded-full bg-[#F2F5EF] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#588157] sm:mt-0">Não publicado</span>
+        </div>
+        <div className="p-3 sm:p-4">
+          <PublicSiteTemplatePreview settings={form} institutionalOrder={institutionalOrder} />
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
@@ -222,7 +221,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. Alterações só chegam ao site público depois de clicar em <strong>Publicar</strong>.</section>
+      <section className="rounded-2xl border border-[#E6E3D8] bg-[#FBFAF6] p-4 text-xs text-[#6B705C]">Versão publicada atual: <strong>{published.heroTitle || 'Hotel'}</strong>. O painel "Site em tempo real" mostra suas alterações locais imediatamente, mas elas só chegam ao site público depois de clicar em <strong>Publicar</strong>.</section>
     </div>
   );
 };
