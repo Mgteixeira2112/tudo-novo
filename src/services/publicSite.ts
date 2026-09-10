@@ -158,8 +158,8 @@ function toEditablePayload(settings: PublicSiteSettings) {
   };
 }
 
-export async function loadPublicSiteSettings(hotelId = 'hotel_1'): Promise<PublicSiteSettings | null> {
-  if (previewOverride?.hotelId === hotelId) {
+export async function loadPublicSiteSettings(hotelId = 'hotel_1', bypassPreview = false): Promise<PublicSiteSettings | null> {
+  if (!bypassPreview && previewOverride?.hotelId === hotelId) {
     return { ...previewOverride, sectionContent: { ...previewOverride.sectionContent } };
   }
 
@@ -213,7 +213,7 @@ export async function publishPublicSiteSettings(hotelId = 'hotel_1'): Promise<Pu
   const { error } = await supabase.rpc('publish_public_site_settings', { p_hotel_id: hotelId });
   if (error) throw error;
 
-  const refreshed = await loadPublicSiteSettings(hotelId);
+  const refreshed = await loadPublicSiteSettings(hotelId, true);
   if (!refreshed) throw new Error('Configuração pública não encontrada após publicar.');
   return refreshed;
 }
@@ -228,7 +228,7 @@ export async function savePublicSiteSettings(settings: PublicSiteSettings): Prom
   });
   if (error) throw error;
 
-  const refreshed = await loadPublicSiteSettings(settings.hotelId);
+  const refreshed = await loadPublicSiteSettings(settings.hotelId, true);
   if (!refreshed) throw new Error('Configuração pública não encontrada após salvar.');
   return refreshed;
 }
