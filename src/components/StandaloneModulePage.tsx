@@ -13,6 +13,7 @@ import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
 import { MenuManagementModule } from './MenuManagementModule.tsx';
 import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
+import { PublicSiteSettingsEditor } from './PublicSiteSettingsEditor.tsx';
 
 export type StandaloneModule =
   | 'rooms'
@@ -35,7 +36,8 @@ export type StandaloneModule =
   | 'roomMap'
   | 'tasks'
   | 'housekeeping'
-  | 'maintenance';
+  | 'maintenance'
+  | 'publicSiteSettings';
 
 const TITLES: Record<StandaloneModule, string> = {
   rooms: 'Quartos',
@@ -58,7 +60,8 @@ const TITLES: Record<StandaloneModule, string> = {
   roomMap: 'Mapa de Quartos',
   tasks: 'Tarefas',
   housekeeping: 'Governança',
-  maintenance: 'Manutenção'
+  maintenance: 'Manutenção',
+  publicSiteSettings: 'Site Público'
 };
 
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
@@ -76,27 +79,30 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
   const canViewKitchen = hasPermission('view_kitchen');
   const canManageKitchen = hasPermission('manage_kitchen');
   const canManageMenu = hasPermission('manage_menu');
+  const canManagePublicSite = hasPermission('manage_hotel_settings');
 
   const allowed =
     module === 'rooms'
       ? canManageRooms
       : module === 'roomMap'
         ? canViewRooms
-        : ['tasks', 'housekeeping', 'maintenance'].includes(module)
-          ? canViewKanbans
-          : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
-            ? canViewInventory
-            : module === 'walkin'
-              ? canManageCheckInOut
-              : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
-                ? canAccessReception
-                : module === 'minibar'
-                  ? canViewMinibar
-                  : module === 'roomService'
-                    ? canViewRoomService
-                    : module === 'kitchen'
-                      ? canViewKitchen
-                      : canManageMenu;
+        : module === 'publicSiteSettings'
+          ? canManagePublicSite
+          : ['tasks', 'housekeeping', 'maintenance'].includes(module)
+            ? canViewKanbans
+            : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
+              ? canViewInventory
+              : module === 'walkin'
+                ? canManageCheckInOut
+                : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
+                  ? canAccessReception
+                  : module === 'minibar'
+                    ? canViewMinibar
+                    : module === 'roomService'
+                      ? canViewRoomService
+                      : module === 'kitchen'
+                        ? canViewKitchen
+                        : canManageMenu;
 
   if (!allowed) {
     return (
@@ -151,6 +157,7 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'tasks' && <OperationalStandalonePage view="tasks" />}
       {module === 'housekeeping' && <OperationalStandalonePage view="housekeeping" />}
       {module === 'maintenance' && <OperationalStandalonePage view="maintenance" />}
+      {module === 'publicSiteSettings' && <PublicSiteSettingsEditor />}
     </div>
   );
 };
