@@ -120,16 +120,16 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       title: 'Cadastros',
       items: [
         { label: 'Quartos', icon: BedDouble, page: 'rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRegistry) },
-        { label: 'Tarifas & Acomodações', icon: ClipboardList, tab: 'settings', targetId: 'settings-entry-rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRates) }
+        { label: 'Tarifas & Acomodações', icon: ClipboardList, page: 'roomRates', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRates) }
       ]
     },
     {
       title: 'Administração',
       items: [
         { label: 'Equipe & Permissões', icon: ShieldCheck, tab: 'users', allowed: canAccessTab('users') },
-        { label: 'Configurações do Hotel', icon: Settings, tab: 'settings', targetId: 'settings-entry-visual', allowed: has(GRANULAR_PERMISSION_KEYS.manageHotelSettings) },
-        { label: 'Telas KDS', icon: Monitor, tab: 'settings', targetId: 'kds-displays-manager', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) },
-        { label: 'Sistema / Supabase', icon: Database, tab: 'settings', targetId: 'settings-entry-supabase', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) }
+        { label: 'Configurações do Hotel', icon: Settings, page: 'hotelSettings', allowed: has(GRANULAR_PERMISSION_KEYS.manageHotelSettings) },
+        { label: 'Telas KDS', icon: Monitor, page: 'kdsDisplays', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) },
+        { label: 'Sistema / Supabase', icon: Database, page: 'systemSettings', allowed: has(GRANULAR_PERMISSION_KEYS.manageSystemSettings) }
       ]
     },
     {
