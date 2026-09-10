@@ -136,3 +136,166 @@ div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][cla
 div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][class~="left-3"] > aside {
   height: 100% !important;
 }
+
+/* Public site — Praia: distinct visual language on the real published frontend. */
+[data-public-template="beach"] {
+  --site-radius: 28px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-public-template="beach"] #public-hero {
+  min-height: min(82vh, 820px) !important;
+  display: flex;
+  align-items: center;
+  isolation: isolate;
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+}
+
+[data-public-template="beach"] #public-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -38% 42%;
+  height: 65%;
+  border-radius: 50% 50% 0 0;
+  background: rgba(255,255,255,.08);
+  transform: rotate(-7deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-public-template="beach"] #public-hero > div {
+  width: 100%;
+  max-width: 72rem !important;
+  text-align: left !important;
+}
+
+[data-public-template="beach"] #public-hero > div > div:first-child {
+  margin-left: 0 !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(8px);
+}
+
+[data-public-template="beach"] #public-hero h1 {
+  max-width: 780px;
+  font-size: clamp(3rem, 7vw, 6.2rem) !important;
+  line-height: .94;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+
+[data-public-template="beach"] #public-hero p[class*="max-w-2xl"] {
+  margin-left: 0 !important;
+  max-width: 620px !important;
+  font-size: clamp(1rem, 2vw, 1.28rem) !important;
+}
+
+[data-public-template="beach"] #public-hero > div > div:last-of-type {
+  justify-content: flex-start !important;
+  max-width: 760px;
+}
+
+[data-public-template="beach"] #public-hero button {
+  border-radius: 999px !important;
+  padding: .95rem 1.55rem !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,.18) !important;
+}
+
+[data-public-template="beach"] [data-public-booking-engine] > div > div:nth-child(2) {
+  position: relative;
+  z-index: 5;
+  width: min(1120px, calc(100% - 2rem));
+  margin: -54px auto 0 !important;
+  padding: 1.25rem !important;
+  border-radius: 28px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 24px 70px rgba(32,51,39,.14);
+  backdrop-filter: blur(12px);
+}
+
+[data-public-template="beach"] #public-about,
+[data-public-template="beach"] #public-services,
+[data-public-template="beach"] #public-gallery,
+[data-public-template="beach"] #public-location,
+[data-public-template="beach"] #public-contact {
+  padding-top: 5rem !important;
+  padding-bottom: 5rem !important;
+}
+
+[data-public-template="beach"] #public-about > div {
+  gap: 4.5rem !important;
+}
+
+[data-public-template="beach"] #public-about > div > div:first-child {
+  min-height: 360px !important;
+  border-radius: 48px 18px 48px 18px !important;
+  box-shadow: 0 24px 60px rgba(44,51,39,.12);
+}
+
+[data-public-template="beach"] #public-services > div > div:last-child {
+  gap: 1rem !important;
+}
+
+[data-public-template="beach"] #public-services > div > div:last-child > div {
+  border-radius: 24px !important;
+  border: 0 !important;
+  box-shadow: 0 12px 32px rgba(44,51,39,.08) !important;
+}
+
+[data-public-template="beach"] #public-gallery > div > div:last-child {
+  gap: 1rem !important;
+}
+
+[data-public-template="beach"] #public-gallery figure {
+  border-radius: 34px !important;
+  box-shadow: 0 18px 44px rgba(44,51,39,.12);
+}
+
+[data-public-template="beach"] #public-gallery figure:first-child {
+  min-height: 420px !important;
+  border-radius: 54px 22px 54px 22px !important;
+}
+
+[data-public-template="beach"] #public-location > div > div:first-child {
+  border-radius: 32px !important;
+  border: 0 !important;
+  box-shadow: 0 18px 50px rgba(44,51,39,.08) !important;
+}
+
+[data-public-template="beach"] #public-location > div > div:last-child {
+  border-radius: 22px 52px 22px 52px !important;
+}
+
+[data-public-template="beach"] #public-contact > div {
+  border-radius: 48px 20px 48px 20px !important;
+  box-shadow: 0 24px 70px rgba(44,51,39,.16);
+}
+
+@media (max-width: 767px) {
+  [data-public-template="beach"] #public-hero {
+    min-height: 68vh !important;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+  }
+
+  [data-public-template="beach"] #public-hero h1 {
+    font-size: clamp(2.6rem, 13vw, 4.4rem) !important;
+  }
+
+  [data-public-template="beach"] [data-public-booking-engine] > div > div:nth-child(2) {
+    margin-top: -28px !important;
+    width: calc(100% - 1rem);
+    padding: .75rem !important;
+    border-radius: 20px;
+  }
+
+  [data-public-template="beach"] #public-about,
+  [data-public-template="beach"] #public-services,
+  [data-public-template="beach"] #public-gallery,
+  [data-public-template="beach"] #public-location,
+  [data-public-template="beach"] #public-contact {
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+}
