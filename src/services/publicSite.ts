@@ -34,54 +34,54 @@ export interface PublicSiteSettings {
   updatedAt?: string;
 }
 
-export async function loadPublicSiteSettings(hotelId = 'hotel_1'): Promise<PublicSiteSettings | null> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return null;
+export interface PublicSiteAdminState {
+  published: PublicSiteSettings;
+  draft: PublicSiteSettings;
+  hasDraft: boolean;
+  draftUpdatedAt?: string;
+}
 
-  const { data, error } = await supabase.rpc('get_public_site_settings', {
-    p_hotel_id: hotelId
-  });
-
-  if (error) throw error;
-  if (!data) return null;
-
+function mapPublicSiteSettings(data: any, hotelId = 'hotel_1'): PublicSiteSettings {
   return {
-    hotelId: String(data.hotel_id || hotelId),
-    status: data.status === 'draft' ? 'draft' : 'published',
-    templateKey: String(data.template_key || 'classic'),
-    primaryColor: String(data.primary_color || '#2C3327'),
-    secondaryColor: String(data.secondary_color || '#588157'),
-    accentColor: String(data.accent_color || '#D4A373'),
-    backgroundColor: String(data.background_color || '#FDFBF7'),
-    textColor: String(data.text_color || '#3D4035'),
-    headingFont: String(data.heading_font || 'Playfair Display'),
-    bodyFont: String(data.body_font || 'Plus Jakarta Sans'),
-    borderRadius: String(data.border_radius || '16px'),
-    heroTitle: String(data.hero_title || ''),
-    heroSubtitle: String(data.hero_subtitle || ''),
-    heroMediaUrl: data.hero_media_url || undefined,
-    heroMediaType: ['image', 'video', 'none'].includes(data.hero_media_type) ? data.hero_media_type : 'image',
-    primaryCtaLabel: String(data.primary_cta_label || 'Reservar agora'),
-    primaryCtaTarget: String(data.primary_cta_target || 'booking'),
-    showBookingBar: data.show_booking_bar !== false,
-    showAccommodations: data.show_accommodations !== false,
-    showServices: data.show_services !== false,
-    showGallery: data.show_gallery !== false,
-    showAbout: data.show_about !== false,
-    showLocation: data.show_location !== false,
-    showContact: data.show_contact !== false,
-    sectionOrder: Array.isArray(data.section_order) ? data.section_order.map(String) : [],
-    customDomain: data.custom_domain || undefined,
-    subdomainSlug: data.subdomain_slug || undefined,
-    updatedAt: data.updated_at || undefined
+    hotelId: String(data?.hotel_id || data?.hotelId || hotelId),
+    status: data?.status === 'draft' ? 'draft' : 'published',
+    templateKey: String(data?.template_key || data?.templateKey || 'classic'),
+    primaryColor: String(data?.primary_color || data?.primaryColor || '#2C3327'),
+    secondaryColor: String(data?.secondary_color || data?.secondaryColor || '#588157'),
+    accentColor: String(data?.accent_color || data?.accentColor || '#D4A373'),
+    backgroundColor: String(data?.background_color || data?.backgroundColor || '#FDFBF7'),
+    textColor: String(data?.text_color || data?.textColor || '#3D4035'),
+    headingFont: String(data?.heading_font || data?.headingFont || 'Playfair Display'),
+    bodyFont: String(data?.body_font || data?.bodyFont || 'Plus Jakarta Sans'),
+    borderRadius: String(data?.border_radius || data?.borderRadius || '16px'),
+    heroTitle: String(data?.hero_title ?? data?.heroTitle ?? ''),
+    heroSubtitle: String(data?.hero_subtitle ?? data?.heroSubtitle ?? ''),
+    heroMediaUrl: data?.hero_media_url || data?.heroMediaUrl || undefined,
+    heroMediaType: ['image', 'video', 'none'].includes(data?.hero_media_type || data?.heroMediaType)
+      ? (data?.hero_media_type || data?.heroMediaType)
+      : 'image',
+    primaryCtaLabel: String(data?.primary_cta_label || data?.primaryCtaLabel || 'Reservar agora'),
+    primaryCtaTarget: String(data?.primary_cta_target || data?.primaryCtaTarget || 'booking'),
+    showBookingBar: (data?.show_booking_bar ?? data?.showBookingBar) !== false,
+    showAccommodations: (data?.show_accommodations ?? data?.showAccommodations) !== false,
+    showServices: (data?.show_services ?? data?.showServices) !== false,
+    showGallery: (data?.show_gallery ?? data?.showGallery) !== false,
+    showAbout: (data?.show_about ?? data?.showAbout) !== false,
+    showLocation: (data?.show_location ?? data?.showLocation) !== false,
+    showContact: (data?.show_contact ?? data?.showContact) !== false,
+    sectionOrder: Array.isArray(data?.section_order)
+      ? data.section_order.map(String)
+      : Array.isArray(data?.sectionOrder)
+        ? data.sectionOrder.map(String)
+        : [],
+    customDomain: data?.custom_domain || data?.customDomain || undefined,
+    subdomainSlug: data?.subdomain_slug || data?.subdomainSlug || undefined,
+    updatedAt: data?.updated_at || data?.updatedAt || undefined
   };
 }
 
-export async function savePublicSiteSettings(settings: PublicSiteSettings): Promise<PublicSiteSettings> {
-  const supabase = getSupabaseClient();
-  if (!supabase) throw new Error('Supabase não configurado.');
-
-  const payload = {
+function toEditablePayload(settings: PublicSiteSettings) {
+  return {
     templateKey: settings.templateKey,
     primaryColor: settings.primaryColor,
     secondaryColor: settings.secondaryColor,
@@ -103,14 +103,76 @@ export async function savePublicSiteSettings(settings: PublicSiteSettings): Prom
     showGallery: settings.showGallery,
     showAbout: settings.showAbout,
     showLocation: settings.showLocation,
-    showContact: settings.showContact
+    showContact: settings.showContact,
+    sectionOrder: settings.sectionOrder
   };
+}
+
+export async function loadPublicSiteSettings(hotelId = 'hotel_1'): Promise<PublicSiteSettings | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.rpc('get_public_site_settings', { p_hotel_id: hotelId });
+  if (error) throw error;
+  if (!data) return null;
+  return mapPublicSiteSettings(data, hotelId);
+}
+
+export async function loadPublicSiteAdminState(hotelId = 'hotel_1'): Promise<PublicSiteAdminState> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data, error } = await supabase.rpc('get_public_site_admin_settings', { p_hotel_id: hotelId });
+  if (error) throw error;
+  if (!data?.published) throw new Error('Configuração pública não encontrada.');
+
+  const published = mapPublicSiteSettings(data.published, hotelId);
+  const draft = data.draft
+    ? mapPublicSiteSettings({ ...toEditablePayload(published), ...data.draft, hotelId, status: 'draft' }, hotelId)
+    : { ...published };
+
+  return {
+    published,
+    draft,
+    hasDraft: Boolean(data.has_draft),
+    draftUpdatedAt: data.draft_updated_at || undefined
+  };
+}
+
+export async function savePublicSiteDraft(settings: PublicSiteSettings): Promise<PublicSiteSettings> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data, error } = await supabase.rpc('save_public_site_draft', {
+    p_hotel_id: settings.hotelId,
+    p_payload: toEditablePayload(settings)
+  });
+  if (error) throw error;
+
+  return mapPublicSiteSettings({ ...data, hotelId: settings.hotelId, status: 'draft' }, settings.hotelId);
+}
+
+export async function publishPublicSiteSettings(hotelId = 'hotel_1'): Promise<PublicSiteSettings> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { error } = await supabase.rpc('publish_public_site_settings', { p_hotel_id: hotelId });
+  if (error) throw error;
+
+  const refreshed = await loadPublicSiteSettings(hotelId);
+  if (!refreshed) throw new Error('Configuração pública não encontrada após publicar.');
+  return refreshed;
+}
+
+// Compatibilidade com a FASE 2A. O editor novo usa rascunho/publicação separados.
+export async function savePublicSiteSettings(settings: PublicSiteSettings): Promise<PublicSiteSettings> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
 
   const { error } = await supabase.rpc('save_public_site_settings', {
     p_hotel_id: settings.hotelId,
-    p_payload: payload
+    p_payload: toEditablePayload(settings)
   });
-
   if (error) throw error;
 
   const refreshed = await loadPublicSiteSettings(settings.hotelId);
