@@ -8,6 +8,7 @@ import { LossDamagePanel } from './LossDamagePanel.tsx';
 import { PurchaseNeedPanel } from './PurchaseNeedPanel.tsx';
 import { ReservationsManager } from './ReservationsManager.tsx';
 import { CheckInCheckOutModal } from './CheckInCheckOutModal.tsx';
+import { ReceptionCheckFlowPage } from './ReceptionCheckFlowPage.tsx';
 import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
 import { MenuManagementModule } from './MenuManagementModule.tsx';
@@ -22,6 +23,8 @@ export type StandaloneModule =
   | 'purchases'
   | 'reservations'
   | 'checkinout'
+  | 'checkin'
+  | 'checkout'
   | 'walkin'
   | 'minibar'
   | 'roomService'
@@ -41,6 +44,8 @@ const TITLES: Record<StandaloneModule, string> = {
   purchases: 'Compras',
   reservations: 'Reservas',
   checkinout: 'Check-in / Check-out',
+  checkin: 'Check-in',
+  checkout: 'Check-out',
   walkin: 'Check-in Direto',
   minibar: 'Frigobar',
   roomService: 'Room Service',
@@ -79,7 +84,7 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
             ? canViewInventory
             : module === 'walkin'
               ? canManageCheckInOut
-              : ['reservations', 'checkinout'].includes(module)
+              : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
                 ? canAccessReception
                 : module === 'minibar'
                   ? canViewMinibar
@@ -125,6 +130,8 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       )}
       {module === 'reservations' && <ReservationsManager />}
       {module === 'checkinout' && <CheckInCheckOutModal />}
+      {module === 'checkin' && <ReceptionCheckFlowPage flow="checkin" />}
+      {module === 'checkout' && <ReceptionCheckFlowPage flow="checkout" />}
       {module === 'walkin' && <WalkInCheckIn />}
       {module === 'minibar' && <MinibarOperationalModule canManage={canManageMinibar} />}
       {module === 'roomService' && <OrdersOperationalModule mode="room_service" canManage={canManageRoomService} />}
