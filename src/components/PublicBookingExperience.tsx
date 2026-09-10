@@ -8,7 +8,10 @@ import {
   Sparkles,
   BedDouble,
   CheckCircle2,
-  Building2
+  Building2,
+  Images,
+  Navigation,
+  MessageCircle
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { OnlineBookingEngine } from './OnlineBookingEngine.tsx';
@@ -60,12 +63,30 @@ export const PublicBookingExperience: React.FC = () => {
     return Array.from(unique).slice(0, 8);
   }, [settings?.roomTypes]);
 
+  const galleryItems = useMemo(() => {
+    return (settings?.roomTypes || [])
+      .filter(roomType => Boolean(roomType.imageUrl))
+      .slice(0, 6)
+      .map(roomType => ({
+        id: roomType.id,
+        title: roomType.name,
+        imageUrl: roomType.imageUrl as string
+      }));
+  }, [settings?.roomTypes]);
+
+  const locationLabel = [settings?.address, settings?.cityState].filter(Boolean).join(', ');
+  const mapsUrl = locationLabel
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationLabel)}`
+    : undefined;
+  const phoneHref = settings?.phone ? `tel:${settings.phone.replace(/[^+\d]/g, '')}` : undefined;
+  const emailHref = settings?.email ? `mailto:${settings.email}` : undefined;
+
   const handlePrimaryCta = () => {
     document.getElementById('btn-search-availability')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const modularSections = useMemo(() => {
-    const sections: Array<{ key: 'about' | 'services'; node: React.ReactNode }> = [];
+    const sections: Array<{ key: 'about' | 'services' | 'gallery' | 'location' | 'contact'; node: React.ReactNode }> = [];
 
     if (siteSettings?.showAbout !== false) {
       sections.push({
@@ -150,13 +171,161 @@ export const PublicBookingExperience: React.FC = () => {
       });
     }
 
+    if (siteSettings?.showGallery !== false) {
+      sections.push({
+        key: 'gallery',
+        node: (
+          <section id="public-gallery" className="px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-6xl">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                <div className="max-w-2xl">
+                  <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: secondary }}>Galeria</span>
+                  <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: primary, fontFamily: headingFont }}>
+                    Veja um pouco da sua próxima estadia
+                  </h2>
+                </div>
+                <Images className="h-8 w-8 opacity-30" style={{ color: secondary }} />
+              </div>
+
+              {galleryItems.length > 0 ? (
+                <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {galleryItems.map((item, index) => (
+                    <figure
+                      key={item.id}
+                      className={`group relative overflow-hidden ${index === 0 ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                      style={{ borderRadius: radius, minHeight: index === 0 ? '320px' : '220px' }}
+                    >
+                      <img src={item.imageUrl} alt={item.title} className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
+                      <figcaption className="absolute bottom-0 left-0 right-0 p-5 text-sm font-bold text-white">
+                        {item.title}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-7 flex min-h-44 items-center justify-center border border-dashed p-8 text-center" style={{ borderColor: `${secondary}55`, borderRadius: radius }}>
+                  <div>
+                    <Images className="mx-auto h-8 w-8 opacity-40" style={{ color: secondary }} />
+                    <p className="mt-3 text-sm font-semibold">A galeria será preenchida automaticamente com as imagens das acomodações cadastradas.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )
+      });
+    }
+
+    if (siteSettings?.showLocation !== false) {
+      sections.push({
+        key: 'location',
+        node: (
+          <section id="public-location" className="px-4 py-12 sm:px-6 lg:px-8" style={{ backgroundColor: 'rgba(255,255,255,0.62)' }}>
+            <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_0.9fr]">
+              <div className="border bg-white p-7 shadow-sm" style={{ borderColor: `${secondary}33`, borderRadius: radius }}>
+                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: secondary }}>Localização</span>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight" style={{ color: primary, fontFamily: headingFont }}>
+                  Fácil de encontrar, simples de chegar
+                </h2>
+                {locationLabel ? (
+                  <p className="mt-4 flex items-start gap-2 text-sm leading-6 opacity-80">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" style={{ color: secondary }} />
+                    <span>{locationLabel}</span>
+                  </p>
+                ) : (
+                  <p className="mt-4 text-sm opacity-70">Cadastre o endereço do estabelecimento para exibi-lo aqui.</p>
+                )}
+                {mapsUrl && (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+                    style={{ backgroundColor: secondary, borderRadius: radius }}
+                  >
+                    <Navigation className="h-4 w-4" />
+                    Abrir no mapa
+                  </a>
+                )}
+              </div>
+
+              <div className="flex min-h-64 items-center justify-center p-8 text-center" style={{ backgroundColor: primary, color: background, borderRadius: radius }}>
+                <div>
+                  <MapPin className="mx-auto h-10 w-10" style={{ color: accent }} />
+                  <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] opacity-65">Destino</p>
+                  <p className="mt-2 text-2xl font-bold" style={{ fontFamily: headingFont }}>{settings?.cityState || settings?.hotelName || heroTitle}</p>
+                  {settings?.address && <p className="mx-auto mt-3 max-w-sm text-sm opacity-75">{settings.address}</p>}
+                </div>
+              </div>
+            </div>
+          </section>
+        )
+      });
+    }
+
+    if (siteSettings?.showContact !== false) {
+      sections.push({
+        key: 'contact',
+        node: (
+          <section id="public-contact" className="px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-6xl overflow-hidden" style={{ borderRadius: radius, backgroundColor: primary, color: background }}>
+              <div className="grid gap-8 p-7 sm:p-9 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: accent }}>Contato</span>
+                  <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl" style={{ fontFamily: headingFont }}>
+                    Pronto para planejar sua estadia?
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 opacity-75">
+                    Reserve diretamente pelo site ou fale com o estabelecimento pelos canais oficiais.
+                  </p>
+                  {siteSettings?.showBookingBar !== false && (
+                    <button
+                      type="button"
+                      onClick={handlePrimaryCta}
+                      className="mt-6 inline-flex items-center gap-2 px-5 py-3 text-sm font-bold shadow-lg transition hover:brightness-105"
+                      style={{ backgroundColor: accent, color: primary, borderRadius: radius }}
+                    >
+                      {siteSettings?.primaryCtaLabel || 'Reservar agora'}
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid gap-3">
+                  {phoneHref && (
+                    <a href={phoneHref} className="flex items-center gap-3 border border-white/15 bg-white/10 p-4 transition hover:bg-white/15" style={{ borderRadius: radius }}>
+                      <Phone className="h-5 w-5" style={{ color: accent }} />
+                      <div><p className="text-xs opacity-60">Telefone</p><p className="text-sm font-bold">{settings?.phone}</p></div>
+                    </a>
+                  )}
+                  {emailHref && (
+                    <a href={emailHref} className="flex items-center gap-3 border border-white/15 bg-white/10 p-4 transition hover:bg-white/15" style={{ borderRadius: radius }}>
+                      <Mail className="h-5 w-5" style={{ color: accent }} />
+                      <div><p className="text-xs opacity-60">E-mail</p><p className="break-all text-sm font-bold">{settings?.email}</p></div>
+                    </a>
+                  )}
+                  {!phoneHref && !emailHref && (
+                    <div className="flex items-center gap-3 border border-white/15 bg-white/10 p-4" style={{ borderRadius: radius }}>
+                      <MessageCircle className="h-5 w-5" style={{ color: accent }} />
+                      <p className="text-sm opacity-75">Cadastre telefone ou e-mail para liberar os canais de contato.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )
+      });
+    }
+
     const order = siteSettings?.sectionOrder || [];
     return sections.sort((a, b) => {
       const aIndex = order.indexOf(a.key);
       const bIndex = order.indexOf(b.key);
       return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
     });
-  }, [amenities, background, headingFont, heroTitle, primary, radius, secondary, settings, siteSettings]);
+  }, [accent, amenities, background, emailHref, galleryItems, headingFont, heroTitle, locationLabel, mapsUrl, phoneHref, primary, radius, secondary, settings, siteSettings]);
 
   return (
     <div
