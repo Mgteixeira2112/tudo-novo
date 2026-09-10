@@ -59,6 +59,12 @@ export interface PublicSiteAdminState {
   draftUpdatedAt?: string;
 }
 
+let previewOverride: PublicSiteSettings | null = null;
+
+export function setPublicSitePreviewOverride(settings: PublicSiteSettings | null) {
+  previewOverride = settings ? { ...settings, sectionContent: { ...settings.sectionContent } } : null;
+}
+
 function normalizeStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
 }
@@ -153,6 +159,10 @@ function toEditablePayload(settings: PublicSiteSettings) {
 }
 
 export async function loadPublicSiteSettings(hotelId = 'hotel_1'): Promise<PublicSiteSettings | null> {
+  if (previewOverride?.hotelId === hotelId) {
+    return { ...previewOverride, sectionContent: { ...previewOverride.sectionContent } };
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
