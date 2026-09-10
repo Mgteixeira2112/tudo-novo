@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { RoomsRegistryManager } from './RoomsRegistryManager.tsx';
-import { IntegratedInventoryManager } from './IntegratedInventoryManager.tsx';
+import { InventoryStandalonePage } from './InventoryStandalonePage.tsx';
 import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
 import { LaundryKanban } from './LaundryKanban.tsx';
 import { LossDamagePanel } from './LossDamagePanel.tsx';
@@ -17,6 +17,8 @@ import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
 export type StandaloneModule =
   | 'rooms'
   | 'inventory'
+  | 'kardex'
+  | 'replenishment'
   | 'linen'
   | 'laundry'
   | 'lossDamage'
@@ -38,6 +40,8 @@ export type StandaloneModule =
 const TITLES: Record<StandaloneModule, string> = {
   rooms: 'Quartos',
   inventory: 'Estoque',
+  kardex: 'Kardex',
+  replenishment: 'Reposição',
   linen: 'Enxoval',
   laundry: 'Lavanderia',
   lossDamage: 'Perdas & Avarias',
@@ -80,7 +84,7 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
         ? canViewRooms
         : ['tasks', 'housekeeping', 'maintenance'].includes(module)
           ? canViewKanbans
-          : ['inventory', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
+          : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
             ? canViewInventory
             : module === 'walkin'
               ? canManageCheckInOut
@@ -114,7 +118,13 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
 
       {module === 'rooms' && <RoomsRegistryManager />}
       {module === 'inventory' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><IntegratedInventoryManager /></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><InventoryStandalonePage view="items" /></div>
+      )}
+      {module === 'kardex' && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><InventoryStandalonePage view="kardex" /></div>
+      )}
+      {module === 'replenishment' && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><InventoryStandalonePage view="replenishment" /></div>
       )}
       {module === 'linen' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><LinenCirculationPanel /></div>
