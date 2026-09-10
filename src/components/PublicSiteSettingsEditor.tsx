@@ -169,7 +169,8 @@ export const PublicSiteSettingsEditor: React.FC = () => {
           <div className="border-b border-[#EEEADF] px-5 py-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#588157]">Preview do rascunho</p><p className="text-xs text-[#6B705C]">Nada desta prévia é publicado automaticamente.</p></div>
           <div style={{ backgroundColor: form.backgroundColor, color: form.textColor, fontFamily: form.bodyFont }}>
             <div className="px-6 py-10 text-center" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>
-              <p className="text-3xl font-black" style={{ fontFamily: form.headingFont }}>{form.heroTitle || 'Nome do hotel'}</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] opacity-70">Template {form.templateKey}</p>
+              <p className="mt-2 text-3xl font-black" style={{ fontFamily: form.headingFont }}>{form.heroTitle || 'Nome do hotel'}</p>
               <p className="mx-auto mt-2 max-w-2xl text-sm opacity-80">{form.heroSubtitle || 'Subtítulo do hotel'}</p>
               {form.showBookingBar && <span className="mt-5 inline-block px-4 py-2 text-xs font-black" style={{ backgroundColor: form.accentColor, color: form.primaryColor, borderRadius: form.borderRadius }}>{form.primaryCtaLabel}</span>}
             </div>
@@ -195,7 +196,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos títulos</span><input value={form.headingFont} onChange={e => update('headingFont', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Fonte dos textos</span><input value={form.bodyFont} onChange={e => update('bodyFont', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Arredondamento</span><select value={form.borderRadius} onChange={e => update('borderRadius', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="0px">Reto</option><option value="8px">Discreto</option><option value="16px">Padrão</option><option value="24px">Arredondado</option></select></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Template</span><select value={form.templateKey} onChange={e => update('templateKey', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="classic">Clássico</option></select></label>
+            <label className="block"><span className="text-xs font-bold text-[#565B4B]">Template</span><select value={form.templateKey} onChange={e => update('templateKey', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm"><option value="classic">Clássico</option><option value="beach">Praia</option><option value="boutique">Boutique</option><option value="urban">Urbano</option><option value="nature">Natureza</option></select></label>
           </div>
         </section>
 

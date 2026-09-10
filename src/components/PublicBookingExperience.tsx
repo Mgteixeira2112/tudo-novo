@@ -17,6 +17,8 @@ import { useHotel } from '../context/HotelContext.tsx';
 import { OnlineBookingEngine } from './OnlineBookingEngine.tsx';
 import { loadPublicSiteSettings, PublicSiteSettings } from '../services/publicSite.ts';
 
+const VALID_TEMPLATES = new Set(['classic', 'beach', 'boutique', 'urban', 'nature']);
+
 export const PublicBookingExperience: React.FC = () => {
   const { settings } = useHotel();
   const [siteSettings, setSiteSettings] = useState<PublicSiteSettings | null>(null);
@@ -42,6 +44,7 @@ export const PublicBookingExperience: React.FC = () => {
   const heroTitle = siteSettings?.heroTitle || settings?.hotelName || 'Hotel';
   const heroSubtitle = siteSettings?.heroSubtitle || settings?.tagline || '';
   const content = siteSettings?.sectionContent || {};
+  const templateKey = VALID_TEMPLATES.has(siteSettings?.templateKey || '') ? siteSettings!.templateKey : 'classic';
 
   const amenities = useMemo(() => {
     const unique = new Set<string>();
@@ -242,6 +245,7 @@ export const PublicBookingExperience: React.FC = () => {
   return (
     <div
       data-public-booking-shell
+      data-public-template={templateKey}
       data-hide-booking={siteSettings?.showBookingBar === false ? 'true' : 'false'}
       data-hide-accommodations={siteSettings?.showAccommodations === false ? 'true' : 'false'}
       style={{ backgroundColor: background, color: text, fontFamily: bodyFont, ['--site-primary' as string]: primary, ['--site-secondary' as string]: secondary, ['--site-accent' as string]: accent, ['--site-radius' as string]: radius }}
@@ -256,6 +260,41 @@ export const PublicBookingExperience: React.FC = () => {
         [data-public-booking-engine] button[id^="btn-reserve-"] { background-color: var(--site-primary) !important; border-radius: var(--site-radius) !important; }
         [data-public-booking-engine] #btn-search-availability:hover,
         [data-public-booking-engine] button[id^="btn-reserve-"]:hover { filter: brightness(1.08); }
+
+        [data-public-template="beach"] { --site-radius: 24px !important; }
+        [data-public-template="beach"] #public-hero { min-height: 68vh; display: flex; align-items: center; }
+        [data-public-template="beach"] #public-hero > div { max-width: 72rem; text-align: left; }
+        [data-public-template="beach"] #public-hero p[class*="max-w-2xl"] { margin-left: 0; }
+        [data-public-template="beach"] #public-hero > div > div:last-of-type { justify-content: flex-start; }
+        [data-public-template="beach"] #public-hero button { border-radius: 999px !important; }
+        [data-public-template="beach"] #public-gallery figure { border-radius: 28px !important; }
+
+        [data-public-template="boutique"] { --site-radius: 6px !important; }
+        [data-public-template="boutique"] #public-hero { min-height: 78vh; display: flex; align-items: center; }
+        [data-public-template="boutique"] #public-hero h1 { font-size: clamp(3rem, 8vw, 6.5rem); font-weight: 500; letter-spacing: -0.045em; }
+        [data-public-template="boutique"] #public-hero > div { max-width: 58rem; }
+        [data-public-template="boutique"] #public-about > div { grid-template-columns: 1.2fr 0.8fr; }
+        [data-public-template="boutique"] #public-gallery figure:first-child { min-height: 430px !important; }
+        [data-public-template="boutique"] section { padding-top: 4.5rem; padding-bottom: 4.5rem; }
+
+        [data-public-template="urban"] { --site-radius: 0px !important; }
+        [data-public-template="urban"] #public-hero > div { max-width: 72rem; text-align: left; }
+        [data-public-template="urban"] #public-hero p[class*="max-w-2xl"] { margin-left: 0; }
+        [data-public-template="urban"] #public-hero > div > div:last-of-type { justify-content: flex-start; }
+        [data-public-template="urban"] #public-hero h1 { text-transform: uppercase; letter-spacing: -0.035em; }
+        [data-public-template="urban"] #public-about,
+        [data-public-template="urban"] #public-gallery,
+        [data-public-template="urban"] #public-contact { border-top: 1px solid color-mix(in srgb, var(--site-secondary) 25%, transparent); }
+        [data-public-template="urban"] #public-services > div > div:last-child { gap: 1px; }
+        [data-public-template="urban"] #public-services > div > div:last-child > div { box-shadow: none !important; }
+
+        [data-public-template="nature"] { --site-radius: 30px !important; }
+        [data-public-template="nature"] #public-hero { min-height: 72vh; display: flex; align-items: center; border-bottom-left-radius: 52px; border-bottom-right-radius: 52px; }
+        [data-public-template="nature"] #public-about > div > div:first-child,
+        [data-public-template="nature"] #public-location > div > div:last-child { border-radius: 42px !important; }
+        [data-public-template="nature"] #public-services > div > div:last-child > div { border-radius: 24px !important; box-shadow: none !important; }
+        [data-public-template="nature"] #public-gallery figure { border-radius: 34px !important; }
+        [data-public-template="nature"] #public-contact > div { border-radius: 42px !important; }
       `}</style>
 
       <section id="public-hero" className="relative overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:px-8" style={{ backgroundColor: primary, color: background }}>
