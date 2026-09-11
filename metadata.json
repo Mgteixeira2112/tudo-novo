@@ -1,6 +1,6 @@
 {
-  "name": "SaaS Hoteleiro & Motor de Reservas",
-  "description": "Sistema SaaS hoteleiro completo com front-end configurável, motor de reservas online sem localStorage com persistência SQL Supabase, gestão de setores com Kanbans em tempo real, cadastro de hóspedes, check-in/out, controle de frigobar, cozinha, room service e financeiro integrado.",
+  "name": "Govermix — Sistema Operacional da Hotelaria",
+  "description": "Govermix é uma plataforma operacional hoteleira com site público configurável, motor de reservas online, persistência Supabase, gestão de setores, Kanbans em tempo real, hóspedes, check-in/out, governança, manutenção, alimentos e bebidas, estoque, financeiro e alertas operacionais.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
