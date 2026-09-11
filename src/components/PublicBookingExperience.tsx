@@ -11,7 +11,9 @@ import {
   Building2,
   Images,
   Navigation,
-  MessageCircle
+  MessageCircle,
+  Menu,
+  X
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { OnlineBookingEngine } from './OnlineBookingEngine.tsx';
@@ -23,6 +25,7 @@ export const PublicBookingExperience: React.FC = () => {
   const { settings } = useHotel();
   const [siteSettings, setSiteSettings] = useState<PublicSiteSettings | null>(null);
   const [loadingSite, setLoadingSite] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +82,32 @@ export const PublicBookingExperience: React.FC = () => {
 
   const handlePrimaryCta = () => {
     document.getElementById('btn-search-availability')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setMobileMenuOpen(false);
   };
+
+  const scrollToSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setMobileMenuOpen(false);
+  };
+
+  const navigationItems = useMemo(() => {
+    const items = [
+      { key: 'about', label: 'Sobre', target: 'public-about', visible: siteSettings?.showAbout !== false },
+      { key: 'services', label: 'Serviços', target: 'public-services', visible: siteSettings?.showServices !== false },
+      { key: 'gallery', label: 'Galeria', target: 'public-gallery', visible: siteSettings?.showGallery !== false },
+      { key: 'location', label: 'Localização', target: 'public-location', visible: siteSettings?.showLocation !== false },
+      { key: 'contact', label: 'Contato', target: 'public-contact', visible: siteSettings?.showContact !== false }
+    ].filter(item => item.visible);
+
+    const order = siteSettings?.sectionOrder || [];
+    items.sort((a, b) => {
+      const aIndex = order.indexOf(a.key);
+      const bIndex = order.indexOf(b.key);
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    });
+
+    return [{ key: 'hero', label: 'Início', target: 'public-hero', visible: true }, ...items];
+  }, [siteSettings]);
 
   const modularSections = useMemo(() => {
     const sections: Array<{ key: 'about' | 'services' | 'gallery' | 'location' | 'contact'; node: React.ReactNode }> = [];
@@ -297,6 +325,50 @@ export const PublicBookingExperience: React.FC = () => {
         [data-public-template="nature"] #public-gallery figure { border-radius: 34px !important; }
         [data-public-template="nature"] #public-contact > div { border-radius: 42px !important; }
       `}</style>
+
+      <header className="sticky top-0 z-50 border-b backdrop-blur-xl" style={{ backgroundColor: `${background}F2`, borderColor: `${secondary}26` }}>
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <button type="button" onClick={() => scrollToSection('public-hero')} className="min-w-0 text-left" aria-label="Ir para o início">
+            <span className="block truncate text-base font-bold sm:text-lg" style={{ color: primary, fontFamily: headingFont }}>{settings?.hotelName || heroTitle}</span>
+          </button>
+
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Navegação principal">
+            {navigationItems.map(item => (
+              <button key={item.key} type="button" onClick={() => scrollToSection(item.target)} className="rounded-lg px-3 py-2 text-sm font-semibold transition hover:bg-black/5" style={{ color: text }}>
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {siteSettings?.showBookingBar !== false && (
+              <button type="button" onClick={handlePrimaryCta} className="hidden px-4 py-2.5 text-sm font-bold transition hover:brightness-105 sm:inline-flex" style={{ backgroundColor: primary, color: background, borderRadius: radius }}>
+                {siteSettings?.primaryCtaLabel || 'Reservar agora'}
+              </button>
+            )}
+            <button type="button" onClick={() => setMobileMenuOpen(open => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border md:hidden" style={{ borderColor: `${secondary}33`, color: primary }} aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={mobileMenuOpen}>
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+
+        {mobileMenuOpen && (
+          <nav className="border-t px-4 py-3 md:hidden" style={{ borderColor: `${secondary}26`, backgroundColor: background }} aria-label="Navegação móvel">
+            <div className="mx-auto grid max-w-7xl gap-1">
+              {navigationItems.map(item => (
+                <button key={item.key} type="button" onClick={() => scrollToSection(item.target)} className="rounded-lg px-3 py-3 text-left text-sm font-semibold transition hover:bg-black/5" style={{ color: text }}>
+                  {item.label}
+                </button>
+              ))}
+              {siteSettings?.showBookingBar !== false && (
+                <button type="button" onClick={handlePrimaryCta} className="mt-2 px-4 py-3 text-left text-sm font-bold" style={{ backgroundColor: primary, color: background, borderRadius: radius }}>
+                  {siteSettings?.primaryCtaLabel || 'Reservar agora'}
+                </button>
+              )}
+            </div>
+          </nav>
+        )}
+      </header>
 
       <section id="public-hero" className="relative overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:px-8" style={{ backgroundColor: primary, color: background }}>
         {siteSettings?.heroMediaUrl && siteSettings.heroMediaType === 'image' && <><img src={siteSettings.heroMediaUrl} alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" /><div className="absolute inset-0 bg-black/50" /></>}
