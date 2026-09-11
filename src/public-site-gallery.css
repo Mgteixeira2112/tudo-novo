@@ -1,0 +1,199 @@
+/* Galeria pública definitiva: usa exclusivamente os galleryItems publicados pelo CMS. */
+.public-site-gallery__filter {
+  border: 1px solid color-mix(in srgb, var(--gallery-filter-color) 18%, transparent);
+  border-radius: 999px;
+  padding: .6rem .9rem;
+  background: rgba(255,255,255,.68);
+  color: var(--gallery-filter-color);
+  font-size: .75rem;
+  font-weight: 800;
+  transition: .2s ease;
+}
+
+.public-site-gallery__filter:hover,
+.public-site-gallery__filter[data-active="true"] {
+  background: var(--gallery-filter-color);
+  border-color: var(--gallery-filter-color);
+  color: white;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--gallery-filter-color) 18%, transparent);
+}
+
+.public-site-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.public-site-gallery__item {
+  grid-column: span 4;
+  min-height: 240px;
+  background: #ece8dd;
+  box-shadow: 0 10px 30px rgba(44, 51, 39, .08);
+}
+
+.public-site-gallery__item[data-primary="true"] {
+  grid-column: span 8;
+  grid-row: span 2;
+  min-height: 500px;
+}
+
+.public-site-gallery__shade {
+  background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,.05) 55%, transparent);
+}
+
+.public-site-gallery__caption {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  text-shadow: 0 1px 10px rgba(0,0,0,.4);
+}
+
+.public-site-gallery__caption small {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.public-site-gallery__featured {
+  z-index: 2;
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  color: #2C3327;
+  padding: .45rem .65rem;
+  backdrop-filter: blur(10px);
+}
+
+/* Praia: composição leve, arredondada e assimétrica. */
+[data-public-template="beach"] .public-site-gallery__grid {
+  gap: 1.25rem;
+}
+
+[data-public-template="beach"] .public-site-gallery__item {
+  border-radius: 30px !important;
+}
+
+[data-public-template="beach"] .public-site-gallery__item:nth-child(3n) {
+  transform: translateY(1.25rem);
+}
+
+/* Boutique: editorial, mais alto e com respiro. */
+[data-public-template="boutique"] .public-site-gallery__filters {
+  gap: .35rem;
+}
+
+[data-public-template="boutique"] .public-site-gallery__filter {
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+[data-public-template="boutique"] .public-site-gallery__grid {
+  gap: .5rem;
+}
+
+[data-public-template="boutique"] .public-site-gallery__item {
+  border-radius: 2px !important;
+  min-height: 300px;
+}
+
+[data-public-template="boutique"] .public-site-gallery__item[data-primary="true"] {
+  min-height: 580px;
+}
+
+/* Urbano: grade rígida, sem arredondamento e contraste mais forte. */
+[data-public-template="urban"] .public-site-gallery__filters {
+  gap: 0;
+}
+
+[data-public-template="urban"] .public-site-gallery__filter {
+  border-radius: 0;
+}
+
+[data-public-template="urban"] .public-site-gallery__grid {
+  gap: 2px;
+}
+
+[data-public-template="urban"] .public-site-gallery__item {
+  border-radius: 0 !important;
+  box-shadow: none;
+}
+
+[data-public-template="urban"] .public-site-gallery__caption small {
+  opacity: .9;
+}
+
+/* Natureza: formas orgânicas e variação suave. */
+[data-public-template="nature"] .public-site-gallery__item {
+  border-radius: 36px 18px 36px 18px !important;
+}
+
+[data-public-template="nature"] .public-site-gallery__item:nth-child(even) {
+  border-radius: 18px 42px 18px 42px !important;
+}
+
+[data-public-template="nature"] .public-site-gallery__filter {
+  border-radius: 999px;
+}
+
+/* Clássico: simetria, bordas discretas e acabamento formal. */
+[data-public-template="classic"] .public-site-gallery__grid {
+  gap: .9rem;
+}
+
+[data-public-template="classic"] .public-site-gallery__item {
+  border: 1px solid rgba(44,51,39,.12);
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(44,51,39,.06);
+}
+
+[data-public-template="classic"] .public-site-gallery__filter {
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .public-site-gallery__item,
+  .public-site-gallery__item[data-primary="true"] {
+    grid-column: span 6;
+    grid-row: auto;
+    min-height: 280px;
+  }
+
+  .public-site-gallery__item[data-primary="true"] {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 639px) {
+  .public-site-gallery__grid {
+    grid-template-columns: 1fr;
+    gap: .8rem;
+  }
+
+  .public-site-gallery__item,
+  .public-site-gallery__item[data-primary="true"] {
+    grid-column: auto;
+    min-height: 250px;
+    transform: none !important;
+  }
+
+  .public-site-gallery__item[data-primary="true"] {
+    min-height: 330px;
+  }
+
+  .public-site-gallery__filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+    scrollbar-width: none;
+  }
+
+  .public-site-gallery__filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .public-site-gallery__filter {
+    flex: 0 0 auto;
+  }
+}
