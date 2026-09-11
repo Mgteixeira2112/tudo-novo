@@ -21,6 +21,7 @@ import { RoomTypeConfig, Reservation } from '../types.ts';
 import { api } from '../services/api.ts';
 import { getSupabaseClient } from '../services/supabase.ts';
 import { evaluateRoomTypeCompatibility } from '../services/roomCompatibility.ts';
+import { RoomCombinationBooking } from './RoomCombinationBooking.tsx';
 
 export const OnlineBookingEngine: React.FC = () => {
   const { settings, refreshData } = useHotel();
@@ -359,6 +360,21 @@ export const OnlineBookingEngine: React.FC = () => {
           })}
         </div>
       </section>
+
+      <RoomCombinationBooking
+        roomTypes={roomTypes}
+        availability={availability}
+        adults={adults}
+        children={children}
+        nights={nights}
+        currency={currency}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+        checkInTime={settings?.checkInTime}
+        checkOutTime={settings?.checkOutTime}
+        visibleIndividualCount={visibleRoomTypes.length}
+        refreshData={refreshData}
+      />
 
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="bg-white rounded-2xl border border-[#E6E3D8] p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
