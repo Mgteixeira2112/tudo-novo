@@ -4,6 +4,7 @@ import { useHotel } from '../context/HotelContext.tsx';
 import { KitchenOrder, MenuItem, MinibarItem, RoomMinibarConsumption } from '../types.ts';
 import { api } from '../services/api.ts';
 import { subscribeToKitchenOrdersChangesRealtime } from '../services/kitchenOrdersRealtime.ts';
+import { KitchenOrderHistoryModal } from './KitchenOrderHistoryModal.tsx';
 
 export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ canManage }) => {
   const { rooms, settings, refreshData } = useHotel();
@@ -88,7 +89,7 @@ export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ can
         <div className="lg:col-span-2 space-y-3">
           <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Histórico do quarto selecionado</h3>
           {consumptions.length === 0 ? <div className="bg-white rounded-2xl border border-[#E6E3D8] p-12 text-center text-[#8E9280] text-sm">Selecione um quarto para visualizar os lançamentos.</div> : (
-            <div className="bg-white rounded-2xl border border-[#E6E3D8] overflow-x-auto shadow-xs"><table className="w-full text-left text-xs"><thead className="bg-[#F4F1EA] text-[#6B705C]"><tr><th className="p-3">Data</th><th className="p-3">Quarto</th><th className="p-3">Produto</th><th className="p-3">Qtd</th><th className="p-3">Total</th><th className="p-3">Responsável</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-[#E6E3D8]">{consumptions.map(item => <tr key={item.id}><td className="p-3">{new Date(item.registeredAt).toLocaleString('pt-BR')}</td><td className="p-3 font-bold">{item.roomNumber}</td><td className="p-3">{item.itemName}</td><td className="p-3">{item.quantity}</td><td className="p-3 font-bold text-[#588157]">{currency} {item.totalPrice.toFixed(2)}</td><td className="p-3">{item.registeredBy}</td><td className="p-3">{item.status}</td></tr>)}</tbody></table></div>
+            <div className="bg-white rounded-2xl border border-[#E6E3D8] overflow-x-auto shadow-xs"><table className="w-full text-left text-xs"><thead className="bg-[#F4F1EA] text-[#6B705C]"><tr><th className="p-3">Data</th><th className="p-3">Quarto</th><th className="p-3">Produto</th><th className="p-3">Qtd</th><th className="p-3">Total</th><th className="p-3">Responsável</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-[#E6E3D8]">{consumptions.map(item => <tr key={item.id}><td className="p-3">{new Date(item.registeredAt).toLocaleString('pt-BR')}</td><td className="p-3 font-bold">Quarto {item.roomNumber}</td><td className="p-3">{item.itemName}</td><td className="p-3">{item.quantity}</td><td className="p-3 font-bold text-[#588157]">{currency} {item.totalPrice.toFixed(2)}</td><td className="p-3">{item.registeredBy}</td><td className="p-3">{item.status}</td></tr>)}</tbody></table></div>
           )}
         </div>
       </div>
@@ -109,7 +110,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   const [selectedItems, setSelectedItems] = useState<{ menuItemId: string; quantity: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
-  const [showArchived, setShowArchived] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const currency = settings?.currency || 'R$';
   const occupiedRooms = rooms.filter(room => room.status === 'Ocupado');
   const sector: KitchenOrder['deliverySector'] = mode === 'room_service' ? 'Room Service' : 'Cozinha';
@@ -154,7 +155,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
     setDestination(mode === 'room_service' ? 'Quarto' : 'Restaurante');
     setSelectedItems([]);
     setInstructions('');
-    setShowArchived(false);
+    setShowHistory(false);
   }, [mode]);
 
   const sectorOrders = useMemo(
@@ -223,16 +224,21 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <div><h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2">{mode === 'room_service' ? <BellRing className="w-5 h-5 text-[#D4A373]" /> : <ChefHat className="w-5 h-5 text-[#D4A373]" />}{title}</h2></div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2">{mode === 'room_service' ? <BellRing className="w-5 h-5 text-[#D4A373]" /> : <ChefHat className="w-5 h-5 text-[#D4A373]" />}{title}</h2>
+        <button
+          type="button"
+          onClick={() => setShowHistory(true)}
+          className="flex items-center justify-center space-x-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#3D4035] shadow-sm transition hover:bg-[#F8FAF2]"
+        >
+          <Archive className="w-4 h-4 text-[#588157]" />
+          <span>Histórico</span>
+        </button>
+      </div>
       {!canManage && <div className="rounded-xl border border-[#DADFD1] bg-[#F7F8F2] px-4 py-3 text-xs font-semibold text-[#5F6655]">Modo consulta: seu perfil pode acompanhar este módulo, mas não criar pedidos nem alterar status.</div>}
 
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos ativos ({visibleOrders.length})</h3>
-          <button type="button" onClick={() => setShowArchived(current => !current)} className="px-3 py-1.5 rounded-lg border border-[#DADFD1] bg-white text-xs font-bold text-[#5F6655] flex items-center gap-1.5">
-            <Archive className="w-3.5 h-3.5" /> {showArchived ? 'Ocultar arquivados' : `Arquivados (${archivedOrders.length})`}
-          </button>
-        </div>
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos ativos ({visibleOrders.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleOrders.map(order => (
             <div key={order.id} className="bg-white rounded-2xl border border-[#E6E3D8] p-4 shadow-xs space-y-3">
@@ -250,21 +256,6 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
             </div>
           ))}
         </div>
-
-        {showArchived && <div className="rounded-2xl border border-[#E6E3D8] bg-[#F7F8F2] p-4 space-y-3">
-          <div>
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos arquivados</h4>
-            <p className="text-[11px] text-[#8E9280]">Pedidos entregues há mais de 5 minutos. Permanecem registrados no Supabase.</p>
-          </div>
-          {archivedOrders.length === 0 ? <div className="text-xs text-[#8E9280] py-3">Nenhum pedido arquivado neste setor.</div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {archivedOrders.map(order => <div key={`archived-${order.id}`} className="rounded-xl border border-[#DADFD1] bg-white p-3 space-y-1.5">
-              <div className="flex items-center justify-between gap-2"><span className="font-extrabold text-xs text-[#6B705C]">{order.orderNumber}</span><span className="text-[10px] font-bold px-2 py-0.5 bg-[#EDF4E8] text-[#588157] rounded">ENTREGUE</span></div>
-              <div className="text-xs font-bold text-[#2C3327]">Quarto {order.roomNumber} • {order.guestName}</div>
-              <div className="text-[10px] uppercase tracking-wide text-[#8E9280]">{order.deliverySector} → {order.destination}</div>
-              {order.completedAt && <div className="text-[10px] text-[#8E9280]">Entregue em {new Date(order.completedAt).toLocaleString('pt-BR')}</div>}
-            </div>)}
-          </div>}
-        </div>}
       </div>
 
       <div className={`grid grid-cols-1 ${canManage ? 'lg:grid-cols-3' : ''} gap-6 pt-4 border-t border-[#E6E3D8]`}>
@@ -287,6 +278,8 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
           <button type="submit" disabled={submitting || !roomId || selectedItems.length === 0} className="w-full py-2.5 bg-[#2C3327] text-white rounded-xl text-xs font-bold disabled:opacity-50">{submitting ? 'Enviando...' : `Enviar para ${sector}`}</button>
         </form>}
       </div>
+
+      {showHistory && <KitchenOrderHistoryModal orders={archivedOrders} currency={currency} onClose={() => setShowHistory(false)} />}
     </div>
   );
 };
