@@ -1,0 +1,241 @@
+/* Public site — Natureza: organic, calm, retreat-inspired visual language. */
+[data-public-template="nature"] {
+  --site-radius: 30px !important;
+  background:
+    radial-gradient(circle at top left, rgba(163,177,138,.18), transparent 30%),
+    linear-gradient(180deg, #f7f6ef 0%, #fbfaf6 38%, #f1f3ea 100%);
+}
+
+[data-public-template="nature"] #public-hero {
+  min-height: min(84vh, 860px) !important;
+  display: flex;
+  align-items: end;
+  border-radius: 0 0 56px 56px !important;
+  overflow: hidden;
+}
+
+[data-public-template="nature"] #public-hero > div {
+  width: min(1180px, 100%);
+  max-width: 1180px !important;
+  text-align: left !important;
+  padding: 0 1.5rem 4.5rem;
+}
+
+[data-public-template="nature"] #public-hero > div > div:first-child {
+  margin-left: 0 !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(8px);
+}
+
+[data-public-template="nature"] #public-hero h1 {
+  max-width: 900px;
+  font-size: clamp(3.4rem, 7vw, 6.8rem) !important;
+  line-height: .95;
+  font-weight: 600 !important;
+  letter-spacing: -.05em !important;
+  text-wrap: balance;
+}
+
+[data-public-template="nature"] #public-hero p[class*="max-w-2xl"] {
+  margin-left: 0 !important;
+  max-width: 610px !important;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem) !important;
+  line-height: 1.75;
+}
+
+[data-public-template="nature"] #public-hero > div > div:last-of-type {
+  justify-content: flex-start !important;
+}
+
+[data-public-template="nature"] #public-hero button {
+  border-radius: 999px !important;
+  padding: 1rem 1.8rem !important;
+  box-shadow: 0 16px 36px rgba(26, 39, 28, .2) !important;
+}
+
+[data-public-template="nature"] [data-public-booking-engine] {
+  position: relative;
+  z-index: 5;
+}
+
+[data-public-template="nature"] [data-public-booking-engine] > div > div:nth-child(2) {
+  width: min(1120px, calc(100% - 2rem));
+  margin: -2rem auto 0 !important;
+  border-radius: 30px !important;
+  box-shadow: 0 24px 70px rgba(45, 58, 39, .12) !important;
+  background: rgba(255,255,255,.96) !important;
+  backdrop-filter: blur(10px);
+}
+
+[data-public-template="nature"] #public-about,
+[data-public-template="nature"] #public-services,
+[data-public-template="nature"] #public-gallery,
+[data-public-template="nature"] #public-location,
+[data-public-template="nature"] #public-contact {
+  padding-top: 6.5rem !important;
+  padding-bottom: 6.5rem !important;
+}
+
+[data-public-template="nature"] #public-about > div,
+[data-public-template="nature"] #public-location > div {
+  max-width: 1120px !important;
+  gap: 3.5rem !important;
+}
+
+[data-public-template="nature"] #public-about > div > div:first-child {
+  min-height: 440px !important;
+  border-radius: 54px 20px 54px 20px !important;
+  overflow: hidden;
+  box-shadow: 0 26px 60px rgba(49, 67, 47, .12) !important;
+}
+
+[data-public-template="nature"] #public-about > div > div:last-child {
+  align-self: center;
+  padding: 2rem 0;
+}
+
+[data-public-template="nature"] #public-about h2,
+[data-public-template="nature"] #public-services h2,
+[data-public-template="nature"] #public-gallery h2,
+[data-public-template="nature"] #public-location h2,
+[data-public-template="nature"] #public-contact h2 {
+  font-weight: 600 !important;
+  letter-spacing: -.035em !important;
+}
+
+[data-public-template="nature"] #public-services {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(163,177,138,.22), transparent 32%),
+    #eef1e7 !important;
+  border-radius: 52px !important;
+  margin: 0 1rem;
+}
+
+[data-public-template="nature"] #public-services > div {
+  max-width: 1120px !important;
+}
+
+[data-public-template="nature"] #public-services > div > div:last-child {
+  gap: 1.25rem !important;
+}
+
+[data-public-template="nature"] #public-services > div > div:last-child > div {
+  border-radius: 26px 10px 26px 10px !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(72, 91, 68, .10) !important;
+  background: rgba(255,255,255,.76) !important;
+  min-height: 132px;
+}
+
+[data-public-template="nature"] #public-services > div > div:last-child > div:nth-child(even) {
+  transform: translateY(18px);
+}
+
+[data-public-template="nature"] #public-services > div > div:last-child > div > div:first-child {
+  border-radius: 18px 8px 18px 8px !important;
+}
+
+[data-public-template="nature"] #public-gallery > div {
+  max-width: 1180px !important;
+}
+
+[data-public-template="nature"] #public-gallery > div > div:last-child {
+  gap: 1rem !important;
+}
+
+[data-public-template="nature"] #public-gallery figure {
+  border-radius: 34px !important;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(47, 63, 44, .10) !important;
+}
+
+[data-public-template="nature"] #public-gallery figure:first-child {
+  min-height: 500px !important;
+  border-radius: 52px 20px 52px 20px !important;
+}
+
+[data-public-template="nature"] #public-gallery figure:nth-child(2) {
+  transform: translateY(30px);
+  border-radius: 20px 48px 20px 48px !important;
+}
+
+[data-public-template="nature"] #public-location {
+  background: transparent !important;
+}
+
+[data-public-template="nature"] #public-location > div > div:first-child,
+[data-public-template="nature"] #public-location > div > div:last-child {
+  border-radius: 42px 16px 42px 16px !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(72, 91, 68, .10) !important;
+}
+
+[data-public-template="nature"] #public-location > div > div:first-child {
+  background: #f2f4eb !important;
+}
+
+[data-public-template="nature"] #public-contact > div {
+  max-width: 1120px !important;
+  border-radius: 50px !important;
+  background:
+    radial-gradient(circle at right top, rgba(163,177,138,.20), transparent 38%),
+    rgba(255,255,255,.9) !important;
+  box-shadow: 0 24px 60px rgba(47, 63, 44, .10) !important;
+}
+
+[data-public-template="nature"] #public-contact a,
+[data-public-template="nature"] #public-contact button {
+  border-radius: 999px !important;
+}
+
+@media (max-width: 900px) {
+  [data-public-template="nature"] #public-about > div,
+  [data-public-template="nature"] #public-location > div {
+    gap: 2rem !important;
+  }
+
+  [data-public-template="nature"] #public-services > div > div:last-child > div:nth-child(even),
+  [data-public-template="nature"] #public-gallery figure:nth-child(2) {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-public-template="nature"] #public-hero {
+    min-height: 72vh !important;
+    border-radius: 0 0 34px 34px !important;
+  }
+
+  [data-public-template="nature"] #public-hero > div {
+    padding: 0 0 3rem;
+  }
+
+  [data-public-template="nature"] #public-hero h1 {
+    font-size: clamp(3rem, 15vw, 5.1rem) !important;
+  }
+
+  [data-public-template="nature"] [data-public-booking-engine] > div > div:nth-child(2) {
+    width: calc(100% - 1rem);
+    margin-top: -1.25rem !important;
+    border-radius: 22px !important;
+  }
+
+  [data-public-template="nature"] #public-about,
+  [data-public-template="nature"] #public-services,
+  [data-public-template="nature"] #public-gallery,
+  [data-public-template="nature"] #public-location,
+  [data-public-template="nature"] #public-contact {
+    padding-top: 4.5rem !important;
+    padding-bottom: 4.5rem !important;
+  }
+
+  [data-public-template="nature"] #public-services {
+    margin: 0 .5rem;
+    border-radius: 34px !important;
+  }
+
+  [data-public-template="nature"] #public-about > div > div:first-child,
+  [data-public-template="nature"] #public-gallery figure:first-child {
+    min-height: 330px !important;
+  }
+}
