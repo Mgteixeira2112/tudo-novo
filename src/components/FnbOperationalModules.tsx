@@ -120,7 +120,12 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
     setInstructions('');
   }, [mode]);
 
-  const visibleOrders = useMemo(() => orders.filter(order => order.deliverySector === sector), [orders, sector]);
+  const visibleOrders = useMemo(
+    () => mode === 'kitchen'
+      ? orders.filter(order => order.deliverySector === 'Cozinha' || order.deliverySector === 'Room Service')
+      : orders.filter(order => order.deliverySector === 'Room Service'),
+    [orders, mode]
+  );
 
   const changeItem = (menuItemId: string, delta: number) => {
     if (!canManage) return;
@@ -172,6 +177,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
             <div key={order.id} className="bg-white rounded-2xl border border-[#E6E3D8] p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between"><span className="font-extrabold text-xs text-[#BC6C25]">{order.orderNumber}</span><span className="text-[10px] font-bold px-2 py-0.5 bg-[#F4F1EA] rounded">{order.status}</span></div>
               <div className="text-xs font-bold text-[#2C3327]">Quarto {order.roomNumber} • {order.guestName}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Origem: {order.deliverySector} • Destino: {order.destination}</div>
               <div className="bg-[#F4F1EA] rounded-xl p-2.5 text-xs space-y-1">{order.items.map((item, index) => <div key={`${order.id}-${index}`} className="flex justify-between"><span>{item.quantity}x {item.name}</span><span>{currency} {(item.quantity * item.unitPrice).toFixed(2)}</span></div>)}</div>
               {order.specialInstructions && <p className="text-[11px] text-[#6B705C] italic">Obs: {order.specialInstructions}</p>}
               <div className="pt-2 border-t border-[#E6E3D8]">
