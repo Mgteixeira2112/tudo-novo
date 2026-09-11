@@ -212,7 +212,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
           <div className={`flex items-center border-b border-white/10 ${collapsed ? 'justify-center px-2 py-4' : 'justify-between px-4 py-4'}`}>
             {!collapsed && (
               <div>
-                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#A3B18A]">NovoHotel</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#A3B18A]">Govermix</span>
                 <h2 className="mt-0.5 text-base font-black">Navegação</h2>
               </div>
             )}
@@ -329,7 +329,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
           <div className="relative z-20 ml-2 mt-20 w-[260px] rounded-2xl border border-[#DADFD1] bg-[#1F2638] p-3 text-white shadow-2xl">
             <div className="mb-2 flex items-center justify-between px-2 py-1">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A3B18A]">NovoHotel</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A3B18A]">Govermix</p>
                 <h3 className="text-sm font-black">{activeFlyout.title}</h3>
               </div>
               <button
