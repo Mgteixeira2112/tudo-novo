@@ -4,7 +4,7 @@ import { PublicSiteSectionContent } from '../services/publicSite.ts';
 import { PublicSiteGalleryManager } from './PublicSiteGalleryManager.tsx';
 
 type Props = {
-  hotelId: string;
+  hotelId?: string;
   value: PublicSiteSectionContent;
   onChange: (value: PublicSiteSectionContent) => void;
 };
@@ -12,7 +12,7 @@ type Props = {
 const inputClass = 'mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm outline-none focus:border-[#588157]';
 const labelClass = 'text-xs font-bold text-[#565B4B]';
 
-export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId, value, onChange }) => {
+export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hotel_1', value, onChange }) => {
   const [galleryOpen, setGalleryOpen] = useState(false);
 
   const update = (key: keyof PublicSiteSectionContent, next: string | string[]) => {
