@@ -2,6 +2,7 @@ import {StrictMode, useEffect, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './booking-modal-responsive.css';
 import './public-site-boutique.css';
 import './public-site-urban.css';
 import './public-site-nature.css';
