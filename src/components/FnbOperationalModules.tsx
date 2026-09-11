@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BellRing, CheckCircle2, ChefHat, Minus, Plus, Send, Wine } from 'lucide-react';
+import { Archive, BellRing, CheckCircle2, ChefHat, Minus, Plus, Send, Wine } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { KitchenOrder, MenuItem, MinibarItem, RoomMinibarConsumption } from '../types.ts';
 import { api } from '../services/api.ts';
@@ -97,6 +97,7 @@ export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ can
 };
 
 type OrdersMode = 'room_service' | 'kitchen';
+const DELIVERED_ARCHIVE_AFTER_MS = 5 * 60 * 1000;
 
 export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: boolean }> = ({ mode, canManage }) => {
   const { rooms, settings, refreshData } = useHotel();
@@ -107,6 +108,8 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   const [instructions, setInstructions] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ menuItemId: string; quantity: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [archiveClock, setArchiveClock] = useState(() => Date.now());
+  const [showArchived, setShowArchived] = useState(false);
   const currency = settings?.currency || 'R$';
   const occupiedRooms = rooms.filter(room => room.status === 'Ocupado');
   const sector: KitchenOrder['deliverySector'] = mode === 'room_service' ? 'Room Service' : 'Cozinha';
@@ -143,16 +146,40 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   }, []);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setArchiveClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     setDestination(mode === 'room_service' ? 'Quarto' : 'Restaurante');
     setSelectedItems([]);
     setInstructions('');
+    setShowArchived(false);
   }, [mode]);
 
-  const visibleOrders = useMemo(
+  const sectorOrders = useMemo(
     () => mode === 'kitchen'
       ? orders.filter(order => order.deliverySector === 'Cozinha' || order.deliverySector === 'Room Service')
       : orders.filter(order => order.deliverySector === 'Room Service'),
     [orders, mode]
+  );
+
+  const isArchivedDeliveredOrder = (order: KitchenOrder) => {
+    if (order.status !== 'Entregue' || !order.completedAt) return false;
+    const completedAt = new Date(order.completedAt).getTime();
+    return Number.isFinite(completedAt) && archiveClock - completedAt >= DELIVERED_ARCHIVE_AFTER_MS;
+  };
+
+  const visibleOrders = useMemo(
+    () => sectorOrders.filter(order => !isArchivedDeliveredOrder(order)),
+    [sectorOrders, archiveClock]
+  );
+
+  const archivedOrders = useMemo(
+    () => sectorOrders
+      .filter(isArchivedDeliveredOrder)
+      .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()),
+    [sectorOrders, archiveClock]
   );
 
   const changeItem = (menuItemId: string, delta: number) => {
@@ -188,6 +215,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
     if (!canManage) return;
     await api.updateOrderStatus(orderId, status);
     setOrders(await api.getOrders());
+    setArchiveClock(Date.now());
     await refreshData();
   };
 
@@ -199,7 +227,12 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
       {!canManage && <div className="rounded-xl border border-[#DADFD1] bg-[#F7F8F2] px-4 py-3 text-xs font-semibold text-[#5F6655]">Modo consulta: seu perfil pode acompanhar este módulo, mas não criar pedidos nem alterar status.</div>}
 
       <div className="space-y-3">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos do setor ({visibleOrders.length})</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos ativos ({visibleOrders.length})</h3>
+          <button type="button" onClick={() => setShowArchived(current => !current)} className="px-3 py-1.5 rounded-lg border border-[#DADFD1] bg-white text-xs font-bold text-[#5F6655] flex items-center gap-1.5">
+            <Archive className="w-3.5 h-3.5" /> {showArchived ? 'Ocultar arquivados' : `Arquivados (${archivedOrders.length})`}
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleOrders.map(order => (
             <div key={order.id} className="bg-white rounded-2xl border border-[#E6E3D8] p-4 shadow-xs space-y-3">
@@ -217,6 +250,21 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
             </div>
           ))}
         </div>
+
+        {showArchived && <div className="rounded-2xl border border-[#E6E3D8] bg-[#F7F8F2] p-4 space-y-3">
+          <div>
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#6B705C]">Pedidos arquivados</h4>
+            <p className="text-[11px] text-[#8E9280]">Pedidos entregues há mais de 5 minutos. Permanecem registrados no Supabase.</p>
+          </div>
+          {archivedOrders.length === 0 ? <div className="text-xs text-[#8E9280] py-3">Nenhum pedido arquivado neste setor.</div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {archivedOrders.map(order => <div key={`archived-${order.id}`} className="rounded-xl border border-[#DADFD1] bg-white p-3 space-y-1.5">
+              <div className="flex items-center justify-between gap-2"><span className="font-extrabold text-xs text-[#6B705C]">{order.orderNumber}</span><span className="text-[10px] font-bold px-2 py-0.5 bg-[#EDF4E8] text-[#588157] rounded">ENTREGUE</span></div>
+              <div className="text-xs font-bold text-[#2C3327]">Quarto {order.roomNumber} • {order.guestName}</div>
+              <div className="text-[10px] uppercase tracking-wide text-[#8E9280]">{order.deliverySector} → {order.destination}</div>
+              {order.completedAt && <div className="text-[10px] text-[#8E9280]">Entregue em {new Date(order.completedAt).toLocaleString('pt-BR')}</div>}
+            </div>)}
+          </div>}
+        </div>}
       </div>
 
       <div className={`grid grid-cols-1 ${canManage ? 'lg:grid-cols-3' : ''} gap-6 pt-4 border-t border-[#E6E3D8]`}>
