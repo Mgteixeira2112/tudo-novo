@@ -2,6 +2,16 @@ import { getSupabaseClient } from './supabase.ts';
 
 export type PublicSiteStatus = 'draft' | 'published';
 export type PublicSiteMediaType = 'image' | 'video' | 'none';
+export type PublicSiteGalleryCategory = 'rooms' | 'common' | 'breakfast' | 'facade';
+
+export interface PublicSiteGalleryItem {
+  id: string;
+  url: string;
+  category: PublicSiteGalleryCategory;
+  caption?: string;
+  featured?: boolean;
+  order: number;
+}
 
 export interface PublicSiteSectionContent {
   aboutTitle?: string;
@@ -11,6 +21,7 @@ export interface PublicSiteSectionContent {
   servicesItems?: string[];
   galleryTitle?: string;
   galleryImageUrls?: string[];
+  galleryItems?: PublicSiteGalleryItem[];
   locationTitle?: string;
   locationBody?: string;
   locationAddress?: string;
@@ -64,6 +75,33 @@ function normalizeStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
 }
 
+function normalizeGalleryItems(value: unknown): PublicSiteGalleryItem[] {
+  if (!Array.isArray(value)) return [];
+  const validCategories = new Set<PublicSiteGalleryCategory>(['rooms', 'common', 'breakfast', 'facade']);
+  const normalized = value
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map((item: any, index) => ({
+      id: String(item.id || `gallery-${index}`),
+      url: String(item.url || '').trim(),
+      category: validCategories.has(item.category) ? item.category : 'rooms',
+      caption: item.caption ? String(item.caption).trim() : undefined,
+      featured: Boolean(item.featured),
+      order: Number.isFinite(Number(item.order)) ? Number(item.order) : index
+    }))
+    .filter(item => Boolean(item.url))
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 24)
+    .map((item, index) => ({ ...item, order: index }));
+
+  let featuredFound = false;
+  return normalized.map(item => {
+    if (!item.featured) return item;
+    if (featuredFound) return { ...item, featured: false };
+    featuredFound = true;
+    return item;
+  });
+}
+
 function mapSectionContent(value: any): PublicSiteSectionContent {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return {
@@ -74,6 +112,7 @@ function mapSectionContent(value: any): PublicSiteSectionContent {
     servicesItems: normalizeStringArray(value.servicesItems),
     galleryTitle: value.galleryTitle ? String(value.galleryTitle) : undefined,
     galleryImageUrls: normalizeStringArray(value.galleryImageUrls),
+    galleryItems: normalizeGalleryItems(value.galleryItems),
     locationTitle: value.locationTitle ? String(value.locationTitle) : undefined,
     locationBody: value.locationBody ? String(value.locationBody) : undefined,
     locationAddress: value.locationAddress ? String(value.locationAddress) : undefined,
