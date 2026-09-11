@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowDown,
   ArrowUp,
@@ -86,6 +87,15 @@ export const AccommodationsManager: React.FC = () => {
   useEffect(() => {
     if (!editingId) setRoomTypes((settings?.roomTypes || []).map(normalizeRoomType));
   }, [settings?.roomTypes, editingId]);
+
+  useEffect(() => {
+    if (!editingId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [editingId]);
 
   const roomCountByType = useMemo(() => {
     const counts = new Map<string, number>();
@@ -325,10 +335,10 @@ export const AccommodationsManager: React.FC = () => {
         </div>
       )}
 
-      {draft && editingId && (
-        <div className="fixed inset-0 z-[90] overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-6">
-          <div className="mx-auto my-3 w-full max-w-5xl overflow-hidden rounded-3xl border border-[#E6E3D8] bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#E6E3D8] bg-white px-5 py-4 sm:px-6">
+      {draft && editingId && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-hidden bg-black/60 p-3 backdrop-blur-sm sm:p-6">
+          <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-[#E6E3D8] bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+            <div className="shrink-0 flex items-center justify-between gap-4 border-b border-[#E6E3D8] bg-white px-5 py-4 sm:px-6">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#588157]">Categoria comercial</p>
                 <h3 className="text-lg font-black text-[#2C3327]">{draft.name || 'Acomodação'}</h3>
@@ -336,130 +346,133 @@ export const AccommodationsManager: React.FC = () => {
               <button type="button" onClick={closeEditor} className="rounded-xl p-2 text-[#6B705C] hover:bg-[#F4F1EA]" aria-label="Fechar editor"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="space-y-7 p-5 sm:p-6">
-              <section className="space-y-4">
-                <div>
-                  <h4 className="font-black text-[#2C3327]">Informações comerciais</h4>
-                  <p className="text-xs text-[#6B705C]">Esses dados aparecem no motor de reservas.</p>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className="text-xs font-bold text-[#6B705C]">Nome da categoria
-                    <input value={draft.name} onChange={event => setDraft(current => current ? { ...current, name: event.target.value } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
-                  </label>
-                  <label className="text-xs font-bold text-[#6B705C]">Diária base ({settings?.currency || 'R$'})
-                    <input type="number" min="0" step="0.01" value={draft.basePrice} onChange={event => setDraft(current => current ? { ...current, basePrice: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
-                  </label>
-                </div>
-                <label className="block text-xs font-bold text-[#6B705C]">Descrição
-                  <textarea rows={3} value={draft.description} onChange={event => setDraft(current => current ? { ...current, description: event.target.value } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
-                </label>
-                <label className="block text-xs font-bold text-[#6B705C]">Comodidades
-                  <textarea rows={2} value={amenitiesText} onChange={event => setAmenitiesText(event.target.value)} placeholder="Wi-Fi, Ar condicionado, Frigobar..." className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
-                  <span className="mt-1 block text-[10px] font-medium text-[#8E9280]">Separe as comodidades por vírgula.</span>
-                </label>
-              </section>
-
-              <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
-                <div>
-                  <h4 className="font-black text-[#2C3327]">Capacidade e ocupação</h4>
-                  <p className="text-xs text-[#6B705C]">O motor usará esses limites antes de validar a configuração de camas.</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <label className="text-xs font-bold text-[#6B705C]">Máx. adultos
-                    <input type="number" min="0" value={draft.capacityAdults} onChange={event => setDraft(current => current ? { ...current, capacityAdults: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
-                  </label>
-                  <label className="text-xs font-bold text-[#6B705C]">Máx. crianças
-                    <input type="number" min="0" value={draft.capacityChildren} onChange={event => setDraft(current => current ? { ...current, capacityChildren: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
-                  </label>
-                  <label className="text-xs font-bold text-[#6B705C]">Máx. bebês
-                    <input type="number" min="0" value={draft.capacityInfants || 0} onChange={event => setDraft(current => current ? { ...current, capacityInfants: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
-                  </label>
-                  <label className="text-xs font-bold text-[#6B705C]">Ocupação máx. comercial
-                    <input type="number" min="1" value={draft.maxOccupancy || 1} onChange={event => setDraft(current => current ? { ...current, maxOccupancy: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
-                  </label>
-                </div>
-              </section>
-
-              <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="space-y-7 p-5 sm:p-6">
+                <section className="space-y-4">
                   <div>
-                    <h4 className="font-black text-[#2C3327]">Configuração de camas</h4>
-                    <p className="text-xs text-[#6B705C]">Defina como cada cama pode receber adultos e crianças.</p>
+                    <h4 className="font-black text-[#2C3327]">Informações comerciais</h4>
+                    <p className="text-xs text-[#6B705C]">Esses dados aparecem no motor de reservas.</p>
                   </div>
-                  <button type="button" onClick={addBed} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8D4C7] px-3 py-2 text-xs font-bold hover:bg-[#F4F1EA]"><Plus className="h-4 w-4" />Adicionar cama</button>
-                </div>
-
-                {(draft.beds || []).length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#D8D4C7] bg-[#FDFBF7] p-5 text-center text-xs text-[#6B705C]">Nenhuma configuração de cama cadastrada ainda.</div>
-                ) : (
-                  <div className="space-y-3">
-                    {(draft.beds || []).map(bed => (
-                      <div key={bed.id} className="grid grid-cols-2 gap-3 rounded-2xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 md:grid-cols-[1.4fr_.6fr_.7fr_.7fr_auto_auto] md:items-end">
-                        <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Tipo
-                          <select value={bed.type} onChange={event => updateBed(bed.id, { type: event.target.value as BedKind })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs text-[#2C3327]">
-                            {Object.entries(BED_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                          </select>
-                        </label>
-                        <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Qtd.
-                          <input type="number" min="1" value={bed.quantity} onChange={event => updateBed(bed.id, { quantity: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
-                        </label>
-                        <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Adultos/cama
-                          <input type="number" min="0" value={bed.adultsPerBed} onChange={event => updateBed(bed.id, { adultsPerBed: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
-                        </label>
-                        <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Crianças/cama
-                          <input type="number" min="0" value={bed.childrenPerBed} onChange={event => updateBed(bed.id, { childrenPerBed: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
-                        </label>
-                        <label className="flex items-center gap-2 rounded-lg border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-bold text-[#6B705C]">
-                          <input type="checkbox" checked={Boolean(bed.optional)} onChange={event => updateBed(bed.id, { optional: event.target.checked })} /> Opcional
-                        </label>
-                        <button type="button" onClick={() => removeBed(bed.id)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Remover cama"><Trash2 className="h-4 w-4" /></button>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <label className="text-xs font-bold text-[#6B705C]">Nome da categoria
+                      <input value={draft.name} onChange={event => setDraft(current => current ? { ...current, name: event.target.value } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
+                    </label>
+                    <label className="text-xs font-bold text-[#6B705C]">Diária base ({settings?.currency || 'R$'})
+                      <input type="number" min="0" step="0.01" value={draft.basePrice} onChange={event => setDraft(current => current ? { ...current, basePrice: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
+                    </label>
                   </div>
-                )}
-              </section>
-
-              <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h4 className="flex items-center gap-2 font-black text-[#2C3327]"><Images className="h-4 w-4 text-[#588157]" />Galeria da acomodação</h4>
-                    <p className="text-xs text-[#6B705C]">Até 12 fotos. A foto marcada como capa continua alimentando o card atual do motor de reservas.</p>
-                  </div>
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#3A4135]">
-                    <Upload className="h-4 w-4" /> {uploading ? 'Enviando...' : 'Adicionar fotos'}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} onChange={event => { void uploadImages(event.target.files); event.currentTarget.value = ''; }} className="hidden" />
+                  <label className="block text-xs font-bold text-[#6B705C]">Descrição
+                    <textarea rows={3} value={draft.description} onChange={event => setDraft(current => current ? { ...current, description: event.target.value } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
                   </label>
-                </div>
+                  <label className="block text-xs font-bold text-[#6B705C]">Comodidades
+                    <textarea rows={2} value={amenitiesText} onChange={event => setAmenitiesText(event.target.value)} placeholder="Wi-Fi, Ar condicionado, Frigobar..." className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:ring-2 focus:ring-[#588157]" />
+                    <span className="mt-1 block text-[10px] font-medium text-[#8E9280]">Separe as comodidades por vírgula.</span>
+                  </label>
+                </section>
 
-                {(draft.galleryImages || []).length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#D8D4C7] bg-[#FDFBF7] p-6 text-center text-xs text-[#6B705C]">Nenhuma foto cadastrada para esta acomodação.</div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {(draft.galleryImages || []).map((url, index) => (
-                      <div key={`${url}-${index}`} className={`overflow-hidden rounded-2xl border bg-white ${draft.imageUrl === url ? 'border-[#588157] ring-2 ring-[#588157]/20' : 'border-[#E6E3D8]'}`}>
-                        <div className="relative h-32 bg-[#F4F1EA]">
-                          <img src={url} alt={`${draft.name} ${index + 1}`} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                          {draft.imageUrl === url && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#2C3327]/90 px-2 py-1 text-[9px] font-black text-white"><Star className="h-3 w-3" />CAPA</span>}
-                        </div>
-                        <div className="grid grid-cols-4 gap-1 p-2">
-                          <button type="button" onClick={() => setCover(url)} className="rounded-lg p-2 text-[#588157] hover:bg-[#F2F5E8]" title="Definir como capa"><Star className="mx-auto h-3.5 w-3.5" /></button>
-                          <button type="button" onClick={() => moveImage(index, -1)} disabled={index === 0} className="rounded-lg p-2 text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-30" title="Mover para esquerda"><ArrowUp className="mx-auto h-3.5 w-3.5 -rotate-90" /></button>
-                          <button type="button" onClick={() => moveImage(index, 1)} disabled={index === (draft.galleryImages?.length || 0) - 1} className="rounded-lg p-2 text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-30" title="Mover para direita"><ArrowDown className="mx-auto h-3.5 w-3.5 -rotate-90" /></button>
-                          <button type="button" onClick={() => removeImage(url)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Remover da galeria"><Trash2 className="mx-auto h-3.5 w-3.5" /></button>
-                        </div>
-                      </div>
-                    ))}
+                <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
+                  <div>
+                    <h4 className="font-black text-[#2C3327]">Capacidade e ocupação</h4>
+                    <p className="text-xs text-[#6B705C]">O motor usará esses limites antes de validar a configuração de camas.</p>
                   </div>
-                )}
-              </section>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <label className="text-xs font-bold text-[#6B705C]">Máx. adultos
+                      <input type="number" min="0" value={draft.capacityAdults} onChange={event => setDraft(current => current ? { ...current, capacityAdults: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
+                    </label>
+                    <label className="text-xs font-bold text-[#6B705C]">Máx. crianças
+                      <input type="number" min="0" value={draft.capacityChildren} onChange={event => setDraft(current => current ? { ...current, capacityChildren: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
+                    </label>
+                    <label className="text-xs font-bold text-[#6B705C]">Máx. bebês
+                      <input type="number" min="0" value={draft.capacityInfants || 0} onChange={event => setDraft(current => current ? { ...current, capacityInfants: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
+                    </label>
+                    <label className="text-xs font-bold text-[#6B705C]">Ocupação máx. comercial
+                      <input type="number" min="1" value={draft.maxOccupancy || 1} onChange={event => setDraft(current => current ? { ...current, maxOccupancy: Number(event.target.value) } : current)} className="mt-1 w-full rounded-xl border border-[#E6E3D8] px-3 py-2.5 text-sm" />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="font-black text-[#2C3327]">Configuração de camas</h4>
+                      <p className="text-xs text-[#6B705C]">Defina como cada cama pode receber adultos e crianças.</p>
+                    </div>
+                    <button type="button" onClick={addBed} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8D4C7] px-3 py-2 text-xs font-bold hover:bg-[#F4F1EA]"><Plus className="h-4 w-4" />Adicionar cama</button>
+                  </div>
+
+                  {(draft.beds || []).length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[#D8D4C7] bg-[#FDFBF7] p-5 text-center text-xs text-[#6B705C]">Nenhuma configuração de cama cadastrada ainda.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(draft.beds || []).map(bed => (
+                        <div key={bed.id} className="grid grid-cols-2 gap-3 rounded-2xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 md:grid-cols-[1.4fr_.6fr_.7fr_.7fr_auto_auto] md:items-end">
+                          <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Tipo
+                            <select value={bed.type} onChange={event => updateBed(bed.id, { type: event.target.value as BedKind })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs text-[#2C3327]">
+                              {Object.entries(BED_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            </select>
+                          </label>
+                          <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Qtd.
+                            <input type="number" min="1" value={bed.quantity} onChange={event => updateBed(bed.id, { quantity: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
+                          </label>
+                          <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Adultos/cama
+                            <input type="number" min="0" value={bed.adultsPerBed} onChange={event => updateBed(bed.id, { adultsPerBed: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
+                          </label>
+                          <label className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Crianças/cama
+                            <input type="number" min="0" value={bed.childrenPerBed} onChange={event => updateBed(bed.id, { childrenPerBed: Number(event.target.value) })} className="mt-1 w-full rounded-lg border border-[#E6E3D8] bg-white px-2 py-2 text-xs" />
+                          </label>
+                          <label className="flex items-center gap-2 rounded-lg border border-[#E6E3D8] bg-white px-3 py-2 text-xs font-bold text-[#6B705C]">
+                            <input type="checkbox" checked={Boolean(bed.optional)} onChange={event => updateBed(bed.id, { optional: event.target.checked })} /> Opcional
+                          </label>
+                          <button type="button" onClick={() => removeBed(bed.id)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Remover cama"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-4 border-t border-[#E6E3D8] pt-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="flex items-center gap-2 font-black text-[#2C3327]"><Images className="h-4 w-4 text-[#588157]" />Galeria da acomodação</h4>
+                      <p className="text-xs text-[#6B705C]">Até 12 fotos. A foto marcada como capa continua alimentando o card atual do motor de reservas.</p>
+                    </div>
+                    <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#3A4135]">
+                      <Upload className="h-4 w-4" /> {uploading ? 'Enviando...' : 'Adicionar fotos'}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} onChange={event => { void uploadImages(event.target.files); event.currentTarget.value = ''; }} className="hidden" />
+                    </label>
+                  </div>
+
+                  {(draft.galleryImages || []).length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[#D8D4C7] bg-[#FDFBF7] p-6 text-center text-xs text-[#6B705C]">Nenhuma foto cadastrada para esta acomodação.</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                      {(draft.galleryImages || []).map((url, index) => (
+                        <div key={`${url}-${index}`} className={`overflow-hidden rounded-2xl border bg-white ${draft.imageUrl === url ? 'border-[#588157] ring-2 ring-[#588157]/20' : 'border-[#E6E3D8]'}`}>
+                          <div className="relative h-32 bg-[#F4F1EA]">
+                            <img src={url} alt={`${draft.name} ${index + 1}`} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                            {draft.imageUrl === url && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#2C3327]/90 px-2 py-1 text-[9px] font-black text-white"><Star className="h-3 w-3" />CAPA</span>}
+                          </div>
+                          <div className="grid grid-cols-4 gap-1 p-2">
+                            <button type="button" onClick={() => setCover(url)} className="rounded-lg p-2 text-[#588157] hover:bg-[#F2F5E8]" title="Definir como capa"><Star className="mx-auto h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => moveImage(index, -1)} disabled={index === 0} className="rounded-lg p-2 text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-30" title="Mover para esquerda"><ArrowUp className="mx-auto h-3.5 w-3.5 -rotate-90" /></button>
+                            <button type="button" onClick={() => moveImage(index, 1)} disabled={index === (draft.galleryImages?.length || 0) - 1} className="rounded-lg p-2 text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-30" title="Mover para direita"><ArrowDown className="mx-auto h-3.5 w-3.5 -rotate-90" /></button>
+                            <button type="button" onClick={() => removeImage(url)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" title="Remover da galeria"><Trash2 className="mx-auto h-3.5 w-3.5" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
             </div>
 
-            <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#E6E3D8] bg-white/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
+            <div className="shrink-0 flex flex-col-reverse gap-2 border-t border-[#E6E3D8] bg-white/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
               <button type="button" onClick={closeEditor} disabled={saving || uploading} className="rounded-xl border border-[#E6E3D8] px-5 py-2.5 text-xs font-bold text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-50">Cancelar</button>
               <button type="button" onClick={() => void saveDraft()} disabled={saving || uploading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2C3327] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#3A4135] disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Salvando...' : 'Salvar categoria'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
