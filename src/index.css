@@ -171,7 +171,7 @@ div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][cla
   text-align: left !important;
 }
 
-[data-public-template="beach"] #public-hero > div > div:first-child {
+[data-public-template="beach"] #public-hero > div > div:first-child:not([data-public-hero-logo]) {
   margin-left: 0 !important;
   border-radius: 999px !important;
   backdrop-filter: blur(8px);
