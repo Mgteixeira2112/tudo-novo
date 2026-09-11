@@ -1,5 +1,6 @@
 import React from 'react';
 import { useHotel } from '../context/HotelContext.tsx';
+import { AccommodationsManager } from './AccommodationsManager.tsx';
 import { RoomsRegistryManager } from './RoomsRegistryManager.tsx';
 import { InventoryStandalonePage } from './InventoryStandalonePage.tsx';
 import { LinenCirculationPanel } from './LinenCirculationPanel.tsx';
@@ -16,6 +17,7 @@ import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
 import { PublicSiteSettingsEditor } from './PublicSiteSettingsEditor.tsx';
 
 export type StandaloneModule =
+  | 'accommodations'
   | 'rooms'
   | 'inventory'
   | 'kardex'
@@ -40,6 +42,7 @@ export type StandaloneModule =
   | 'publicSiteSettings';
 
 const TITLES: Record<StandaloneModule, string> = {
+  accommodations: 'Acomodações',
   rooms: 'Quartos',
   inventory: 'Estoque',
   kardex: 'Kardex',
@@ -67,6 +70,7 @@ const TITLES: Record<StandaloneModule, string> = {
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
   const { hasPermission, canAccessTab } = useHotel();
   const canManageRooms = hasPermission('manage_room_registry');
+  const canManageRoomRates = hasPermission('manage_room_rates');
   const canViewRooms = hasPermission('view_rooms');
   const canViewKanbans = hasPermission('view_kanbans');
   const canViewInventory = hasPermission('view_inventory');
@@ -82,27 +86,29 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
   const canManagePublicSite = hasPermission('manage_hotel_settings');
 
   const allowed =
-    module === 'rooms'
-      ? canManageRooms
-      : module === 'roomMap'
-        ? canViewRooms
-        : module === 'publicSiteSettings'
-          ? canManagePublicSite
-          : ['tasks', 'housekeeping', 'maintenance'].includes(module)
-            ? canViewKanbans
-            : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
-              ? canViewInventory
-              : module === 'walkin'
-                ? canManageCheckInOut
-                : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
-                  ? canAccessReception
-                  : module === 'minibar'
-                    ? canViewMinibar
-                    : module === 'roomService'
-                      ? canViewRoomService
-                      : module === 'kitchen'
-                        ? canViewKitchen
-                        : canManageMenu;
+    module === 'accommodations'
+      ? canManageRooms || canManageRoomRates
+      : module === 'rooms'
+        ? canManageRooms
+        : module === 'roomMap'
+          ? canViewRooms
+          : module === 'publicSiteSettings'
+            ? canManagePublicSite
+            : ['tasks', 'housekeeping', 'maintenance'].includes(module)
+              ? canViewKanbans
+              : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
+                ? canViewInventory
+                : module === 'walkin'
+                  ? canManageCheckInOut
+                  : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
+                    ? canAccessReception
+                    : module === 'minibar'
+                      ? canViewMinibar
+                      : module === 'roomService'
+                        ? canViewRoomService
+                        : module === 'kitchen'
+                          ? canViewKitchen
+                          : canManageMenu;
 
   if (!allowed) {
     return (
@@ -116,12 +122,15 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
 
   return (
     <div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-        <div className="rounded-2xl border border-[#E6E3D8] bg-white px-4 py-3 shadow-xs">
-          <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">{TITLES[module]}</h2>
+      {module !== 'accommodations' && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
+          <div className="rounded-2xl border border-[#E6E3D8] bg-white px-4 py-3 shadow-xs">
+            <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#2C3327]">{TITLES[module]}</h2>
+          </div>
         </div>
-      </div>
+      )}
 
+      {module === 'accommodations' && <AccommodationsManager />}
       {module === 'rooms' && <RoomsRegistryManager />}
       {module === 'inventory' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><InventoryStandalonePage view="items" /></div>
