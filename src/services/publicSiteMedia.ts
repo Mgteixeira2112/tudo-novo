@@ -20,7 +20,7 @@ function validateImage(file: File) {
   }
 }
 
-async function uploadPublicSiteImage(file: File, hotelId: string, prefix: 'hero' | 'gallery' | 'about' | 'seo-share' | 'favicon') {
+async function uploadPublicSiteImage(file: File, hotelId: string, prefix: 'hero' | 'gallery' | 'about' | 'seo-share' | 'favicon' | 'logo') {
   validateImage(file);
 
   const supabase = getSupabaseClient();
@@ -57,4 +57,8 @@ export async function uploadPublicSiteSeoShareImage(file: File, hotelId: string)
 
 export async function uploadPublicSiteFaviconImage(file: File, hotelId: string) {
   return uploadPublicSiteImage(file, hotelId, 'favicon');
+}
+
+export async function uploadPublicSiteLogoImage(file: File, hotelId: string) {
+  return uploadPublicSiteImage(file, hotelId, 'logo');
 }

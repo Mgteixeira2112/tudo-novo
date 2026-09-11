@@ -14,6 +14,7 @@ export interface PublicSiteGalleryItem {
 }
 
 export interface PublicSiteSectionContent {
+  heroLogoUrl?: string;
   aboutTitle?: string;
   aboutBody?: string;
   aboutImageUrl?: string;
@@ -118,6 +119,7 @@ function optionalString(value: unknown): string | undefined {
 function mapSectionContent(value: any): PublicSiteSectionContent {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return {
+    heroLogoUrl: optionalString(value.heroLogoUrl),
     aboutTitle: optionalString(value.aboutTitle),
     aboutBody: optionalString(value.aboutBody),
     aboutImageUrl: optionalString(value.aboutImageUrl),
