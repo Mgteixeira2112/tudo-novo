@@ -11,15 +11,7 @@ const sanitizeFileName = (name: string) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '') || 'hero-image';
 
-const managedPathFromUrl = (url?: string) => {
-  if (!url) return null;
-  const marker = `/storage/v1/object/public/${PUBLIC_SITE_MEDIA_BUCKET}/`;
-  const index = url.indexOf(marker);
-  if (index < 0) return null;
-  return decodeURIComponent(url.slice(index + marker.length).split('?')[0]);
-};
-
-export async function uploadPublicSiteHeroImage(file: File, hotelId: string, previousUrl?: string) {
+export async function uploadPublicSiteHeroImage(file: File, hotelId: string) {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
     throw new Error('Use uma imagem JPG, PNG ou WebP.');
   }
@@ -40,21 +32,5 @@ export async function uploadPublicSiteHeroImage(file: File, hotelId: string, pre
   if (error) throw error;
 
   const { data } = supabase.storage.from(PUBLIC_SITE_MEDIA_BUCKET).getPublicUrl(path);
-  const publicUrl = data.publicUrl;
-
-  const previousPath = managedPathFromUrl(previousUrl);
-  if (previousPath && previousPath !== path) {
-    await supabase.storage.from(PUBLIC_SITE_MEDIA_BUCKET).remove([previousPath]);
-  }
-
-  return publicUrl;
-}
-
-export async function removePublicSiteHeroImage(url?: string) {
-  const path = managedPathFromUrl(url);
-  if (!path) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) throw new Error('Supabase não configurado.');
-  const { error } = await supabase.storage.from(PUBLIC_SITE_MEDIA_BUCKET).remove([path]);
-  if (error) throw error;
+  return data.publicUrl;
 }
