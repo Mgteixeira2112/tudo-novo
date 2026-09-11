@@ -125,6 +125,24 @@
   border-radius: 999px !important;
 }
 
+/* Logotipo do Hero — recorta arquivos com faixa horizontal e amplia a marca. */
+#public-hero [data-public-hero-logo] {
+  width: 160px;
+  height: 160px;
+  overflow: hidden;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+#public-hero [data-public-hero-logo] img {
+  height: 160px !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: initial !important;
+  object-position: left center;
+}
+
 @media (max-width: 767px) {
   [data-public-template="classic"] #public-hero,
   [data-public-template="urban"] #public-hero {
@@ -144,5 +162,14 @@
   [data-public-template="boutique"] #public-hero h1,
   [data-public-template="nature"] #public-hero h1 {
     font-size: clamp(2.7rem, 13vw, 4.6rem) !important;
+  }
+
+  #public-hero [data-public-hero-logo] {
+    width: 128px;
+    height: 128px;
+  }
+
+  #public-hero [data-public-hero-logo] img {
+    height: 128px !important;
   }
 }
