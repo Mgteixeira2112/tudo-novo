@@ -1,0 +1,212 @@
+/* Public site — Urbano: architectural, graphic, modular visual language. */
+[data-public-template="urban"] {
+  --site-radius: 0px !important;
+  background: linear-gradient(180deg, #f4f5f7 0%, #ffffff 42%, #eef0f2 100%);
+}
+
+[data-public-template="urban"] #public-hero {
+  min-height: min(82vh, 860px) !important;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 4px solid var(--site-accent);
+}
+
+[data-public-template="urban"] #public-hero > div {
+  width: 100%;
+  max-width: 78rem !important;
+  text-align: left !important;
+  padding-bottom: clamp(2rem, 5vw, 4.5rem);
+}
+
+[data-public-template="urban"] #public-hero > div > div:first-child {
+  margin-left: 0 !important;
+  border-radius: 0 !important;
+  padding: .45rem .7rem !important;
+  text-transform: uppercase;
+  letter-spacing: .2em;
+}
+
+[data-public-template="urban"] #public-hero h1 {
+  max-width: 1020px;
+  font-size: clamp(3.2rem, 8vw, 7rem) !important;
+  line-height: .88;
+  text-transform: uppercase;
+  letter-spacing: -.055em !important;
+  font-weight: 800 !important;
+}
+
+[data-public-template="urban"] #public-hero p[class*="max-w-2xl"] {
+  margin-left: 0 !important;
+  max-width: 620px !important;
+  font-size: clamp(1rem, 1.5vw, 1.15rem) !important;
+  line-height: 1.55;
+}
+
+[data-public-template="urban"] #public-hero > div > div:last-of-type {
+  justify-content: flex-start !important;
+  max-width: 820px;
+}
+
+[data-public-template="urban"] #public-hero button {
+  border-radius: 0 !important;
+  padding: 1rem 1.5rem !important;
+  box-shadow: 8px 8px 0 rgba(0,0,0,.18) !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+[data-public-template="urban"] [data-public-booking-engine] > div > div:nth-child(2) {
+  width: min(1180px, calc(100% - 2rem));
+  margin: -2rem auto 0 !important;
+  position: relative;
+  z-index: 3;
+  padding: 1.5rem !important;
+  background: white;
+  border: 1px solid rgba(0,0,0,.1);
+  box-shadow: 12px 12px 0 rgba(0,0,0,.08);
+}
+
+[data-public-template="urban"] #public-about,
+[data-public-template="urban"] #public-services,
+[data-public-template="urban"] #public-gallery,
+[data-public-template="urban"] #public-location,
+[data-public-template="urban"] #public-contact {
+  padding-top: 5rem !important;
+  padding-bottom: 5rem !important;
+}
+
+[data-public-template="urban"] #public-about,
+[data-public-template="urban"] #public-gallery,
+[data-public-template="urban"] #public-contact {
+  border-top: 1px solid rgba(0,0,0,.12);
+}
+
+[data-public-template="urban"] #public-about > div {
+  max-width: 1180px !important;
+  grid-template-columns: .82fr 1.18fr !important;
+  gap: 3.5rem !important;
+}
+
+[data-public-template="urban"] #public-about > div > div:first-child {
+  min-height: 390px !important;
+  border-radius: 0 !important;
+  box-shadow: 14px 14px 0 color-mix(in srgb, var(--site-secondary) 18%, transparent);
+}
+
+[data-public-template="urban"] #public-about h2,
+[data-public-template="urban"] #public-services h2,
+[data-public-template="urban"] #public-gallery h2,
+[data-public-template="urban"] #public-location h2,
+[data-public-template="urban"] #public-contact h2 {
+  text-transform: uppercase;
+  letter-spacing: -.035em !important;
+}
+
+[data-public-template="urban"] #public-services {
+  background: color-mix(in srgb, var(--site-secondary) 7%, #f5f6f7) !important;
+  border-top: 1px solid rgba(0,0,0,.1);
+  border-bottom: 1px solid rgba(0,0,0,.1);
+}
+
+[data-public-template="urban"] #public-services > div > div:last-child {
+  gap: 1px !important;
+  background: rgba(0,0,0,.12);
+  border: 1px solid rgba(0,0,0,.12);
+}
+
+[data-public-template="urban"] #public-services > div > div:last-child > div {
+  min-height: 126px;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-public-template="urban"] #public-services > div > div:last-child > div > div:first-child {
+  border-radius: 0 !important;
+}
+
+[data-public-template="urban"] #public-gallery > div {
+  max-width: 1220px !important;
+}
+
+[data-public-template="urban"] #public-gallery > div > div:last-child {
+  gap: 1px !important;
+  background: rgba(0,0,0,.12);
+}
+
+[data-public-template="urban"] #public-gallery figure {
+  border-radius: 0 !important;
+}
+
+[data-public-template="urban"] #public-gallery figure:first-child {
+  min-height: 500px !important;
+}
+
+[data-public-template="urban"] #public-gallery figure:nth-child(3) {
+  transform: translateY(-28px);
+}
+
+[data-public-template="urban"] #public-location {
+  background: transparent !important;
+}
+
+[data-public-template="urban"] #public-location > div {
+  max-width: 1180px !important;
+  gap: 1px !important;
+  background: rgba(0,0,0,.12);
+}
+
+[data-public-template="urban"] #public-location > div > div:first-child,
+[data-public-template="urban"] #public-location > div > div:last-child,
+[data-public-template="urban"] #public-location a,
+[data-public-template="urban"] #public-contact > div,
+[data-public-template="urban"] #public-contact a,
+[data-public-template="urban"] #public-contact button {
+  border-radius: 0 !important;
+}
+
+[data-public-template="urban"] #public-location > div > div:first-child,
+[data-public-template="urban"] #public-location > div > div:last-child {
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+[data-public-template="urban"] #public-contact > div {
+  max-width: 1180px !important;
+  box-shadow: 14px 14px 0 color-mix(in srgb, var(--site-accent) 22%, transparent);
+}
+
+@media (max-width: 900px) {
+  [data-public-template="urban"] #public-about > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  [data-public-template="urban"] #public-gallery figure:nth-child(3) {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-public-template="urban"] #public-hero {
+    min-height: 70vh !important;
+  }
+
+  [data-public-template="urban"] #public-hero h1 {
+    font-size: clamp(2.8rem, 15vw, 5rem) !important;
+  }
+
+  [data-public-template="urban"] [data-public-booking-engine] > div > div:nth-child(2) {
+    margin-top: 0 !important;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  [data-public-template="urban"] #public-about,
+  [data-public-template="urban"] #public-services,
+  [data-public-template="urban"] #public-gallery,
+  [data-public-template="urban"] #public-location,
+  [data-public-template="urban"] #public-contact {
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+}
