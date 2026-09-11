@@ -3,6 +3,7 @@ import { BellRing, CheckCircle2, ChefHat, Minus, Plus, Send, Wine } from 'lucide
 import { useHotel } from '../context/HotelContext.tsx';
 import { KitchenOrder, MenuItem, MinibarItem, RoomMinibarConsumption } from '../types.ts';
 import { api } from '../services/api.ts';
+import { subscribeToKitchenOrdersChangesRealtime } from '../services/kitchenOrdersRealtime.ts';
 
 export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ canManage }) => {
   const { rooms, settings, refreshData } = useHotel();
@@ -112,6 +113,33 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
 
   useEffect(() => {
     Promise.all([api.getMenuItems(), api.getOrders()]).then(([menu, currentOrders]) => { setMenuItems(menu); setOrders(currentOrders); }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const reloadOrders = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(async () => {
+        try {
+          const currentOrders = await api.getOrders();
+          if (!disposed) setOrders(currentOrders);
+        } catch (error) {
+          console.warn('[Kitchen Orders] Falha ao sincronizar pedidos:', error);
+        }
+      }, 80);
+    };
+
+    const unsubscribe = subscribeToKitchenOrdersChangesRealtime(() => reloadOrders());
+    const fallbackInterval = window.setInterval(reloadOrders, 5000);
+
+    return () => {
+      disposed = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.clearInterval(fallbackInterval);
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
