@@ -3,6 +3,7 @@ import { Images } from 'lucide-react';
 import { PublicSiteSectionContent } from '../services/publicSite.ts';
 import { PublicSiteGalleryManager } from './PublicSiteGalleryManager.tsx';
 import { PublicSiteAboutImageField } from './PublicSiteAboutImageField.tsx';
+import { PublicSiteSeoFields } from './PublicSiteSeoFields.tsx';
 
 type Props = {
   hotelId?: string;
@@ -93,6 +94,8 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hot
             </div>
           </div>
         </div>
+
+        <PublicSiteSeoFields hotelId={hotelId} value={value} onChange={onChange} />
       </div>
 
       {galleryOpen && <PublicSiteGalleryManager hotelId={hotelId} value={galleryItems} onChange={updateGallery} onClose={() => setGalleryOpen(false)} />}
