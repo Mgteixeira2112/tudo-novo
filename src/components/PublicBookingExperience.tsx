@@ -61,15 +61,22 @@ export const PublicBookingExperience: React.FC = () => {
   }, [settings?.roomTypes]);
 
   const galleryItems = useMemo(() => {
-    const custom = (content.galleryImageUrls || []).filter(Boolean).slice(0, 6);
-    if (custom.length) {
-      return custom.map((imageUrl, index) => ({ id: `custom-${index}`, title: `Imagem ${index + 1}`, imageUrl }));
+    if (content.galleryItems?.length) {
+      return [...content.galleryItems]
+        .sort((a, b) => a.order - b.order)
+        .slice(0, 24)
+        .map(item => ({
+          id: item.id,
+          title: item.caption || 'Foto do hotel',
+          imageUrl: item.url
+        }));
     }
-    return (settings?.roomTypes || [])
-      .filter(roomType => Boolean(roomType.imageUrl))
-      .slice(0, 6)
-      .map(roomType => ({ id: roomType.id, title: roomType.name, imageUrl: roomType.imageUrl as string }));
-  }, [content.galleryImageUrls, settings?.roomTypes]);
+
+    return (content.galleryImageUrls || [])
+      .filter(Boolean)
+      .slice(0, 24)
+      .map((imageUrl, index) => ({ id: `legacy-${index}`, title: `Foto ${index + 1}`, imageUrl }));
+  }, [content.galleryImageUrls, content.galleryItems]);
 
   const hotelLocationLabel = [settings?.address, settings?.cityState].filter(Boolean).join(', ');
   const publicAddress = content.locationAddress || hotelLocationLabel;
@@ -200,7 +207,7 @@ export const PublicBookingExperience: React.FC = () => {
                 </div>
               ) : (
                 <div className="mt-7 flex min-h-44 items-center justify-center border border-dashed p-8 text-center" style={{ borderColor: `${secondary}55`, borderRadius: radius }}>
-                  <div><Images className="mx-auto h-8 w-8 opacity-40" style={{ color: secondary }} /><p className="mt-3 text-sm font-semibold">A galeria será preenchida automaticamente com as imagens das acomodações cadastradas.</p></div>
+                  <div><Images className="mx-auto h-8 w-8 opacity-40" style={{ color: secondary }} /><p className="mt-3 text-sm font-semibold">Adicione fotos em Administração → Site Público → Gerenciar galeria e publique as alterações.</p></div>
                 </div>
               )}
             </div>
