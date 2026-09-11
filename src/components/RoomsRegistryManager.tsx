@@ -15,6 +15,11 @@ interface RoomFormState {
   notes: string;
 }
 
+const resolveTypeCapacity = (type: { maxOccupancy?: number; capacityAdults: number; capacityChildren: number } | undefined) => {
+  if (!type) return 2;
+  return Math.max(1, Number(type.maxOccupancy || (type.capacityAdults + type.capacityChildren) || type.capacityAdults || 1));
+};
+
 export const RoomsRegistryManager: React.FC = () => {
   const { rooms, settings, refreshData } = useHotel();
   const [search, setSearch] = useState('');
@@ -30,7 +35,7 @@ export const RoomsRegistryManager: React.FC = () => {
     typeId: defaultType?.id || 'rt_standard',
     typeName: defaultType?.name || 'Suíte Standard',
     pricePerNight: defaultType?.basePrice || 0,
-    capacity: defaultType?.capacityAdults || 2,
+    capacity: resolveTypeCapacity(defaultType),
     amenities: defaultType?.amenities ? [...defaultType.amenities] : [],
     notes: ''
   });
@@ -78,7 +83,7 @@ export const RoomsRegistryManager: React.FC = () => {
       typeId: type.id,
       typeName: type.name,
       pricePerNight: type.basePrice,
-      capacity: type.capacityAdults,
+      capacity: resolveTypeCapacity(type),
       amenities: type.amenities ? [...type.amenities] : prev.amenities
     }));
   };
