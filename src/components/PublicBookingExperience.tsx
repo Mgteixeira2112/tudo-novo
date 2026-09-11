@@ -68,8 +68,9 @@ export const PublicBookingExperience: React.FC = () => {
       .map(roomType => ({ id: roomType.id, title: roomType.name, imageUrl: roomType.imageUrl as string }));
   }, [content.galleryImageUrls, settings?.roomTypes]);
 
-  const locationLabel = [settings?.address, settings?.cityState].filter(Boolean).join(', ');
-  const mapQuery = content.locationMapQuery || locationLabel;
+  const hotelLocationLabel = [settings?.address, settings?.cityState].filter(Boolean).join(', ');
+  const publicAddress = content.locationAddress || hotelLocationLabel;
+  const mapQuery = content.locationMapQuery || publicAddress;
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : undefined;
   const contactPhone = content.contactPhone || settings?.phone || '';
   const contactEmail = content.contactEmail || settings?.email || '';
@@ -192,12 +193,12 @@ export const PublicBookingExperience: React.FC = () => {
                   {content.locationTitle || 'Fácil de encontrar, simples de chegar'}
                 </h2>
                 <p className="mt-4 text-sm leading-6 opacity-80">
-                  {content.locationBody || locationLabel || 'Cadastre o endereço do estabelecimento para exibi-lo aqui.'}
+                  {content.locationBody || publicAddress || 'Cadastre o endereço do estabelecimento para exibi-lo aqui.'}
                 </p>
                 {mapsUrl && <a href={mapsUrl} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110" style={{ backgroundColor: secondary, borderRadius: radius }}><Navigation className="h-4 w-4" />Abrir no mapa</a>}
               </div>
               <div className="flex min-h-64 items-center justify-center p-8 text-center" style={{ backgroundColor: primary, color: background, borderRadius: radius }}>
-                <div><MapPin className="mx-auto h-10 w-10" style={{ color: accent }} /><p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] opacity-65">Destino</p><p className="mt-2 text-2xl font-bold" style={{ fontFamily: headingFont }}>{settings?.cityState || settings?.hotelName || heroTitle}</p>{settings?.address && <p className="mx-auto mt-3 max-w-sm text-sm opacity-75">{settings.address}</p>}</div>
+                <div><MapPin className="mx-auto h-10 w-10" style={{ color: accent }} /><p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] opacity-65">Destino</p><p className="mt-2 text-2xl font-bold" style={{ fontFamily: headingFont }}>{settings?.cityState || settings?.hotelName || heroTitle}</p>{publicAddress && <p className="mx-auto mt-3 max-w-sm text-sm opacity-75">{publicAddress}</p>}</div>
               </div>
             </div>
           </section>
@@ -240,7 +241,7 @@ export const PublicBookingExperience: React.FC = () => {
       const bIndex = order.indexOf(b.key);
       return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
     });
-  }, [accent, amenities, background, contactEmail, contactPhone, content, emailHref, galleryItems, headingFont, heroTitle, locationLabel, mapsUrl, phoneHref, primary, radius, secondary, settings, siteSettings]);
+  }, [accent, amenities, background, contactEmail, contactPhone, content, emailHref, galleryItems, headingFont, heroTitle, mapsUrl, phoneHref, primary, publicAddress, radius, secondary, settings, siteSettings]);
 
   return (
     <div
@@ -304,9 +305,9 @@ export const PublicBookingExperience: React.FC = () => {
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ fontFamily: headingFont }}>{heroTitle}</h1>
           {heroSubtitle && <p className="mx-auto mt-4 max-w-2xl text-base opacity-90 sm:text-lg">{heroSubtitle}</p>}
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs opacity-80">
-            {settings?.address && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{settings.address}</span>}
-            {settings?.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{settings.phone}</span>}
-            {settings?.email && <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{settings.email}</span>}
+            {publicAddress && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{publicAddress}</span>}
+            {contactPhone && <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{contactPhone}</span>}
+            {contactEmail && <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{contactEmail}</span>}
           </div>
           {siteSettings?.showBookingBar !== false && <button type="button" onClick={handlePrimaryCta} className="mt-7 inline-flex items-center gap-2 px-5 py-3 text-sm font-bold shadow-lg transition hover:brightness-105" style={{ backgroundColor: accent, color: primary, borderRadius: radius }}><span>{siteSettings?.primaryCtaLabel || 'Reservar agora'}</span><ArrowRight className="h-4 w-4" /></button>}
           {loadingSite && <span className="ml-3 inline-flex align-middle opacity-50" title="Carregando personalização do site"><Loader2 className="h-4 w-4 animate-spin" /></span>}

@@ -13,6 +13,7 @@ export interface PublicSiteSectionContent {
   galleryImageUrls?: string[];
   locationTitle?: string;
   locationBody?: string;
+  locationAddress?: string;
   locationMapQuery?: string;
   contactTitle?: string;
   contactBody?: string;
@@ -75,6 +76,7 @@ function mapSectionContent(value: any): PublicSiteSectionContent {
     galleryImageUrls: normalizeStringArray(value.galleryImageUrls),
     locationTitle: value.locationTitle ? String(value.locationTitle) : undefined,
     locationBody: value.locationBody ? String(value.locationBody) : undefined,
+    locationAddress: value.locationAddress ? String(value.locationAddress) : undefined,
     locationMapQuery: value.locationMapQuery ? String(value.locationMapQuery) : undefined,
     contactTitle: value.contactTitle ? String(value.contactTitle) : undefined,
     contactBody: value.contactBody ? String(value.contactBody) : undefined,

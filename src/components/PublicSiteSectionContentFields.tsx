@@ -44,7 +44,8 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ value, onChang
           <h5 className="font-black text-[#2C3327]">Localização</h5>
           <label className="mt-3 block"><span className={labelClass}>Título</span><input className={inputClass} value={value.locationTitle || ''} onChange={e => update('locationTitle', e.target.value)} placeholder="Fácil de encontrar, simples de chegar" /></label>
           <label className="mt-3 block"><span className={labelClass}>Texto</span><textarea className={inputClass} rows={3} value={value.locationBody || ''} onChange={e => update('locationBody', e.target.value)} /></label>
-          <label className="mt-3 block"><span className={labelClass}>Busca do mapa</span><input className={inputClass} value={value.locationMapQuery || ''} onChange={e => update('locationMapQuery', e.target.value)} placeholder="Endereço ou ponto de referência" /></label>
+          <label className="mt-3 block"><span className={labelClass}>Endereço público</span><input className={inputClass} value={value.locationAddress || ''} onChange={e => update('locationAddress', e.target.value)} placeholder="Usa o endereço do hotel se vazio" /></label>
+          <label className="mt-3 block"><span className={labelClass}>Busca do mapa</span><input className={inputClass} value={value.locationMapQuery || ''} onChange={e => update('locationMapQuery', e.target.value)} placeholder="Usa o endereço público se vazio" /></label>
         </div>
 
         <div className="rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4 lg:col-span-2">
