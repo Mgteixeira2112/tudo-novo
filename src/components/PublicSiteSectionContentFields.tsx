@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { Images } from 'lucide-react';
 import { PublicSiteSectionContent } from '../services/publicSite.ts';
+import { PublicSiteGalleryManager } from './PublicSiteGalleryManager.tsx';
 
 type Props = {
+  hotelId: string;
   value: PublicSiteSectionContent;
   onChange: (value: PublicSiteSectionContent) => void;
 };
@@ -9,9 +12,31 @@ type Props = {
 const inputClass = 'mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm outline-none focus:border-[#588157]';
 const labelClass = 'text-xs font-bold text-[#565B4B]';
 
-export const PublicSiteSectionContentFields: React.FC<Props> = ({ value, onChange }) => {
+export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId, value, onChange }) => {
+  const [galleryOpen, setGalleryOpen] = useState(false);
+
   const update = (key: keyof PublicSiteSectionContent, next: string | string[]) => {
     onChange({ ...value, [key]: next });
+  };
+
+  const galleryItems = useMemo(() => {
+    if (value.galleryItems?.length) return value.galleryItems;
+    return (value.galleryImageUrls || []).slice(0, 24).map((url, index) => ({
+      id: `legacy-${index}`,
+      url,
+      category: 'rooms' as const,
+      caption: '',
+      featured: index === 0,
+      order: index
+    }));
+  }, [value.galleryItems, value.galleryImageUrls]);
+
+  const updateGallery = (items: typeof galleryItems) => {
+    onChange({
+      ...value,
+      galleryItems: items,
+      galleryImageUrls: value.galleryImageUrls || []
+    });
   };
 
   return (
@@ -36,8 +61,14 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ value, onChang
         <div className="rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4">
           <h5 className="font-black text-[#2C3327]">Galeria</h5>
           <label className="mt-3 block"><span className={labelClass}>Título</span><input className={inputClass} value={value.galleryTitle || ''} onChange={e => update('galleryTitle', e.target.value)} placeholder="Veja um pouco da sua próxima estadia" /></label>
-          <label className="mt-3 block"><span className={labelClass}>URLs de imagens — uma por linha, até 6</span><textarea className={inputClass} rows={6} value={(value.galleryImageUrls || []).join('\n')} onChange={e => update('galleryImageUrls', e.target.value.split('\n').map(item => item.trim()).filter(Boolean).slice(0, 6))} placeholder={'https://.../foto1.jpg\nhttps://.../foto2.jpg'} /></label>
-          <p className="mt-2 text-xs text-[#7A806B]">Se ficar vazio, o site usa as imagens das acomodações.</p>
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[#DDD8C9] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E9EDC9] text-[#3A5A40]"><Images className="h-5 w-5" /></div>
+              <div><p className="text-sm font-black text-[#2C3327]">Galeria de fotos</p><p className="text-xs text-[#6B705C]">{galleryItems.length} de 24 imagens cadastradas</p></div>
+            </div>
+            <button type="button" onClick={() => setGalleryOpen(true)} className="rounded-xl bg-[#2C3327] px-4 py-2.5 text-sm font-black text-white hover:brightness-110">Gerenciar galeria</button>
+          </div>
+          <p className="mt-2 text-xs text-[#7A806B]">Uploads, categoria, destaque, legenda e ordem ficam concentrados no gerenciador.</p>
         </div>
 
         <div className="rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4">
@@ -58,6 +89,8 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ value, onChang
           </div>
         </div>
       </div>
+
+      {galleryOpen && <PublicSiteGalleryManager hotelId={hotelId} value={galleryItems} onChange={updateGallery} onClose={() => setGalleryOpen(false)} />}
     </section>
   );
 };
