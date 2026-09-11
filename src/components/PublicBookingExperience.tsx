@@ -65,8 +65,11 @@ export const PublicBookingExperience: React.FC = () => {
   const mapQuery = content.locationMapQuery || publicAddress;
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : undefined;
   const contactPhone = content.contactPhone || settings?.phone || '';
+  const contactWhatsapp = content.contactWhatsapp || '';
   const contactEmail = content.contactEmail || settings?.email || '';
   const phoneHref = contactPhone ? `tel:${contactPhone.replace(/[^+\d]/g, '')}` : undefined;
+  const whatsappDigits = contactWhatsapp.replace(/\D/g, '');
+  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : undefined;
   const emailHref = contactEmail ? `mailto:${contactEmail}` : undefined;
 
   const handlePrimaryCta = () => {
@@ -107,12 +110,19 @@ export const PublicBookingExperience: React.FC = () => {
         node: (
           <section id="public-about" className="px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div className="flex min-h-64 items-center justify-center p-8" style={{ backgroundColor: primary, borderRadius: radius }}>
-                <div className="text-center" style={{ color: background }}>
-                  <Building2 className="mx-auto h-10 w-10" style={{ color: accent }} />
-                  <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] opacity-70">Conheça o hotel</p>
-                  <p className="mt-2 text-2xl font-bold" style={{ fontFamily: headingFont }}>{settings?.hotelName || heroTitle}</p>
-                </div>
+              <div className="relative flex min-h-64 items-center justify-center overflow-hidden p-8" style={{ backgroundColor: primary, borderRadius: radius }}>
+                {content.aboutImageUrl ? (
+                  <>
+                    <img src={content.aboutImageUrl} alt={content.aboutTitle || `Sobre ${settings?.hotelName || heroTitle}`} className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/20" />
+                  </>
+                ) : (
+                  <div className="text-center" style={{ color: background }}>
+                    <Building2 className="mx-auto h-10 w-10" style={{ color: accent }} />
+                    <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] opacity-70">Conheça o hotel</p>
+                    <p className="mt-2 text-2xl font-bold" style={{ fontFamily: headingFont }}>{settings?.hotelName || heroTitle}</p>
+                  </div>
+                )}
               </div>
               <div>
                 <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: secondary }}>Sobre nós</span>
@@ -223,8 +233,9 @@ export const PublicBookingExperience: React.FC = () => {
                 </div>
                 <div className="grid gap-3">
                   {phoneHref && <a href={phoneHref} className="flex items-center gap-3 border border-white/15 bg-white/10 p-4 transition hover:bg-white/15" style={{ borderRadius: radius }}><Phone className="h-5 w-5" style={{ color: accent }} /><div><p className="text-xs opacity-60">Telefone</p><p className="text-sm font-bold">{contactPhone}</p></div></a>}
+                  {whatsappHref && <a href={whatsappHref} target="_blank" rel="noreferrer" className="flex items-center gap-3 border border-white/15 bg-white/10 p-4 transition hover:bg-white/15" style={{ borderRadius: radius }}><MessageCircle className="h-5 w-5" style={{ color: accent }} /><div><p className="text-xs opacity-60">WhatsApp</p><p className="text-sm font-bold">{contactWhatsapp}</p></div></a>}
                   {emailHref && <a href={emailHref} className="flex items-center gap-3 border border-white/15 bg-white/10 p-4 transition hover:bg-white/15" style={{ borderRadius: radius }}><Mail className="h-5 w-5" style={{ color: accent }} /><div><p className="text-xs opacity-60">E-mail</p><p className="break-all text-sm font-bold">{contactEmail}</p></div></a>}
-                  {!phoneHref && !emailHref && <div className="flex items-center gap-3 border border-white/15 bg-white/10 p-4" style={{ borderRadius: radius }}><MessageCircle className="h-5 w-5" style={{ color: accent }} /><p className="text-sm opacity-75">Cadastre telefone ou e-mail para liberar os canais de contato.</p></div>}
+                  {!phoneHref && !whatsappHref && !emailHref && <div className="flex items-center gap-3 border border-white/15 bg-white/10 p-4" style={{ borderRadius: radius }}><MessageCircle className="h-5 w-5" style={{ color: accent }} /><p className="text-sm opacity-75">Cadastre telefone, WhatsApp ou e-mail para liberar os canais de contato.</p></div>}
                 </div>
               </div>
             </div>
@@ -239,7 +250,7 @@ export const PublicBookingExperience: React.FC = () => {
       const bIndex = order.indexOf(b.key);
       return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
     });
-  }, [accent, amenities, background, contactEmail, contactPhone, content, emailHref, headingFont, heroTitle, mapsUrl, phoneHref, primary, publicAddress, radius, secondary, settings, siteSettings]);
+  }, [accent, amenities, background, contactEmail, contactPhone, contactWhatsapp, content, emailHref, headingFont, heroTitle, mapsUrl, phoneHref, primary, publicAddress, radius, secondary, settings, siteSettings, whatsappHref]);
 
   return (
     <div

@@ -16,6 +16,7 @@ export interface PublicSiteGalleryItem {
 export interface PublicSiteSectionContent {
   aboutTitle?: string;
   aboutBody?: string;
+  aboutImageUrl?: string;
   servicesTitle?: string;
   servicesBody?: string;
   servicesItems?: string[];
@@ -29,6 +30,7 @@ export interface PublicSiteSectionContent {
   contactTitle?: string;
   contactBody?: string;
   contactPhone?: string;
+  contactWhatsapp?: string;
   contactEmail?: string;
 }
 
@@ -107,6 +109,7 @@ function mapSectionContent(value: any): PublicSiteSectionContent {
   return {
     aboutTitle: value.aboutTitle ? String(value.aboutTitle) : undefined,
     aboutBody: value.aboutBody ? String(value.aboutBody) : undefined,
+    aboutImageUrl: value.aboutImageUrl ? String(value.aboutImageUrl) : undefined,
     servicesTitle: value.servicesTitle ? String(value.servicesTitle) : undefined,
     servicesBody: value.servicesBody ? String(value.servicesBody) : undefined,
     servicesItems: normalizeStringArray(value.servicesItems),
@@ -120,6 +123,7 @@ function mapSectionContent(value: any): PublicSiteSectionContent {
     contactTitle: value.contactTitle ? String(value.contactTitle) : undefined,
     contactBody: value.contactBody ? String(value.contactBody) : undefined,
     contactPhone: value.contactPhone ? String(value.contactPhone) : undefined,
+    contactWhatsapp: value.contactWhatsapp ? String(value.contactWhatsapp) : undefined,
     contactEmail: value.contactEmail ? String(value.contactEmail) : undefined
   };
 }

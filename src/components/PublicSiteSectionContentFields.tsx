@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Images } from 'lucide-react';
 import { PublicSiteSectionContent } from '../services/publicSite.ts';
 import { PublicSiteGalleryManager } from './PublicSiteGalleryManager.tsx';
+import { PublicSiteAboutImageField } from './PublicSiteAboutImageField.tsx';
 
 type Props = {
   hotelId?: string;
@@ -15,7 +16,7 @@ const labelClass = 'text-xs font-bold text-[#565B4B]';
 export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hotel_1', value, onChange }) => {
   const [galleryOpen, setGalleryOpen] = useState(false);
 
-  const update = (key: keyof PublicSiteSectionContent, next: string | string[]) => {
+  const update = (key: keyof PublicSiteSectionContent, next: string | string[] | undefined) => {
     onChange({ ...value, [key]: next });
   };
 
@@ -49,6 +50,7 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hot
           <h5 className="font-black text-[#2C3327]">Sobre o hotel</h5>
           <label className="mt-3 block"><span className={labelClass}>Título</span><input className={inputClass} value={value.aboutTitle || ''} onChange={e => update('aboutTitle', e.target.value)} placeholder="Uma estadia pensada para receber bem" /></label>
           <label className="mt-3 block"><span className={labelClass}>Texto</span><textarea className={inputClass} rows={4} value={value.aboutBody || ''} onChange={e => update('aboutBody', e.target.value)} placeholder="Apresentação do estabelecimento" /></label>
+          <PublicSiteAboutImageField hotelId={hotelId} value={value.aboutImageUrl} onChange={url => update('aboutImageUrl', url)} />
         </div>
 
         <div className="rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4">
@@ -85,7 +87,10 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hot
             <label className="block"><span className={labelClass}>Título</span><input className={inputClass} value={value.contactTitle || ''} onChange={e => update('contactTitle', e.target.value)} placeholder="Pronto para planejar sua estadia?" /></label>
             <label className="block"><span className={labelClass}>Telefone público</span><input className={inputClass} value={value.contactPhone || ''} onChange={e => update('contactPhone', e.target.value)} placeholder="Usa o telefone do hotel se vazio" /></label>
             <label className="block"><span className={labelClass}>Texto</span><textarea className={inputClass} rows={3} value={value.contactBody || ''} onChange={e => update('contactBody', e.target.value)} /></label>
-            <label className="block"><span className={labelClass}>E-mail público</span><input type="email" className={inputClass} value={value.contactEmail || ''} onChange={e => update('contactEmail', e.target.value)} placeholder="Usa o e-mail do hotel se vazio" /></label>
+            <div className="grid gap-3">
+              <label className="block"><span className={labelClass}>WhatsApp público</span><input className={inputClass} value={value.contactWhatsapp || ''} onChange={e => update('contactWhatsapp', e.target.value)} placeholder="Ex.: +55 35 99999-9999" /></label>
+              <label className="block"><span className={labelClass}>E-mail público</span><input type="email" className={inputClass} value={value.contactEmail || ''} onChange={e => update('contactEmail', e.target.value)} placeholder="Usa o e-mail do hotel se vazio" /></label>
+            </div>
           </div>
         </div>
       </div>

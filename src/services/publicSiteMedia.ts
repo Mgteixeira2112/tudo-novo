@@ -20,7 +20,7 @@ function validateImage(file: File) {
   }
 }
 
-async function uploadPublicSiteImage(file: File, hotelId: string, prefix: 'hero' | 'gallery') {
+async function uploadPublicSiteImage(file: File, hotelId: string, prefix: 'hero' | 'gallery' | 'about') {
   validateImage(file);
 
   const supabase = getSupabaseClient();
@@ -45,4 +45,8 @@ export async function uploadPublicSiteHeroImage(file: File, hotelId: string) {
 
 export async function uploadPublicSiteGalleryImage(file: File, hotelId: string) {
   return uploadPublicSiteImage(file, hotelId, 'gallery');
+}
+
+export async function uploadPublicSiteAboutImage(file: File, hotelId: string) {
+  return uploadPublicSiteImage(file, hotelId, 'about');
 }
