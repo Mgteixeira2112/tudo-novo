@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './public-site-boutique.css';
+import './public-site-urban.css';
 import './public-site-template-heroes.css';
 import { api } from './services/api.ts';
 import {
