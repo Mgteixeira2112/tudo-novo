@@ -23,6 +23,7 @@ import { KdsEntry } from './components/KdsEntry.tsx';
 import { HotelProvider } from './context/HotelContext.tsx';
 import { PublicBookingExperience } from './components/PublicBookingExperience.tsx';
 import { PublicSiteFloatingWhatsapp } from './components/PublicSiteFloatingWhatsapp.tsx';
+import { PublicSiteSeoHead } from './components/PublicSiteSeoHead.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -53,6 +54,7 @@ const resolveSystemRoute = () => {
 
 const PublicSiteEntry = () => (
   <HotelProvider>
+    <PublicSiteSeoHead />
     <PublicBookingExperience />
     <PublicSiteFloatingWhatsapp />
     <a
