@@ -1,0 +1,218 @@
+/* Public site — Boutique: editorial, refined, asymmetric visual language. */
+[data-public-template="boutique"] {
+  --site-radius: 6px !important;
+  background: linear-gradient(180deg, #fbf8f3 0%, #ffffff 34%, #f8f4ee 100%);
+}
+
+[data-public-template="boutique"] #public-hero {
+  min-height: min(88vh, 900px) !important;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+
+[data-public-template="boutique"] #public-hero > div {
+  width: 100%;
+  max-width: 66rem !important;
+  text-align: left !important;
+  padding-left: min(5vw, 3rem);
+}
+
+[data-public-template="boutique"] #public-hero > div > div:first-child {
+  margin-left: 0 !important;
+  border-radius: 0 !important;
+  border-width: 0 0 1px 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+[data-public-template="boutique"] #public-hero h1 {
+  max-width: 920px;
+  font-size: clamp(3.6rem, 8vw, 7.4rem) !important;
+  line-height: .9;
+  font-weight: 500 !important;
+  letter-spacing: -.055em !important;
+  text-wrap: balance;
+}
+
+[data-public-template="boutique"] #public-hero p[class*="max-w-2xl"] {
+  margin-left: 0 !important;
+  max-width: 560px !important;
+  font-size: clamp(1rem, 1.6vw, 1.2rem) !important;
+  line-height: 1.7;
+}
+
+[data-public-template="boutique"] #public-hero > div > div:last-of-type {
+  justify-content: flex-start !important;
+  max-width: 660px;
+}
+
+[data-public-template="boutique"] #public-hero button {
+  border-radius: 0 !important;
+  padding: 1rem 1.75rem !important;
+  box-shadow: none !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .74rem !important;
+}
+
+[data-public-template="boutique"] [data-public-booking-engine] > div > div:nth-child(2) {
+  width: min(1080px, calc(100% - 2rem));
+  margin: 0 auto !important;
+  padding-top: 2.5rem !important;
+  padding-bottom: 2.5rem !important;
+  border-bottom: 1px solid rgba(44,51,39,.12);
+}
+
+[data-public-template="boutique"] #public-about,
+[data-public-template="boutique"] #public-services,
+[data-public-template="boutique"] #public-gallery,
+[data-public-template="boutique"] #public-location,
+[data-public-template="boutique"] #public-contact {
+  padding-top: 6rem !important;
+  padding-bottom: 6rem !important;
+}
+
+[data-public-template="boutique"] #public-about > div {
+  max-width: 1080px !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr) !important;
+  gap: 5.5rem !important;
+}
+
+[data-public-template="boutique"] #public-about > div > div:first-child {
+  min-height: 440px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-public-template="boutique"] #public-about h2,
+[data-public-template="boutique"] #public-services h2,
+[data-public-template="boutique"] #public-gallery h2,
+[data-public-template="boutique"] #public-location h2,
+[data-public-template="boutique"] #public-contact h2 {
+  font-weight: 500 !important;
+  letter-spacing: -.035em !important;
+}
+
+[data-public-template="boutique"] #public-services {
+  background: transparent !important;
+  border-top: 1px solid rgba(44,51,39,.1);
+  border-bottom: 1px solid rgba(44,51,39,.1);
+}
+
+[data-public-template="boutique"] #public-services > div > div:last-child {
+  gap: 0 !important;
+  border-top: 1px solid rgba(44,51,39,.12);
+  border-left: 1px solid rgba(44,51,39,.12);
+}
+
+[data-public-template="boutique"] #public-services > div > div:last-child > div {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 1px solid rgba(44,51,39,.12) !important;
+  border-bottom: 1px solid rgba(44,51,39,.12) !important;
+  background: rgba(255,255,255,.5) !important;
+  min-height: 118px;
+}
+
+[data-public-template="boutique"] #public-services > div > div:last-child > div > div:first-child {
+  border-radius: 0 !important;
+}
+
+[data-public-template="boutique"] #public-gallery > div {
+  max-width: 1180px !important;
+}
+
+[data-public-template="boutique"] #public-gallery > div > div:last-child {
+  gap: .75rem !important;
+}
+
+[data-public-template="boutique"] #public-gallery figure {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-public-template="boutique"] #public-gallery figure:first-child {
+  min-height: 520px !important;
+}
+
+[data-public-template="boutique"] #public-gallery figure:nth-child(2) {
+  transform: translateY(42px);
+}
+
+[data-public-template="boutique"] #public-location {
+  background: transparent !important;
+}
+
+[data-public-template="boutique"] #public-location > div {
+  max-width: 1080px !important;
+  gap: 0 !important;
+  align-items: stretch;
+}
+
+[data-public-template="boutique"] #public-location > div > div:first-child,
+[data-public-template="boutique"] #public-location > div > div:last-child {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-public-template="boutique"] #public-location > div > div:first-child {
+  border-right: 0 !important;
+}
+
+[data-public-template="boutique"] #public-contact > div {
+  max-width: 1080px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-public-template="boutique"] #public-contact a,
+[data-public-template="boutique"] #public-contact button {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 900px) {
+  [data-public-template="boutique"] #public-about > div {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+
+  [data-public-template="boutique"] #public-gallery figure:nth-child(2) {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-public-template="boutique"] #public-hero {
+    min-height: 72vh !important;
+  }
+
+  [data-public-template="boutique"] #public-hero > div {
+    padding-left: 0;
+  }
+
+  [data-public-template="boutique"] #public-hero h1 {
+    font-size: clamp(3rem, 15vw, 5.2rem) !important;
+  }
+
+  [data-public-template="boutique"] #public-about,
+  [data-public-template="boutique"] #public-services,
+  [data-public-template="boutique"] #public-gallery,
+  [data-public-template="boutique"] #public-location,
+  [data-public-template="boutique"] #public-contact {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+
+  [data-public-template="boutique"] #public-about > div > div:first-child {
+    min-height: 320px !important;
+  }
+
+  [data-public-template="boutique"] #public-gallery figure:first-child {
+    min-height: 360px !important;
+  }
+}
