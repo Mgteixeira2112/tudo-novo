@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ImageUp, Loader2, Trash2 } from 'lucide-react';
-import { removePublicSiteHeroImage, uploadPublicSiteHeroImage } from '../services/publicSiteMedia.ts';
+import { uploadPublicSiteHeroImage } from '../services/publicSiteMedia.ts';
 
 type Props = {
   hotelId: string;
@@ -18,7 +18,7 @@ export const PublicSiteHeroImageField: React.FC<Props> = ({ hotelId, value, onCh
     setBusy(true);
     setError(null);
     try {
-      const url = await uploadPublicSiteHeroImage(file, hotelId, value);
+      const url = await uploadPublicSiteHeroImage(file, hotelId);
       onChange(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível enviar a imagem.');
@@ -28,17 +28,9 @@ export const PublicSiteHeroImageField: React.FC<Props> = ({ hotelId, value, onCh
     }
   };
 
-  const handleRemove = async () => {
-    setBusy(true);
+  const handleRemove = () => {
     setError(null);
-    try {
-      await removePublicSiteHeroImage(value);
-      onChange(undefined);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível remover a imagem.');
-    } finally {
-      setBusy(false);
-    }
+    onChange(undefined);
   };
 
   return (
@@ -84,7 +76,7 @@ export const PublicSiteHeroImageField: React.FC<Props> = ({ hotelId, value, onCh
             </button>
           )}
         </div>
-        <p className="mt-2 text-xs text-[#777B6C]">JPG, PNG ou WebP. Máximo de 5 MB. A imagem enviada substitui a imagem padrão do template após publicar.</p>
+        <p className="mt-2 text-xs text-[#777B6C]">JPG, PNG ou WebP. Máximo de 5 MB. A imagem enviada substitui a imagem padrão do template somente depois de publicar.</p>
         {error && <p className="mt-2 text-xs font-bold text-red-700">{error}</p>}
       </div>
     </div>
