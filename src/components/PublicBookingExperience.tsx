@@ -9,7 +9,6 @@ import {
   BedDouble,
   CheckCircle2,
   Building2,
-  Images,
   Navigation,
   MessageCircle,
   Menu,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { OnlineBookingEngine } from './OnlineBookingEngine.tsx';
+import { PublicSiteGallerySection } from './PublicSiteGallerySection.tsx';
 import { loadPublicSiteSettings, PublicSiteSettings } from '../services/publicSite.ts';
 
 const VALID_TEMPLATES = new Set(['classic', 'beach', 'boutique', 'urban', 'nature']);
@@ -59,24 +59,6 @@ export const PublicBookingExperience: React.FC = () => {
     }
     return Array.from(unique).slice(0, 8);
   }, [settings?.roomTypes]);
-
-  const galleryItems = useMemo(() => {
-    if (content.galleryItems?.length) {
-      return [...content.galleryItems]
-        .sort((a, b) => a.order - b.order)
-        .slice(0, 24)
-        .map(item => ({
-          id: item.id,
-          title: item.caption || 'Foto do hotel',
-          imageUrl: item.url
-        }));
-    }
-
-    return (content.galleryImageUrls || [])
-      .filter(Boolean)
-      .slice(0, 24)
-      .map((imageUrl, index) => ({ id: `legacy-${index}`, title: `Foto ${index + 1}`, imageUrl }));
-  }, [content.galleryImageUrls, content.galleryItems]);
 
   const hotelLocationLabel = [settings?.address, settings?.cityState].filter(Boolean).join(', ');
   const publicAddress = content.locationAddress || hotelLocationLabel;
@@ -184,34 +166,15 @@ export const PublicBookingExperience: React.FC = () => {
       sections.push({
         key: 'gallery',
         node: (
-          <section id="public-gallery" className="px-4 py-12 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-6xl">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-                <div className="max-w-2xl">
-                  <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: secondary }}>Galeria</span>
-                  <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: primary, fontFamily: headingFont }}>
-                    {content.galleryTitle || 'Veja um pouco da sua próxima estadia'}
-                  </h2>
-                </div>
-                <Images className="h-8 w-8 opacity-30" style={{ color: secondary }} />
-              </div>
-              {galleryItems.length > 0 ? (
-                <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {galleryItems.map((item, index) => (
-                    <figure key={item.id} className={`group relative overflow-hidden ${index === 0 ? 'sm:col-span-2 lg:col-span-2' : ''}`} style={{ borderRadius: radius, minHeight: index === 0 ? '320px' : '220px' }}>
-                      <img src={item.imageUrl} alt={item.title} className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
-                      <figcaption className="absolute bottom-0 left-0 right-0 p-5 text-sm font-bold text-white">{item.title}</figcaption>
-                    </figure>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-7 flex min-h-44 items-center justify-center border border-dashed p-8 text-center" style={{ borderColor: `${secondary}55`, borderRadius: radius }}>
-                  <div><Images className="mx-auto h-8 w-8 opacity-40" style={{ color: secondary }} /><p className="mt-3 text-sm font-semibold">Adicione fotos em Administração → Site Público → Gerenciar galeria e publique as alterações.</p></div>
-                </div>
-              )}
-            </div>
-          </section>
+          <PublicSiteGallerySection
+            items={content.galleryItems}
+            title={content.galleryTitle}
+            primary={primary}
+            secondary={secondary}
+            accent={accent}
+            radius={radius}
+            headingFont={headingFont}
+          />
         )
       });
     }
@@ -276,7 +239,7 @@ export const PublicBookingExperience: React.FC = () => {
       const bIndex = order.indexOf(b.key);
       return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
     });
-  }, [accent, amenities, background, contactEmail, contactPhone, content, emailHref, galleryItems, headingFont, heroTitle, mapsUrl, phoneHref, primary, publicAddress, radius, secondary, settings, siteSettings]);
+  }, [accent, amenities, background, contactEmail, contactPhone, content, emailHref, headingFont, heroTitle, mapsUrl, phoneHref, primary, publicAddress, radius, secondary, settings, siteSettings]);
 
   return (
     <div
