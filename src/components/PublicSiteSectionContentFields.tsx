@@ -4,6 +4,7 @@ import { PublicSiteSectionContent } from '../services/publicSite.ts';
 import { PublicSiteGalleryManager } from './PublicSiteGalleryManager.tsx';
 import { PublicSiteAboutImageField } from './PublicSiteAboutImageField.tsx';
 import { PublicSiteSeoFields } from './PublicSiteSeoFields.tsx';
+import { PublicSiteLogoField } from './PublicSiteLogoField.tsx';
 
 type Props = {
   hotelId?: string;
@@ -45,6 +46,12 @@ export const PublicSiteSectionContentFields: React.FC<Props> = ({ hotelId = 'hot
     <section className="rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-sm">
       <h4 className="text-lg font-black text-[#2C3327]">Conteúdo das seções</h4>
       <p className="mt-1 text-sm text-[#6B705C]">Campos vazios continuam usando automaticamente os dados já cadastrados no hotel e nas acomodações.</p>
+
+      <div className="mt-5 rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4">
+        <h5 className="font-black text-[#2C3327]">Hero — identidade da marca</h5>
+        <p className="mt-1 text-xs leading-5 text-[#6B705C]">O logotipo substitui o selo “Reserva direta” acima do título principal. Se estiver vazio, o selo padrão continua sendo exibido.</p>
+        <PublicSiteLogoField hotelId={hotelId} value={value.heroLogoUrl} onChange={url => update('heroLogoUrl', url)} />
+      </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-[#EEEADF] bg-[#FBFAF6] p-4">
