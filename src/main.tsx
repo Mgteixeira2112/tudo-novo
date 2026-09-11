@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './public-site-boutique.css';
 import { api } from './services/api.ts';
 import {
   loadSettingsCloud,
