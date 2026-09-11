@@ -32,6 +32,11 @@ export interface PublicSiteSectionContent {
   contactPhone?: string;
   contactWhatsapp?: string;
   contactEmail?: string;
+  seoTitle?: string;
+  seoSocialTitle?: string;
+  seoDescription?: string;
+  seoShareImageUrl?: string;
+  seoFaviconUrl?: string;
 }
 
 export interface PublicSiteSettings {
@@ -104,27 +109,38 @@ function normalizeGalleryItems(value: unknown): PublicSiteGalleryItem[] {
   });
 }
 
+function optionalString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const normalized = String(value).trim();
+  return normalized || undefined;
+}
+
 function mapSectionContent(value: any): PublicSiteSectionContent {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return {
-    aboutTitle: value.aboutTitle ? String(value.aboutTitle) : undefined,
-    aboutBody: value.aboutBody ? String(value.aboutBody) : undefined,
-    aboutImageUrl: value.aboutImageUrl ? String(value.aboutImageUrl) : undefined,
-    servicesTitle: value.servicesTitle ? String(value.servicesTitle) : undefined,
-    servicesBody: value.servicesBody ? String(value.servicesBody) : undefined,
+    aboutTitle: optionalString(value.aboutTitle),
+    aboutBody: optionalString(value.aboutBody),
+    aboutImageUrl: optionalString(value.aboutImageUrl),
+    servicesTitle: optionalString(value.servicesTitle),
+    servicesBody: optionalString(value.servicesBody),
     servicesItems: normalizeStringArray(value.servicesItems),
-    galleryTitle: value.galleryTitle ? String(value.galleryTitle) : undefined,
+    galleryTitle: optionalString(value.galleryTitle),
     galleryImageUrls: normalizeStringArray(value.galleryImageUrls),
     galleryItems: normalizeGalleryItems(value.galleryItems),
-    locationTitle: value.locationTitle ? String(value.locationTitle) : undefined,
-    locationBody: value.locationBody ? String(value.locationBody) : undefined,
-    locationAddress: value.locationAddress ? String(value.locationAddress) : undefined,
-    locationMapQuery: value.locationMapQuery ? String(value.locationMapQuery) : undefined,
-    contactTitle: value.contactTitle ? String(value.contactTitle) : undefined,
-    contactBody: value.contactBody ? String(value.contactBody) : undefined,
-    contactPhone: value.contactPhone ? String(value.contactPhone) : undefined,
-    contactWhatsapp: value.contactWhatsapp ? String(value.contactWhatsapp) : undefined,
-    contactEmail: value.contactEmail ? String(value.contactEmail) : undefined
+    locationTitle: optionalString(value.locationTitle),
+    locationBody: optionalString(value.locationBody),
+    locationAddress: optionalString(value.locationAddress),
+    locationMapQuery: optionalString(value.locationMapQuery),
+    contactTitle: optionalString(value.contactTitle),
+    contactBody: optionalString(value.contactBody),
+    contactPhone: optionalString(value.contactPhone),
+    contactWhatsapp: optionalString(value.contactWhatsapp),
+    contactEmail: optionalString(value.contactEmail),
+    seoTitle: optionalString(value.seoTitle),
+    seoSocialTitle: optionalString(value.seoSocialTitle),
+    seoDescription: optionalString(value.seoDescription),
+    seoShareImageUrl: optionalString(value.seoShareImageUrl),
+    seoFaviconUrl: optionalString(value.seoFaviconUrl)
   };
 }
 
