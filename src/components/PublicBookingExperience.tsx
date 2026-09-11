@@ -276,6 +276,7 @@ export const PublicBookingExperience: React.FC = () => {
         [data-public-template="beach"] #public-hero > div { max-width: 72rem; text-align: left; }
         [data-public-template="beach"] #public-hero p[class*="max-w-2xl"] { margin-left: 0; }
         [data-public-template="beach"] #public-hero > div > div:last-of-type { justify-content: flex-start; }
+        [data-public-template="beach"] #public-hero [data-public-hero-logo] { justify-content: flex-start; }
         [data-public-template="beach"] #public-hero button { border-radius: 999px !important; }
         [data-public-template="beach"] #public-gallery figure { border-radius: 28px !important; }
 
@@ -291,6 +292,7 @@ export const PublicBookingExperience: React.FC = () => {
         [data-public-template="urban"] #public-hero > div { max-width: 72rem; text-align: left; }
         [data-public-template="urban"] #public-hero p[class*="max-w-2xl"] { margin-left: 0; }
         [data-public-template="urban"] #public-hero > div > div:last-of-type { justify-content: flex-start; }
+        [data-public-template="urban"] #public-hero [data-public-hero-logo] { justify-content: flex-start; }
         [data-public-template="urban"] #public-hero h1 { text-transform: uppercase; letter-spacing: -0.035em; }
         [data-public-template="urban"] #public-about,
         [data-public-template="urban"] #public-gallery,
@@ -354,7 +356,13 @@ export const PublicBookingExperience: React.FC = () => {
       <section id="public-hero" className="relative overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:px-8" style={{ backgroundColor: primary, color: background }}>
         {siteSettings?.heroMediaUrl && siteSettings.heroMediaType === 'image' && <><img src={siteSettings.heroMediaUrl} alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" /><div className="absolute inset-0 bg-black/50" /></>}
         <div className="relative z-10 mx-auto max-w-5xl text-center">
-          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: accent, color: accent, backgroundColor: 'rgba(0,0,0,0.12)' }}><Sparkles className="h-3.5 w-3.5" /><span>Reserva direta</span></div>
+          {content.heroLogoUrl ? (
+            <div data-public-hero-logo className="mb-5 flex justify-center">
+              <img src={content.heroLogoUrl} alt={`Logotipo ${settings?.hotelName || heroTitle}`} className="max-h-16 w-auto max-w-[240px] object-contain sm:max-h-20 sm:max-w-[320px]" />
+            </div>
+          ) : (
+            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: accent, color: accent, backgroundColor: 'rgba(0,0,0,0.12)' }}><Sparkles className="h-3.5 w-3.5" /><span>Reserva direta</span></div>
+          )}
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ fontFamily: headingFont }}>{heroTitle}</h1>
           {heroSubtitle && <p className="mx-auto mt-4 max-w-2xl text-base opacity-90 sm:text-lg">{heroSubtitle}</p>}
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs opacity-80">
