@@ -12,6 +12,18 @@ export type PaymentStatus = 'Pendente' | 'Parcial' | 'Pago';
 
 export type PaymentMethod = 'PIX' | 'Cartao_Credito' | 'Cartao_Debito' | 'Dinheiro' | 'Faturado';
 
+export type BedKind = 'single' | 'double' | 'queen' | 'king' | 'bunk' | 'sofa_bed' | 'extra_bed' | 'crib';
+
+export interface BedConfig {
+  id: string;
+  type: BedKind;
+  quantity: number;
+  adultsPerBed: number;
+  childrenPerBed: number;
+  maxOccupants?: number;
+  optional?: boolean;
+}
+
 export interface RoomTypeConfig {
   id: string;
   name: string;
@@ -19,8 +31,12 @@ export interface RoomTypeConfig {
   basePrice: number;
   capacityAdults: number;
   capacityChildren: number;
+  capacityInfants?: number;
+  maxOccupancy?: number;
+  beds?: BedConfig[];
   amenities: string[];
   imageUrl?: string;
+  galleryImages?: string[];
 }
 
 export interface HotelSettings {
