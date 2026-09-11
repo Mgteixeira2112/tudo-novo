@@ -7,7 +7,7 @@ import './public-site-urban.css';
 import './public-site-nature.css';
 import './public-site-classic.css';
 import './public-site-template-heroes.css';
-import { api } from './services/api.ts';
+import { api, setApiAccessToken } from './services/api.ts';
 import {
   loadSettingsCloud,
   loadSupabaseStatusCloud,
@@ -38,6 +38,17 @@ const kdsToken = typeof window !== 'undefined'
 
 const isSystemRoute = () => typeof window !== 'undefined' && window.location.hash.startsWith('#/sistema');
 
+const resolveSystemRoute = () => {
+  const systemRoute = isSystemRoute();
+  if (!systemRoute) {
+    // O site público nunca deve depender do token administrativo que ficou em memória
+    // após navegar pelo sistema. O HotelProvider passa a carregar getPublicSettings()
+    // na montagem e mantém as acomodações públicas independentes da sessão interna.
+    setApiAccessToken(null);
+  }
+  return systemRoute;
+};
+
 const PublicSiteEntry = () => (
   <HotelProvider>
     <PublicBookingExperience />
@@ -52,11 +63,11 @@ const PublicSiteEntry = () => (
 );
 
 const ApplicationEntry = () => {
-  const [systemRoute, setSystemRoute] = useState(isSystemRoute);
+  const [systemRoute, setSystemRoute] = useState(resolveSystemRoute);
 
   useEffect(() => {
     const syncRoute = () => {
-      setSystemRoute(isSystemRoute());
+      setSystemRoute(resolveSystemRoute());
       window.scrollTo({ top: 0, behavior: 'auto' });
     };
 
