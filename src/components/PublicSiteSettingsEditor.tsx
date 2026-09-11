@@ -7,6 +7,7 @@ import {
   savePublicSiteDraft
 } from '../services/publicSite.ts';
 import { PublicSiteSectionContentFields } from './PublicSiteSectionContentFields.tsx';
+import { PublicSiteHeroImageField } from './PublicSiteHeroImageField.tsx';
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   hotelId: 'hotel_1',
@@ -184,7 +185,7 @@ export const PublicSiteSettingsEditor: React.FC = () => {
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Título principal</span><input value={form.heroTitle} onChange={e => update('heroTitle', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Subtítulo</span><textarea value={form.heroSubtitle} onChange={e => update('heroSubtitle', e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
             <label className="block"><span className="text-xs font-bold text-[#565B4B]">Texto do botão principal</span><input value={form.primaryCtaLabel} onChange={e => update('primaryCtaLabel', e.target.value)} className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
-            <label className="block"><span className="text-xs font-bold text-[#565B4B]">URL da imagem do Hero</span><input value={form.heroMediaUrl || ''} onChange={e => update('heroMediaUrl', e.target.value || undefined)} placeholder="https://..." className="mt-1 w-full rounded-xl border border-[#DDD8C9] px-3 py-2.5 text-sm" /></label>
+            <PublicSiteHeroImageField hotelId={form.hotelId} value={form.heroMediaUrl} onChange={url => update('heroMediaUrl', url)} />
           </div>
         </section>
       </div>
