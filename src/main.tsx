@@ -5,6 +5,7 @@ import './index.css';
 import './public-site-boutique.css';
 import './public-site-urban.css';
 import './public-site-nature.css';
+import './public-site-classic.css';
 import './public-site-template-heroes.css';
 import { api } from './services/api.ts';
 import {
