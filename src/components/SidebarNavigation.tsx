@@ -140,8 +140,12 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       title: 'Cadastros',
       icon: BedDouble,
       items: [
-        { label: 'Quartos', icon: BedDouble, page: 'rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRegistry) },
-        { label: 'Tarifas & Acomodações', icon: ClipboardList, tab: 'settings', targetId: 'settings-entry-rooms', allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRates) }
+        {
+          label: 'Acomodações',
+          icon: BedDouble,
+          page: 'accommodations',
+          allowed: has(GRANULAR_PERMISSION_KEYS.manageRoomRegistry) || has(GRANULAR_PERMISSION_KEYS.manageRoomRates)
+        }
       ]
     },
     {
