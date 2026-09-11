@@ -14,6 +14,13 @@ import {
   loadSupabaseStatusCloud,
   updateSettingsCloud
 } from './services/settingsPages.ts';
+import { loadGuestsCloud } from './services/adminPages.ts';
+import {
+  loadKanbanTasksFromSupabase,
+  loadReservationsFromSupabase,
+  loadRoomsFromSupabase
+} from './services/pagesData.ts';
+import { loadFinancialStatsCloud, loadTransactionsCloud } from './services/financeInventoryPages.ts';
 import { installTaskAlertIntegration } from './services/taskAlertIntegration.ts';
 import { installKitchenOrderAlertIntegration } from './services/kitchenOrderAlertIntegration.ts';
 import { installGovernanceCheckoutAlertIntegration } from './services/governanceCheckoutAlertIntegration.ts';
@@ -29,6 +36,12 @@ if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.i
   api.getSettings = loadSettingsCloud;
   api.updateSettings = updateSettingsCloud;
   api.getSupabaseStatus = loadSupabaseStatusCloud;
+  api.getGuests = loadGuestsCloud;
+  api.getRooms = loadRoomsFromSupabase;
+  api.getReservations = loadReservationsFromSupabase;
+  api.getTasks = () => loadKanbanTasksFromSupabase();
+  api.getTransactions = loadTransactionsCloud;
+  api.getFinancialStats = loadFinancialStatsCloud;
 }
 
 installTaskAlertIntegration();
