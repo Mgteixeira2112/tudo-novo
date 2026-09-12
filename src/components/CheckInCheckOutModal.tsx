@@ -92,19 +92,30 @@ export const CheckInCheckOutModal: React.FC = () => {
     }
   };
 
-  // When selecting an occupied room for checkout, load consumption and kitchen bills
+  // When selecting an occupied room for checkout, load only data from the active stay.
   const handleSelectOccupiedRoom = async (room: Room) => {
     setSelectedOccupiedRoom(room);
     setCompletedFolio(null);
+    const reservation = reservations.find(r => r.id === room.currentReservationId);
+
     try {
       const [consumptions, allOrders] = await Promise.all([
         api.getRoomConsumptions(room.id),
         api.getOrders()
       ]);
-      setRoomConsumptions(consumptions);
-      setRoomOrders(allOrders.filter(o => o.roomId === room.id && o.status !== 'Cancelado'));
+
+      setRoomConsumptions(
+        reservation ? consumptions.filter(c => c.reservationId === reservation.id) : []
+      );
+      setRoomOrders(
+        reservation
+          ? allOrders.filter(o => o.reservationId === reservation.id && o.status !== 'Cancelado')
+          : []
+      );
     } catch (err) {
       console.error('Error fetching room bills:', err);
+      setRoomConsumptions([]);
+      setRoomOrders([]);
     }
   };
 
@@ -113,10 +124,12 @@ export const CheckInCheckOutModal: React.FC = () => {
     ? reservations.find(r => r.id === selectedOccupiedRoom.currentReservationId)
     : null;
 
-  // Compute checkout totals
+  // Compute checkout totals. Kitchen/Room Service is charged only after delivery.
   const nightsTotal = activeReservation ? activeReservation.totalNightsAmount : 0;
-  const minibarTotal = roomConsumptions.filter(c => !activeReservation || c.reservationId === activeReservation.id).reduce((acc, c) => acc + c.totalPrice, 0);
-  const kitchenTotal = roomOrders.filter(o => !activeReservation || o.reservationId === activeReservation.id).reduce((acc, o) => acc + o.totalAmount + (o.deliveryFee || 0), 0);
+  const minibarTotal = roomConsumptions.reduce((acc, c) => acc + c.totalPrice, 0);
+  const deliveredKitchenOrders = roomOrders.filter(o => o.status === 'Entregue');
+  const pendingKitchenOrders = roomOrders.filter(o => !['Entregue', 'Cancelado'].includes(o.status));
+  const kitchenTotal = deliveredKitchenOrders.reduce((acc, o) => acc + o.totalAmount + (o.deliveryFee || 0), 0);
   const priorPaid = activeReservation
     ? transactions.filter(tx => tx.reservationId === activeReservation.id && tx.type === 'Receita' && tx.status === 'Pago').reduce((acc, tx) => acc + tx.amount, 0)
     : 0;
@@ -124,6 +137,10 @@ export const CheckInCheckOutModal: React.FC = () => {
 
   const handleExecuteCheckOut = async () => {
     if (!activeReservation || !selectedOccupiedRoom) return;
+    if (pendingKitchenOrders.length > 0) {
+      alert(`Check-out bloqueado: existem ${pendingKitchenOrders.length} pedido(s) de Cozinha/Room Service ainda não entregues. Entregue ou cancele os pedidos antes de finalizar.`);
+      return;
+    }
 
     try {
       setProcessingCheckOut(true);
@@ -142,7 +159,7 @@ export const CheckInCheckOutModal: React.FC = () => {
         reservationCode: activeReservation.code,
         paymentMethod: checkoutPaymentMethod,
         consumptions: roomConsumptions,
-        orders: roomOrders
+        orders: deliveredKitchenOrders
       });
 
       await refreshData();
@@ -479,22 +496,48 @@ export const CheckInCheckOutModal: React.FC = () => {
                     <div className="flex justify-between items-center font-bold text-[#2C3327]">
                       <div className="flex items-center space-x-2">
                         <Utensils className="w-4 h-4 text-[#BC6C25]" />
-                        <span>Pedidos de Cozinha & Room Service ({roomOrders.length} pedidos)</span>
+                        <span>Pedidos de Cozinha & Room Service ({roomOrders.length} da hospedagem)</span>
                       </div>
                       <span>{currency} {kitchenTotal.toLocaleString('pt-BR')}</span>
                     </div>
+                    <p className="pl-6 text-[10px] text-[#8E9280]">
+                      Somente pedidos marcados como Entregue entram na cobrança do folio.
+                    </p>
 
                     {roomOrders.length > 0 && (
-                      <div className="pl-6 space-y-1 text-[#6B705C] text-[11px] border-l-2 border-[#D4A373]/40">
+                      <div className="pl-6 space-y-1.5 text-[#6B705C] text-[11px] border-l-2 border-[#D4A373]/40">
                         {roomOrders.map(o => (
-                          <div key={o.id} className="flex justify-between">
-                            <span>{o.orderNumber}: {o.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</span>
-                            <span>{currency} {(o.totalAmount + (o.deliveryFee || 0)).toFixed(2)}</span>
+                          <div key={o.id} className="flex items-center justify-between gap-3">
+                            <span className="min-w-0 flex-1">
+                              {o.orderNumber}: {o.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                            </span>
+                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
+                              o.status === 'Entregue'
+                                ? 'border-[#CCD5AE] bg-[#F2F5E8] text-[#3A5A40]'
+                                : 'border-[#D4A373]/40 bg-[#FAEDCD] text-[#9A5A1F]'
+                            }`}>
+                              {o.status}
+                            </span>
+                            <span className={o.status === 'Entregue' ? 'font-semibold text-[#2C3327]' : 'text-[#8E9280]'}>
+                              {currency} {(o.totalAmount + (o.deliveryFee || 0)).toFixed(2)}
+                            </span>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+
+                  {pendingKitchenOrders.length > 0 && (
+                    <div className="flex gap-3 rounded-xl border border-[#D4A373]/50 bg-[#FAEDCD]/50 p-3 text-[#7C4A1E]">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        <p className="font-bold">Check-out aguardando a Cozinha / Room Service</p>
+                        <p className="mt-1 text-[11px]">
+                          {pendingKitchenOrders.length} pedido(s) ainda não foram entregues: {pendingKitchenOrders.map(o => `${o.orderNumber} (${o.status})`).join(', ')}.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {priorPaid > 0 && (
                     <div className="flex items-center justify-between p-2 text-[#588157]">
@@ -580,14 +623,16 @@ export const CheckInCheckOutModal: React.FC = () => {
                   <button
                     id="btn-confirm-checkout"
                     onClick={handleExecuteCheckOut}
-                    disabled={processingCheckOut}
-                    className="w-full py-3 bg-[#2C3327] hover:bg-[#3A4135] text-[#FDFBF7] rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
+                    disabled={processingCheckOut || pendingKitchenOrders.length > 0}
+                    className="w-full py-3 bg-[#2C3327] hover:bg-[#3A4135] disabled:cursor-not-allowed disabled:opacity-50 text-[#FDFBF7] rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
                   >
                     <LogOut className="w-4 h-4 text-[#E9EDC9]" />
                     <span>
                       {processingCheckOut
                         ? 'Fechando Conta...'
-                        : 'Confirmar Quitação, Check-out e Liberar para Governança'}
+                        : pendingKitchenOrders.length > 0
+                          ? `Aguardando ${pendingKitchenOrders.length} pedido(s) serem entregues`
+                          : 'Confirmar Quitação, Check-out e Liberar para Governança'}
                     </span>
                   </button>
                 </div>
