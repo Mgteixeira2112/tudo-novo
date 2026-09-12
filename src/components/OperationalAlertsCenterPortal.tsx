@@ -20,8 +20,13 @@ export const OperationalAlertsCenterPortal: React.FC = () => {
 
   useEffect(() => {
     const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
     window.addEventListener('hotel:open_operational_alerts', handleOpen);
-    return () => window.removeEventListener('hotel:open_operational_alerts', handleOpen);
+    window.addEventListener('hotel:close_operational_alerts', handleClose);
+    return () => {
+      window.removeEventListener('hotel:open_operational_alerts', handleOpen);
+      window.removeEventListener('hotel:close_operational_alerts', handleClose);
+    };
   }, []);
 
   useEffect(() => {
