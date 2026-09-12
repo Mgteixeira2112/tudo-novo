@@ -198,7 +198,7 @@ export const ReservationsManager: React.FC = () => {
   const shiftTimeline = (days: number) => setTimelineStart(previous => addDays(previous, days));
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-[#588157] text-xs font-bold uppercase tracking-wider">
