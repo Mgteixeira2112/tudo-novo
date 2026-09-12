@@ -53,7 +53,7 @@ export const ReceptionManager: React.FC = () => {
         </div>
       </div>
 
-      {tab === 'reservations' && <ReservationsManager />}
+      {tab === 'reservations' && <ReservationsManager onOpenCheckInOut={() => setTab('checkinout')} />}
       {tab === 'checkinout' && <CheckInCheckOutModal />}
       {tab === 'walkin' && <WalkInCheckIn />}
     </div>
