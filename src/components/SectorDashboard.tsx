@@ -302,7 +302,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         <h2 className="text-xl sm:text-2xl font-black text-[#2C3327]">{copy.title}</h2>
       </section>
 
-      <section className={`grid grid-cols-1 sm:grid-cols-2 ${sector === 'Recepcao' ? 'xl:grid-cols-4' : 'xl:grid-cols-4'} gap-3`}>
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {metrics.map(metric => {
           const Icon = metric.icon;
           const cardContent = (
