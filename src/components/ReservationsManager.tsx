@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { loadGuestsCloud } from '../services/adminPages.ts';
+import { ReservationActions } from './ReservationActions.tsx';
 import { Guest, Reservation, ReservationStatus, Room } from '../types.ts';
 
 const VIEW_DAYS = 14;
@@ -397,6 +398,15 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
     } catch {}
     setSelectedReservation(null);
     window.dispatchEvent(new CustomEvent('hotel:navigate-admin-tab', { detail: { tab: 'guests' } }));
+  };
+
+  const handleReservationUpdated = async (updated: Reservation) => {
+    setSelectedReservation(updated);
+    try {
+      await refreshData();
+    } catch {
+      // The atomic mutation already succeeded; keep the returned reservation visible even if refresh fails.
+    }
   };
 
   return (
@@ -1043,6 +1053,13 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                   )}
                 </div>
               </section>
+
+              <ReservationActions
+                reservation={selectedReservation}
+                roomCapacity={selectedRoom?.capacity}
+                canManage={hasPermission('manage_checkinout')}
+                onUpdated={handleReservationUpdated}
+              />
 
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 pt-1">
                 <button
