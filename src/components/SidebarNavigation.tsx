@@ -116,8 +116,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       items: [
         { label: 'Mapa de Quartos', icon: BedDouble, page: 'roomMap', allowed: has('view_rooms') },
         { label: 'Reservas & Calendário', icon: CalendarDays, page: 'reservations', allowed: canAccessTab('checkinout') },
-        { label: 'Check-in', icon: LogIn, page: 'checkin', allowed: canAccessTab('checkinout') },
-        { label: 'Check-out', icon: LogOut, page: 'checkout', allowed: canAccessTab('checkinout') },
+        { label: 'Check-in', icon: LogIn, page: 'checkin', allowed: has('manage_checkinout') },
+        { label: 'Check-out', icon: LogOut, page: 'checkout', allowed: has('manage_checkinout') },
         { label: 'Novo Check-in / Balcão', icon: DoorOpen, page: 'walkin', allowed: has('manage_checkinout') },
         { label: 'Hóspedes', icon: Users, tab: 'guests', allowed: canAccessTab('guests') }
       ]
