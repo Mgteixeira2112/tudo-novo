@@ -10,9 +10,15 @@ export const OperationalStandalonePage: React.FC<{ view: OperationalStandaloneVi
 
   useState(() => {
     try {
+      const expectedView = view === 'tasks' ? 'tasks' : 'rooms';
+      const existing = sessionStorage.getItem(NAVIGATION_KEY);
+      if (existing) {
+        const parsed = JSON.parse(existing) as { view?: string };
+        if (parsed?.view === expectedView) return 0;
+      }
       sessionStorage.setItem(
         NAVIGATION_KEY,
-        JSON.stringify({ view: view === 'tasks' ? 'tasks' : 'rooms' })
+        JSON.stringify({ view: expectedView })
       );
     } catch {}
     return 0;
