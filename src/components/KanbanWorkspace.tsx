@@ -25,6 +25,7 @@ type NavigationWorkspaceView = 'rooms' | 'tasks';
 interface KanbanNavigationIntent {
   view: NavigationWorkspaceView;
   roomStatus?: RoomStatus;
+  roomSearch?: string;
   taskSector?: SectorType;
 }
 
@@ -140,13 +141,15 @@ function RoomCard({
 
 function RoomsKanbanView({
   initialStatus,
+  initialSearch,
   lockedStatus
 }: {
   initialStatus?: RoomStatus;
+  initialSearch?: string;
   lockedStatus?: RoomStatus;
 }) {
   const { rooms, currentUser, refreshData } = useHotel();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch || '');
   const [floor, setFloor] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<RoomStatus | 'ALL'>(lockedStatus || initialStatus || 'ALL');
   const [busyRoomId, setBusyRoomId] = useState<string | null>(null);
@@ -320,6 +323,7 @@ export const KanbanWorkspace: React.FC = () => {
   }, []);
 
   const initialRoomStatus = navigationIntent?.view === 'rooms' ? navigationIntent.roomStatus : undefined;
+  const initialRoomSearch = navigationIntent?.view === 'rooms' ? navigationIntent.roomSearch : undefined;
   const initialTaskSector = navigationIntent?.view === 'tasks' ? navigationIntent.taskSector : undefined;
 
   return (
@@ -369,7 +373,7 @@ export const KanbanWorkspace: React.FC = () => {
       </div>
 
       {view === 'rooms' && (
-        <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} />
+        <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} initialSearch={initialRoomSearch} />
       )}
 
       {view === 'tasks' && (
