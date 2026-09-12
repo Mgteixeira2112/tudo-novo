@@ -3,6 +3,8 @@ import { AlertTriangle, Edit2, Mail, MapPin, Phone, Search, Trash2, UserPlus, Us
 import { Guest } from '../types.ts';
 import { createGuestCloud, deleteGuestCloud, loadGuestsCloud, updateGuestCloud } from '../services/adminPages.ts';
 
+const GUEST_NAVIGATION_KEY = 'novohotel:guest-navigation';
+
 const emptyForm = {
   fullName: '', document: '', documentType: 'CPF' as Guest['documentType'], email: '', phone: '',
   address: '', city: '', state: '', birthDate: '', preferences: '', allergiesNotes: '', status: 'Ativo' as Guest['status']
@@ -32,6 +34,18 @@ export const GuestsManager: React.FC = () => {
   };
 
   useEffect(() => { refresh(); }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(GUEST_NAVIGATION_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(GUEST_NAVIGATION_KEY);
+      const parsed = JSON.parse(raw) as { query?: string };
+      if (!parsed?.query) return;
+      setStatus('Todos');
+      setSearch(parsed.query);
+    } catch {}
+  }, []);
 
   const filtered = useMemo(() => guests.filter(g => {
     const q = search.trim().toLowerCase();
