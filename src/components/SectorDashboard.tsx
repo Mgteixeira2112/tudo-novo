@@ -30,11 +30,16 @@ interface KanbanIntent {
   taskSector?: SectorType;
 }
 
+interface ReservationIntent {
+  filter: 'ARRIVALS_TODAY' | 'DEPARTURES_TODAY' | 'PENDING';
+}
+
 interface ActionCard {
   label: string;
   tab: AdminTab;
   detail: string;
   kanbanIntent?: KanbanIntent;
+  reservationIntent?: ReservationIntent;
 }
 
 interface MetricCard {
@@ -52,6 +57,7 @@ interface Highlight {
 }
 
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
+const RESERVATION_NAVIGATION_KEY = 'novohotel:reservation-navigation';
 
 const SECTOR_COPY: Record<UserSector, { title: string; subtitle: string }> = {
   Geral: { title: 'Operação Geral', subtitle: 'Visão consolidada do hotel, reservas, quartos, tarefas e indicadores.' },
@@ -119,6 +125,13 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         // Navigation still works even if transient browser storage is unavailable.
       }
     }
+    if (action.tab === 'checkinout' && action.reservationIntent) {
+      try {
+        sessionStorage.setItem(RESERVATION_NAVIGATION_KEY, JSON.stringify(action.reservationIntent));
+      } catch {
+        // Navigation still works even if transient browser storage is unavailable.
+      }
+    }
     onNavigate(action.tab);
   };
 
@@ -151,14 +164,14 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         value: arrivals.length,
         detail: 'Reservas previstas para entrada',
         icon: CalendarDays,
-        action: { label: 'Chegadas hoje', tab: 'checkinout', detail: 'Abrir reservas' }
+        action: { label: 'Chegadas hoje', tab: 'checkinout', detail: 'Abrir chegadas de hoje', reservationIntent: { filter: 'ARRIVALS_TODAY' } }
       },
       {
         label: 'Saídas hoje',
         value: departures.length,
         detail: 'Checkouts previstos',
         icon: KeyRound,
-        action: { label: 'Saídas hoje', tab: 'checkinout', detail: 'Abrir reservas' }
+        action: { label: 'Saídas hoje', tab: 'checkinout', detail: 'Abrir saídas de hoje', reservationIntent: { filter: 'DEPARTURES_TODAY' } }
       },
       {
         label: 'Hospedados agora',
@@ -179,7 +192,7 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         value: pendingReservations.length,
         detail: 'Aguardando confirmação',
         icon: Clock3,
-        action: { label: 'Reservas pendentes', tab: 'checkinout', detail: 'Abrir reservas' }
+        action: { label: 'Reservas pendentes', tab: 'checkinout', detail: 'Abrir reservas pendentes', reservationIntent: { filter: 'PENDING' } }
       },
       {
         label: 'Ocupação atual',
