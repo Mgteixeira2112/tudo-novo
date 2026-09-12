@@ -109,9 +109,9 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
               ? canViewKanbans
               : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
                 ? canViewInventory
-                : module === 'walkin'
+                : ['checkin', 'checkout', 'walkin'].includes(module)
                   ? canManageCheckInOut
-                  : ['reservations', 'checkinout', 'checkin', 'checkout'].includes(module)
+                  : ['reservations', 'checkinout'].includes(module)
                     ? canAccessReception
                     : module === 'minibar'
                       ? canViewMinibar
