@@ -85,15 +85,27 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
   useEffect(() => {
     const handleStandaloneNavigation = (event: Event) => {
       const detail = (event as CustomEvent<{ module?: StandaloneModule }>).detail;
-      if (!detail?.module || !['checkin', 'checkout'].includes(detail.module)) return;
+      if (!detail?.module) return;
       onNavigatePage(detail.module);
       setCollapsed(true);
       setFlyoutGroup(null);
     };
 
+    const handleAdminTabNavigation = (event: Event) => {
+      const detail = (event as CustomEvent<{ tab?: AdminTab; targetId?: string }>).detail;
+      if (!detail?.tab) return;
+      onNavigate(detail.tab, detail.targetId);
+      setCollapsed(true);
+      setFlyoutGroup(null);
+    };
+
     window.addEventListener('hotel:navigate-standalone-module', handleStandaloneNavigation as EventListener);
-    return () => window.removeEventListener('hotel:navigate-standalone-module', handleStandaloneNavigation as EventListener);
-  }, [onNavigatePage]);
+    window.addEventListener('hotel:navigate-admin-tab', handleAdminTabNavigation as EventListener);
+    return () => {
+      window.removeEventListener('hotel:navigate-standalone-module', handleStandaloneNavigation as EventListener);
+      window.removeEventListener('hotel:navigate-admin-tab', handleAdminTabNavigation as EventListener);
+    };
+  }, [onNavigate, onNavigatePage]);
 
   if (!currentUser || mode !== 'admin') return null;
 
