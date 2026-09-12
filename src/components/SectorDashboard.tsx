@@ -24,13 +24,6 @@ interface SectorDashboardProps {
   onNavigate: (tab: AdminTab) => void;
 }
 
-interface MetricCard {
-  label: string;
-  value: string | number;
-  detail: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
 interface KanbanIntent {
   view: 'rooms' | 'tasks';
   roomStatus?: 'Disponivel' | 'Ocupado' | 'Limpeza' | 'Manutencao' | 'Bloqueado';
@@ -42,6 +35,14 @@ interface ActionCard {
   tab: AdminTab;
   detail: string;
   kanbanIntent?: KanbanIntent;
+}
+
+interface MetricCard {
+  label: string;
+  value: string | number;
+  detail: string;
+  icon: React.ComponentType<{ className?: string }>;
+  action?: ActionCard;
 }
 
 interface Highlight {
@@ -62,7 +63,19 @@ const SECTOR_COPY: Record<UserSector, { title: string; subtitle: string }> = {
   Financeiro: { title: 'Painel Financeiro', subtitle: 'Receita, pendências, despesas e resultado operacional.' }
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const year = parts.find(part => part.type === 'year')?.value || '';
+  const month = parts.find(part => part.type === 'month')?.value || '';
+  const day = parts.find(part => part.type === 'day')?.value || '';
+  return `${year}-${month}-${day}`;
+};
+
 const money = (value: number, currency = 'R$') =>
   `${currency} ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
@@ -125,11 +138,70 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
   let highlights: Highlight[] = [];
 
   if (sector === 'Recepcao') {
+    const occupiedRooms = rooms.filter(r => r.status === 'Ocupado');
+    const availableRooms = rooms.filter(r => r.status === 'Disponivel');
+    const cleaningRooms = rooms.filter(r => r.status === 'Limpeza');
+    const unavailableRooms = rooms.filter(r => r.status === 'Manutencao' || r.status === 'Bloqueado');
+    const pendingReservations = reservations.filter(r => r.status === 'Pendente');
+    const occupancyRate = rooms.length ? Math.round((occupiedRooms.length / rooms.length) * 100) : 0;
+
     metrics = [
-      { label: 'Chegadas hoje', value: arrivals.length, detail: 'Reservas previstas para entrada', icon: CalendarDays },
-      { label: 'Saídas hoje', value: departures.length, detail: 'Checkouts previstos', icon: KeyRound },
-      { label: 'Ocupados', value: rooms.filter(r => r.status === 'Ocupado').length, detail: `${rooms.length} quartos cadastrados`, icon: BedDouble },
-      { label: 'Disponíveis', value: rooms.filter(r => r.status === 'Disponivel').length, detail: 'Prontos para hospedagem', icon: CheckCircle2 }
+      {
+        label: 'Chegadas hoje',
+        value: arrivals.length,
+        detail: 'Reservas previstas para entrada',
+        icon: CalendarDays,
+        action: { label: 'Chegadas hoje', tab: 'checkinout', detail: 'Abrir reservas' }
+      },
+      {
+        label: 'Saídas hoje',
+        value: departures.length,
+        detail: 'Checkouts previstos',
+        icon: KeyRound,
+        action: { label: 'Saídas hoje', tab: 'checkinout', detail: 'Abrir reservas' }
+      },
+      {
+        label: 'Hospedados agora',
+        value: occupiedRooms.length,
+        detail: `${rooms.length} quartos cadastrados`,
+        icon: BedDouble,
+        action: { label: 'Hospedados agora', tab: 'kanbans', detail: 'Abrir quartos ocupados', kanbanIntent: { view: 'rooms', roomStatus: 'Ocupado' } }
+      },
+      {
+        label: 'Quartos disponíveis',
+        value: availableRooms.length,
+        detail: 'Prontos para hospedagem',
+        icon: CheckCircle2,
+        action: { label: 'Quartos disponíveis', tab: 'kanbans', detail: 'Abrir quartos disponíveis', kanbanIntent: { view: 'rooms', roomStatus: 'Disponivel' } }
+      },
+      {
+        label: 'Reservas pendentes',
+        value: pendingReservations.length,
+        detail: 'Aguardando confirmação',
+        icon: Clock3,
+        action: { label: 'Reservas pendentes', tab: 'checkinout', detail: 'Abrir reservas' }
+      },
+      {
+        label: 'Ocupação atual',
+        value: `${occupancyRate}%`,
+        detail: `${occupiedRooms.length} de ${rooms.length} quartos`,
+        icon: BedDouble,
+        action: { label: 'Ocupação atual', tab: 'kanbans', detail: 'Abrir mapa de quartos', kanbanIntent: { view: 'rooms' } }
+      },
+      {
+        label: 'Em limpeza',
+        value: cleaningRooms.length,
+        detail: 'Aguardando Governança',
+        icon: Sparkles,
+        action: { label: 'Em limpeza', tab: 'kanbans', detail: 'Abrir quartos em limpeza', kanbanIntent: { view: 'rooms', roomStatus: 'Limpeza' } }
+      },
+      {
+        label: 'Indisponíveis',
+        value: unavailableRooms.length,
+        detail: 'Manutenção ou bloqueio',
+        icon: Wrench,
+        action: { label: 'Indisponíveis', tab: 'kanbans', detail: 'Abrir mapa de quartos', kanbanIntent: { view: 'rooms' } }
+      }
     ];
     actions = [
       { label: 'Reservas / Check-in', tab: 'checkinout', detail: 'Entradas, saídas e reservas' },
@@ -230,19 +302,40 @@ export const SectorDashboard: React.FC<SectorDashboardProps> = ({ onNavigate }) 
         <h2 className="text-xl sm:text-2xl font-black text-[#2C3327]">{copy.title}</h2>
       </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        {metrics.map(({ label, value, detail, icon: Icon }) => (
-          <div key={label} className="rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-xs">
+      <section className={`grid grid-cols-1 sm:grid-cols-2 ${sector === 'Recepcao' ? 'xl:grid-cols-4' : 'xl:grid-cols-4'} gap-3`}>
+        {metrics.map(metric => {
+          const Icon = metric.icon;
+          const cardContent = (
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase tracking-wider font-bold text-[#7B806E]">{label}</span>
-                <strong className="block mt-2 text-2xl font-black text-[#2C3327]">{value}</strong>
-                <span className="block mt-1 text-[11px] text-[#8A8F7D]">{detail}</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-[#7B806E]">{metric.label}</span>
+                <strong className="block mt-2 text-2xl font-black text-[#2C3327]">{metric.value}</strong>
+                <span className="block mt-1 text-[11px] text-[#8A8F7D]">{metric.detail}</span>
               </div>
               <div className="rounded-xl bg-[#F2F5E8] p-2.5 text-[#588157]"><Icon className="w-5 h-5" /></div>
             </div>
-          </div>
-        ))}
+          );
+
+          if (metric.action) {
+            return (
+              <button
+                key={metric.label}
+                type="button"
+                onClick={() => handleActionNavigation(metric.action!)}
+                className="rounded-2xl border border-[#E6E3D8] bg-white p-4 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[#AFC49B] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#588157]/30"
+                title={metric.action.detail}
+              >
+                {cardContent}
+              </button>
+            );
+          }
+
+          return (
+            <div key={metric.label} className="rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-xs">
+              {cardContent}
+            </div>
+          );
+        })}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] gap-4">
