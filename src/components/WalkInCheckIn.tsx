@@ -4,18 +4,37 @@ import { useHotel } from '../context/HotelContext.tsx';
 import { Reservation } from '../types.ts';
 import { processWalkInAtomicCloud } from '../services/walkInPages.ts';
 
-function localDateISO(offsetDays = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+type ImmediatePaymentMethod = Exclude<Reservation['paymentMethod'], 'Faturado'>;
+
+function hotelDateISO(offsetDays = 0) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const date = new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day) + offsetDays));
+  return date.toISOString().slice(0, 10);
+}
+
+function diffDays(startIso: string, endIso: string) {
+  const [startY, startM, startD] = startIso.split('-').map(Number);
+  const [endY, endM, endD] = endIso.split('-').map(Number);
+  return Math.round((Date.UTC(endY, endM - 1, endD) - Date.UTC(startY, startM - 1, startD)) / 86400000);
+}
+
+function paymentMethodLabel(value: ImmediatePaymentMethod) {
+  if (value === 'Cartao_Credito') return 'Cartão de Crédito';
+  if (value === 'Cartao_Debito') return 'Cartão de Débito';
+  if (value === 'PIX') return 'PIX';
+  return 'Dinheiro';
 }
 
 export const WalkInCheckIn: React.FC = () => {
   const { rooms, settings, refreshData } = useHotel();
   const currency = settings?.currency || 'R$';
+  const today = hotelDateISO();
   const availableRooms = rooms.filter(room => room.status === 'Disponivel');
 
   const [guestName, setGuestName] = useState('');
@@ -24,10 +43,10 @@ export const WalkInCheckIn: React.FC = () => {
   const [document, setDocument] = useState('');
   const [documentType, setDocumentType] = useState<'CPF' | 'RG' | 'Passaporte'>('CPF');
   const [roomId, setRoomId] = useState('');
-  const [checkOutDate, setCheckOutDate] = useState(localDateISO(1));
+  const [checkOutDate, setCheckOutDate] = useState(hotelDateISO(1));
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<Reservation['paymentMethod']>('Cartao_Credito');
+  const [paymentMethod, setPaymentMethod] = useState<ImmediatePaymentMethod | ''>('');
   const [depositAmount, setDepositAmount] = useState(0);
   const [keyCardNumber, setKeyCardNumber] = useState('');
   const [notes, setNotes] = useState('');
@@ -37,10 +56,8 @@ export const WalkInCheckIn: React.FC = () => {
   const selectedRoom = rooms.find(room => room.id === roomId);
   const nights = useMemo(() => {
     if (!checkOutDate) return 0;
-    const start = new Date(`${localDateISO()}T12:00:00`);
-    const end = new Date(`${checkOutDate}T12:00:00`);
-    return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
-  }, [checkOutDate]);
+    return Math.max(0, diffDays(today, checkOutDate));
+  }, [checkOutDate, today]);
   const estimatedTotal = selectedRoom ? selectedRoom.pricePerNight * nights : 0;
 
   const reset = () => {
@@ -50,10 +67,10 @@ export const WalkInCheckIn: React.FC = () => {
     setDocument('');
     setDocumentType('CPF');
     setRoomId('');
-    setCheckOutDate(localDateISO(1));
+    setCheckOutDate(hotelDateISO(1));
     setAdults(1);
     setChildren(0);
-    setPaymentMethod('Cartao_Credito');
+    setPaymentMethod('');
     setDepositAmount(0);
     setKeyCardNumber('');
     setNotes('');
@@ -65,6 +82,12 @@ export const WalkInCheckIn: React.FC = () => {
     if (nights < 1) return alert('A data de saída deve ser posterior à data de hoje.');
     if (selectedRoom && adults + children > selectedRoom.capacity) {
       return alert(`O quarto selecionado comporta no máximo ${selectedRoom.capacity} hóspedes.`);
+    }
+    if (depositAmount > estimatedTotal) {
+      return alert(`O pagamento no check-in não pode superar o total previsto de ${currency} ${estimatedTotal.toLocaleString('pt-BR')}.`);
+    }
+    if (depositAmount > 0 && !paymentMethod) {
+      return alert('Selecione a forma de pagamento realmente utilizada no Walk-in.');
     }
 
     try {
@@ -80,7 +103,7 @@ export const WalkInCheckIn: React.FC = () => {
         checkOutDate,
         adults,
         children,
-        paymentMethod,
+        paymentMethod: paymentMethod || undefined,
         depositAmount,
         keyCardNumber,
         notes
@@ -108,6 +131,7 @@ export const WalkInCheckIn: React.FC = () => {
             <span>Walk-in / Balcão</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] mt-1">Novo Check-in Direto</h2>
+          <p className="mt-1 text-xs text-[#6B705C]">Datas operacionais seguem o horário do hotel (America/Sao_Paulo).</p>
         </div>
         <div className="px-3 py-2 rounded-xl bg-[#F2F5E8] border border-[#CCD5AE] text-xs text-[#3A5A40] font-bold">
           {availableRooms.length} quartos disponíveis agora
@@ -143,7 +167,7 @@ export const WalkInCheckIn: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 sm:col-span-2">
                 <div>
                   <label className="block text-xs font-semibold text-[#6B705C] mb-1">Documento</label>
-                  <select value={documentType} onChange={e => setDocumentType(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none">
+                  <select value={documentType} onChange={e => setDocumentType(e.target.value as 'CPF' | 'RG' | 'Passaporte')} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none">
                     <option value="CPF">CPF</option><option value="RG">RG</option><option value="Passaporte">Passaporte</option>
                   </select>
                 </div>
@@ -170,11 +194,11 @@ export const WalkInCheckIn: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#6B705C] mb-1">Entrada</label>
-                <input readOnly value={localDateISO()} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl bg-[#F4F1EA] text-[#6B705C]" />
+                <input readOnly value={today} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl bg-[#F4F1EA] text-[#6B705C]" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#6B705C] mb-1">Saída *</label>
-                <input required type="date" min={localDateISO(1)} value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none focus:ring-2 focus:ring-[#588157]" />
+                <input required type="date" min={hotelDateISO(1)} value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none focus:ring-2 focus:ring-[#588157]" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#6B705C] mb-1">Adultos</label>
@@ -201,14 +225,22 @@ export const WalkInCheckIn: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#6B705C] mb-1">Forma de pagamento *</label>
-            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as Reservation['paymentMethod'])} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none">
-              <option value="Cartao_Credito">Cartão de Crédito</option><option value="Cartao_Debito">Cartão de Débito</option><option value="PIX">PIX</option><option value="Dinheiro">Dinheiro</option>
-            </select>
+            <label className="block text-xs font-semibold text-[#6B705C] mb-1">Pagamento / depósito agora ({currency})</label>
+            <input type="number" min="0" max={estimatedTotal || undefined} step="0.01" value={depositAmount} onChange={e => setDepositAmount(Number(e.target.value))} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none" />
+            {estimatedTotal > 0 && <p className="mt-1 text-[10px] text-[#8E9280]">Máximo nesta hospedagem: {currency} {estimatedTotal.toLocaleString('pt-BR')}.</p>}
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#6B705C] mb-1">Pagamento / depósito agora ({currency})</label>
-            <input type="number" min="0" step="0.01" value={depositAmount} onChange={e => setDepositAmount(Number(e.target.value))} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none" />
+            <label className="block text-xs font-semibold text-[#6B705C] mb-1">Forma de pagamento {depositAmount > 0 ? '*' : ''}</label>
+            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as ImmediatePaymentMethod | '')} disabled={depositAmount <= 0} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none disabled:bg-[#F4F1EA] disabled:text-[#8E9280]">
+              <option value="">Selecione...</option>
+              <option value="Cartao_Credito">Cartão de Crédito</option><option value="Cartao_Debito">Cartão de Débito</option><option value="PIX">PIX</option><option value="Dinheiro">Dinheiro</option>
+            </select>
+            {depositAmount <= 0 && <p className="mt-1 text-[10px] text-[#8E9280]">Sem valor recebido agora, nenhum método financeiro será gravado.</p>}
+            {depositAmount > 0 && paymentMethod && (
+              <p className="mt-2 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-3 py-2 text-[10px] font-bold text-[#3A5A40]">
+                Será registrado: {currency} {Number(depositAmount).toLocaleString('pt-BR')} via {paymentMethodLabel(paymentMethod)}.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-[#6B705C] mb-1">Cartão / chave</label>
@@ -219,7 +251,7 @@ export const WalkInCheckIn: React.FC = () => {
             <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} className="w-full px-3 py-2 text-sm border border-[#E6E3D8] rounded-xl outline-none" />
           </div>
 
-          <button type="submit" disabled={processing || availableRooms.length === 0} className="w-full py-3 bg-[#2C3327] hover:bg-[#3A4135] disabled:opacity-50 text-[#FDFBF7] rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-2">
+          <button type="submit" disabled={processing || availableRooms.length === 0 || depositAmount > estimatedTotal || (depositAmount > 0 && !paymentMethod)} className="w-full py-3 bg-[#2C3327] hover:bg-[#3A4135] disabled:opacity-50 text-[#FDFBF7] rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-2">
             <DoorOpen className="w-4 h-4" />
             <span>{processing ? 'Processando...' : 'Criar hospedagem e fazer check-in'}</span>
           </button>
