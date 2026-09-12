@@ -14,6 +14,7 @@ import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperatio
 import { MenuManagementModule } from './MenuManagementModule.tsx';
 import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
 import { PublicSiteSettingsEditor } from './PublicSiteSettingsEditor.tsx';
+import './reservationDetailsDrawer.css';
 
 export type StandaloneModule =
   | 'accommodations'
@@ -67,7 +68,7 @@ const TITLES: Record<StandaloneModule, string> = {
 };
 
 export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ module }) => {
-  const { hasPermission, canAccessTab } = useHotel();
+  const { hasPermission, canAccessTab, reservations } = useHotel();
   const canManageRooms = hasPermission('manage_room_registry');
   const canManageRoomRates = hasPermission('manage_room_rates');
   const canViewRooms = hasPermission('view_rooms');
@@ -83,6 +84,17 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
   const canManageKitchen = hasPermission('manage_kitchen');
   const canManageMenu = hasPermission('manage_menu');
   const canManagePublicSite = hasPermission('manage_hotel_settings');
+
+  const openSelectedReservationFlow = () => {
+    const drawer = document.querySelector('div[class~="z-[110]"][class~="inset-0"] > aside');
+    const reservationCode = drawer?.querySelector('header h3')?.textContent?.trim();
+    const selectedReservation = reservationCode
+      ? reservations.find(item => item.code === reservationCode)
+      : undefined;
+
+    const target: StandaloneModule = selectedReservation?.status === 'CheckIn' ? 'checkout' : 'checkin';
+    window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module: target } }));
+  };
 
   const allowed =
     module === 'accommodations'
@@ -152,8 +164,8 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'purchases' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><PurchaseNeedPanel /></div>
       )}
-      {module === 'reservations' && <ReservationsManager />}
-      {module === 'checkinout' && <ReservationsManager />}
+      {module === 'reservations' && <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />}
+      {module === 'checkinout' && <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />}
       {module === 'checkin' && <ReceptionCheckFlowPage flow="checkin" />}
       {module === 'checkout' && <ReceptionCheckFlowPage flow="checkout" />}
       {module === 'walkin' && <WalkInCheckIn />}
