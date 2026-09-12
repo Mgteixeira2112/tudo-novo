@@ -59,16 +59,20 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
   const { rooms, reservations, tasks, settings } = useHotel();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
-  const [calendarCursor, setCalendarCursor] = useState(() => new Date());
 
-  const openRoomsMap = () => {
+  const openRoomsMap = (roomStatus?: Room['status']) => {
     try {
-      sessionStorage.setItem(KANBAN_NAVIGATION_KEY, JSON.stringify({ view: 'rooms' }));
+      sessionStorage.setItem(
+        KANBAN_NAVIGATION_KEY,
+        JSON.stringify({ view: 'rooms', ...(roomStatus ? { roomStatus } : {}) })
+      );
     } catch {
       // Navigation still works even if transient browser storage is unavailable.
     }
     onNavigate('kanbans');
   };
+
+  const openReservations = () => onNavigate('checkinout');
 
   const today = toDateKey(new Date());
   const activeReservations = useMemo(
@@ -84,11 +88,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
       available: rooms.filter(r => r.status === 'Disponivel').length,
       cleaning: rooms.filter(r => r.status === 'Limpeza').length,
       unavailable: rooms.filter(r => r.status === 'Manutencao' || r.status === 'Bloqueado').length,
+      pending: reservations.filter(r => r.status === 'Pendente').length,
       arrivals,
       departures,
       openTasks: tasks.filter(t => t.status !== 'Concluido').length
     };
-  }, [rooms, activeReservations, tasks, today]);
+  }, [rooms, reservations, activeReservations, tasks, today]);
 
   const roomReservation = (room: Room) =>
     activeReservations.find(r => r.roomId === room.id || r.roomNumber === room.number) || null;
@@ -98,42 +103,35 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
     setSelectedReservation(roomReservation(room));
   };
 
-  const openReservation = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setSelectedRoom(rooms.find(r => r.id === reservation.roomId || r.number === reservation.roomNumber) || null);
-  };
-
-  const monthGrid = useMemo(() => {
-    const year = calendarCursor.getFullYear();
-    const month = calendarCursor.getMonth();
-    const first = new Date(year, month, 1);
-    const start = new Date(first);
-    start.setDate(1 - first.getDay());
-    return Array.from({ length: 42 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return date;
-    });
-  }, [calendarCursor]);
-
-  const reservationsForDay = (date: Date) => {
-    const key = toDateKey(date);
-    return reservations
-      .filter(r => r.status !== 'Cancelada' && key >= r.checkInDate && key < r.checkOutDate)
-      .slice(0, 3);
-  };
-
   const closeDrawer = () => {
     setSelectedRoom(null);
     setSelectedReservation(null);
   };
 
+  const indicatorCards = [
+    { label: 'Ocupados', value: metrics.occupied, Icon: BedDouble, onClick: () => openRoomsMap('Ocupado') },
+    { label: 'Disponíveis', value: metrics.available, Icon: Hotel, onClick: () => openRoomsMap('Disponivel') },
+    { label: 'Chegadas hoje', value: metrics.arrivals.length, Icon: Users, onClick: openReservations },
+    { label: 'Saídas hoje', value: metrics.departures.length, Icon: KeyRound, onClick: openReservations },
+    { label: 'Reservas pendentes', value: metrics.pending, Icon: Clock3, onClick: openReservations },
+    { label: 'Em limpeza', value: metrics.cleaning, Icon: Sparkles, onClick: () => openRoomsMap('Limpeza') },
+    { label: 'Indisponíveis', value: metrics.unavailable, Icon: Wrench, onClick: () => openRoomsMap() }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#2C3327]">Meu Painel</h2>
-          <div className="flex items-center gap-4 rounded-xl bg-[#F7F8F2] px-4 py-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#2C3327]">Meu Painel</h2>
+            <p className="mt-1 text-xs text-[#7B806E]">Visão operacional do hotel em tempo real.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openRoomsMap()}
+            className="flex items-center gap-4 rounded-xl bg-[#F7F8F2] px-4 py-3 text-left transition hover:bg-[#EEF2E7]"
+            title="Abrir Mapa de Quartos"
+          >
             <div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-[#8A8F7D]">Ocupação agora</span>
               <div className="mt-0.5 flex items-baseline gap-2">
@@ -144,20 +142,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
               </div>
             </div>
             <BedDouble className="w-6 h-6 text-[#588157]" />
-          </div>
+          </button>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {[
-          ['Ocupados', metrics.occupied, BedDouble],
-          ['Disponíveis', metrics.available, Hotel],
-          ['Chegadas hoje', metrics.arrivals.length, Users],
-          ['Saídas hoje', metrics.departures.length, KeyRound],
-          ['Em limpeza', metrics.cleaning, Sparkles],
-          ['Indisponíveis', metrics.unavailable, Wrench]
-        ].map(([label, value, Icon]: any) => (
-          <div key={label} className="rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-xs">
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3">
+        {indicatorCards.map(({ label, value, Icon, onClick }) => (
+          <button
+            type="button"
+            key={label}
+            onClick={onClick}
+            className="rounded-2xl border border-[#E6E3D8] bg-white p-4 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[#AFC49B] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#588157]/30"
+            title={`Abrir ${label.toLowerCase()}`}
+          >
             <div className="flex items-start justify-between gap-2">
               <div>
                 <span className="block text-[10px] uppercase tracking-wider font-bold text-[#7B806E]">{label}</span>
@@ -165,14 +162,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
               </div>
               <div className="rounded-xl bg-[#F2F5E8] p-2 text-[#588157]"><Icon className="w-4 h-4" /></div>
             </div>
-          </div>
+          </button>
         ))}
       </section>
 
       <section className="rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <h3 className="text-xl font-black text-[#2C3327]">Mapa de Quartos</h3>
-          <button onClick={openRoomsMap} className="text-xs font-bold text-[#588157] hover:text-[#3A5A40] flex items-center gap-1">
+          <div>
+            <h3 className="text-xl font-black text-[#2C3327]">Mapa de Quartos</h3>
+            <p className="mt-1 text-xs text-[#7B806E]">Situação operacional atual de cada acomodação.</p>
+          </div>
+          <button onClick={() => openRoomsMap()} className="text-xs font-bold text-[#588157] hover:text-[#3A5A40] flex items-center gap-1">
             Abrir Mapa de Quartos <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -206,50 +206,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#E6E3D8] bg-white p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
-          <h3 className="text-xl font-black text-[#2C3327]">Calendário de Reservas</h3>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCalendarCursor(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1))} className="px-3 py-2 rounded-xl border border-[#E6E3D8] text-xs font-bold">Anterior</button>
-            <span className="min-w-[135px] text-center text-sm font-black text-[#2C3327] capitalize">{calendarCursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-            <button onClick={() => setCalendarCursor(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1))} className="px-3 py-2 rounded-xl border border-[#E6E3D8] text-xs font-bold">Próximo</button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 text-[10px] font-bold uppercase tracking-wider text-[#8A8F7D] mb-1">
-          {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(day => <div key={day} className="px-2 py-2">{day}</div>)}
-        </div>
-        <div className="grid grid-cols-7 border-l border-t border-[#E6E3D8] rounded-2xl overflow-hidden">
-          {monthGrid.map(date => {
-            const sameMonth = date.getMonth() === calendarCursor.getMonth();
-            const dayReservations = reservationsForDay(date);
-            const isToday = toDateKey(date) === today;
-            return (
-              <div key={date.toISOString()} className={`min-h-[112px] border-r border-b border-[#E6E3D8] p-2 ${sameMonth ? 'bg-white' : 'bg-[#FAF8F3]'}`}>
-                <div className={`w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold ${isToday ? 'bg-[#2C3327] text-white' : sameMonth ? 'text-[#2C3327]' : 'text-[#B3B0A7]'}`}>{date.getDate()}</div>
-                <div className="mt-1 space-y-1">
-                  {dayReservations.map(reservation => (
-                    <button key={reservation.id} onClick={() => openReservation(reservation)} className={`w-full text-left rounded-lg px-2 py-1.5 text-[10px] font-bold truncate ${reservationTone[reservation.status]}`} title={`${reservation.guestName} · Quarto ${reservation.roomNumber}`}>
-                      {reservation.roomNumber} · {reservation.guestName}
-                    </button>
-                  ))}
-                  {reservations.filter(r => r.status !== 'Cancelada' && toDateKey(date) >= r.checkInDate && toDateKey(date) < r.checkOutDate).length > 3 && (
-                    <span className="block text-[10px] font-bold text-[#8A8F7D] px-1">+ mais reservas</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="rounded-3xl border border-[#E6E3D8] bg-[#2C3327] p-5 text-white shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <h3 className="text-lg font-extrabold">Ações rápidas</h3>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => onNavigate('checkinout')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Reservas / Check-in</button>
+            <button onClick={openReservations} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Reservas</button>
             <button onClick={() => onNavigate('guests')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Hóspedes</button>
-            <button onClick={openRoomsMap} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Mapa de Quartos</button>
+            <button onClick={() => openRoomsMap()} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Mapa de Quartos</button>
             <button onClick={() => onNavigate('kanbans')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold">Kanbans · {metrics.openTasks}</button>
           </div>
         </div>
@@ -311,7 +274,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
 
               <section className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button onClick={() => { closeDrawer(); onNavigate('guests'); }} className="rounded-xl border border-[#E6E3D8] bg-white px-3 py-3 text-xs font-bold text-[#2C3327]">Abrir Hóspedes</button>
-                <button onClick={() => { closeDrawer(); onNavigate('checkinout'); }} className="rounded-xl border border-[#E6E3D8] bg-white px-3 py-3 text-xs font-bold text-[#2C3327]">Reserva / Check-in</button>
+                <button onClick={() => { closeDrawer(); openReservations(); }} className="rounded-xl border border-[#E6E3D8] bg-white px-3 py-3 text-xs font-bold text-[#2C3327]">Abrir Reservas</button>
                 <button onClick={() => { closeDrawer(); openRoomsMap(); }} className="rounded-xl bg-[#2C3327] px-3 py-3 text-xs font-bold text-white">Mapa de Quartos</button>
               </section>
             </div>
