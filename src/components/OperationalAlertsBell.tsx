@@ -17,6 +17,8 @@ interface OperationalAlertsBellProps {
   userId: string;
 }
 
+type ReceptionAlertModule = 'reservations' | 'checkin' | 'checkout';
+
 const TASK_SOURCES = ['kanban_task', 'task', 'maintenance_task', 'governance_task'];
 const KITCHEN_SOURCES = ['kitchen_order', 'room_service'];
 const GOVERNANCE_CLEANING_SOURCE = 'governance_room_cleaning';
@@ -33,12 +35,19 @@ function formatRelativeTime(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
 }
 
+function resolveReceptionModule(item: OperationalAlertInboxItem): ReceptionAlertModule | null {
+  const source = (item.sourceType || '').toLowerCase();
+  if (source === 'reservation') return 'reservations';
+  if (['checkin', 'check_in'].includes(source)) return 'checkin';
+  if (['checkout', 'check_out'].includes(source)) return 'checkout';
+  return null;
+}
+
 function resolveOriginButtonId(item: OperationalAlertInboxItem): string | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'subnav-fnb';
   if (TASK_SOURCES.includes(source) || source === GOVERNANCE_CLEANING_SOURCE || source === MAINTENANCE_ROOM_SOURCE) return 'subnav-kanbans';
   if (['room', 'room_status'].includes(source)) return 'subnav-rooms-inventory';
-  if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'subnav-checkinout';
   if (['guest'].includes(source)) return 'subnav-guests';
   return null;
 }
@@ -180,6 +189,14 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
 
   const handleOpenItem = async (item: OperationalAlertInboxItem) => {
     await handleMarkRead(item);
+
+    const receptionModule = resolveReceptionModule(item);
+    if (receptionModule) {
+      setOpen(false);
+      window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module: receptionModule } }));
+      return;
+    }
+
     const buttonId = resolveOriginButtonId(item);
     if (!buttonId) return;
     prepareOriginNavigation(item);
@@ -313,7 +330,7 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
                   key={item.deliveryId}
                   onClick={() => handleOpenItem(item)}
                   className={`w-full border-b border-[#F0EEE7] px-4 py-3 text-left transition hover:bg-[#FDFBF7] ${!item.readAt ? 'bg-[#F7FAF2]' : 'bg-white'}`}
-                  title={resolveOriginButtonId(item) ? 'Abrir origem do alerta' : 'Marcar alerta como lido'}
+                  title={(resolveReceptionModule(item) || resolveOriginButtonId(item)) ? 'Abrir origem do alerta' : 'Marcar alerta como lido'}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${item.priority === 'critical' ? 'bg-red-50 text-red-600' : item.priority === 'attention' ? 'bg-amber-50 text-amber-700' : 'bg-[#F2F5E8] text-[#588157]'}`}>

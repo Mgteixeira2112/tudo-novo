@@ -11,6 +11,7 @@ import { getSupabaseAuthUser } from '../services/supabase.ts';
 import { AdminTab } from '../types.ts';
 
 type Filter = 'all' | 'unread' | 'read';
+type ReceptionAlertModule = 'reservations' | 'checkin' | 'checkout';
 
 interface OperationalAlertsCenterProps {
   onNavigate: (tab: AdminTab) => void;
@@ -22,12 +23,19 @@ const GOVERNANCE_CLEANING_SOURCE = 'governance_room_cleaning';
 const MAINTENANCE_ROOM_SOURCE = 'maintenance_room_status';
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 
+function resolveReceptionModule(item: OperationalAlertInboxItem): ReceptionAlertModule | null {
+  const source = (item.sourceType || '').toLowerCase();
+  if (source === 'reservation') return 'reservations';
+  if (['checkin', 'check_in'].includes(source)) return 'checkin';
+  if (['checkout', 'check_out'].includes(source)) return 'checkout';
+  return null;
+}
+
 function resolveOriginTab(item: OperationalAlertInboxItem): AdminTab | null {
   const source = (item.sourceType || '').toLowerCase();
   if (['kitchen_order', 'room_service', 'minibar', 'fnb'].includes(source)) return 'fnb';
   if (TASK_SOURCES.includes(source) || source === GOVERNANCE_CLEANING_SOURCE || source === MAINTENANCE_ROOM_SOURCE) return 'kanbans';
   if (['room', 'room_status'].includes(source)) return 'rooms_inventory';
-  if (['reservation', 'checkin', 'checkout', 'check_in', 'check_out'].includes(source)) return 'checkinout';
   if (['guest'].includes(source)) return 'guests';
   return null;
 }
@@ -135,6 +143,13 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
 
   const openOrigin = async (item: OperationalAlertInboxItem) => {
     await markRead(item);
+    const receptionModule = resolveReceptionModule(item);
+    if (receptionModule) {
+      window.dispatchEvent(new CustomEvent('hotel:close_operational_alerts'));
+      window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module: receptionModule } }));
+      return;
+    }
+
     const tab = resolveOriginTab(item);
     if (!tab) return;
     prepareOriginNavigation(item);
@@ -195,6 +210,7 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
       <div className="space-y-3">
         {filtered.map(item => {
           const originTab = resolveOriginTab(item);
+          const receptionModule = resolveReceptionModule(item);
           return (
             <div key={item.deliveryId} className={`rounded-2xl border p-4 shadow-sm ${item.readAt ? 'border-[#E6E3D8] bg-white' : 'border-[#CCD5AE] bg-[#F7FAF2]'}`}>
               <div className="flex items-start gap-3">
@@ -217,7 +233,7 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
                     {!item.readAt && (
                       <button onClick={() => markRead(item)} className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[#3A5A40] hover:bg-[#EEF4E5]">Marcar como lida</button>
                     )}
-                    {originTab && (
+                    {(originTab || receptionModule) && (
                       <button onClick={() => openOrigin(item)} className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[#2C3327] hover:bg-[#F4F1EA]">
                         <ExternalLink className="h-3 w-3" /> Abrir origem
                       </button>
