@@ -11,7 +11,7 @@ export interface WalkInInput {
   checkOutDate: string;
   adults: number;
   children: number;
-  paymentMethod: Reservation['paymentMethod'];
+  paymentMethod?: Reservation['paymentMethod'];
   depositAmount?: number;
   keyCardNumber?: string;
   notes?: string;
@@ -39,7 +39,7 @@ export async function processWalkInAtomicCloud(input: WalkInInput): Promise<Walk
     p_check_out_date: input.checkOutDate,
     p_adults: Number(input.adults || 1),
     p_children: Number(input.children || 0),
-    p_payment_method: input.paymentMethod,
+    p_payment_method: input.paymentMethod || null,
     p_deposit_amount: Number(input.depositAmount || 0),
     p_key_card_number: input.keyCardNumber || null,
     p_notes: input.notes || null
