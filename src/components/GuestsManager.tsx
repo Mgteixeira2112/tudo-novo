@@ -232,14 +232,14 @@ export const GuestsManager: React.FC = () => {
       <section className="space-y-2">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h3 className="text-sm font-black text-[#2C3327]">Fluxo atual</h3>
-            <p className="text-[11px] text-[#8E9280]">Checkouts concluídos saem desta visão após 5 minutos e permanecem armazenados no histórico da reserva.</p>
+            <h3 className="text-sm font-black text-[#2C3327]">Reservas em andamento</h3>
+            <p className="text-[11px] text-[#8E9280]">Mostra somente reservas que ainda exigem ação ou acompanhamento. Checkouts concluídos saem desta visão após 5 minutos e permanecem armazenados no histórico da reserva.</p>
           </div>
-          <span className="text-[11px] font-semibold text-[#8E9280]">{journeyReservations.length} ativo(s)</span>
+          <span className="text-[11px] font-semibold text-[#8E9280]">{journeyReservations.length} reserva(s) em andamento</span>
         </div>
 
         {journeyReservations.length === 0 ? (
-          <div className="rounded-xl border border-[#E6E3D8] bg-white p-6 text-center text-sm text-[#8E9280]">Nenhuma reserva ativa encontrada.</div>
+          <div className="rounded-xl border border-[#E6E3D8] bg-white p-6 text-center text-sm text-[#8E9280]">Nenhuma reserva em andamento.</div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[#E6E3D8] bg-white">
             <table className="w-full min-w-[920px] text-left text-xs">
