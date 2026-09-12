@@ -117,14 +117,14 @@ function RoomCard({
         ) : canManage ? (
           <div className="space-y-2">
             <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Alterar status com segurança</span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
               {targets.map(target => (
                 <button
                   key={target}
                   type="button"
                   disabled={busy}
                   onClick={() => onChangeStatus(room, target)}
-                  className="rounded-lg border border-[#DADFD1] bg-[#F8FAF2] px-2.5 py-1.5 text-[10px] font-bold text-[#3A5A40] transition hover:bg-[#E9EDC9] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-8 items-center justify-center rounded-lg border border-[#DADFD1] bg-[#F8FAF2] px-2.5 py-1.5 text-center text-[10px] font-bold leading-tight text-[#3A5A40] transition hover:bg-[#E9EDC9] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : statusLabel(target)}
                 </button>
@@ -255,12 +255,12 @@ function RoomsKanbanView({
         </div>
       )}
 
-      <div className={`grid grid-cols-1 gap-4 ${visibleColumns.length === 1 ? '' : 'xl:grid-cols-5'}`}>
+      <div className={`grid grid-cols-1 gap-4 ${visibleColumns.length === 1 ? '' : 'xl:grid-cols-5 xl:items-start'}`}>
         {visibleColumns.map(column => {
           const ColumnIcon = column.icon;
           const columnRooms = visibleRooms.filter(room => room.status === column.status);
           return (
-            <section key={column.status} className="min-w-0 rounded-2xl border border-[#E6E3D8] bg-[#F8F7F2] p-3">
+            <section key={column.status} className="min-w-0 self-start rounded-2xl border border-[#E6E3D8] bg-[#F8F7F2] p-3">
               <header className="mb-3 flex items-start justify-between gap-2 px-1 pt-1">
                 <div>
                   <div className="flex items-center gap-2">
@@ -274,7 +274,9 @@ function RoomsKanbanView({
                 </span>
               </header>
 
-              <div className={visibleColumns.length === 1 ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}>
+              <div className={visibleColumns.length === 1
+                ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                : 'grid grid-cols-1 gap-3'}>
                 {columnRooms.map(room => (
                   <RoomCard
                     key={room.id}
