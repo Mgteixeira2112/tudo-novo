@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Archive, BellRing, CheckCircle2, ChefHat, Minus, Plus, Send, Wine } from 'lucide-react';
+import { Archive, BellRing, CheckCircle2, ChefHat, Minus, Plus, Send, Wine, XCircle } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { KitchenOrder, MenuItem, MinibarItem, RoomMinibarConsumption } from '../types.ts';
 import { api } from '../services/api.ts';
 import { subscribeToKitchenOrdersChangesRealtime } from '../services/kitchenOrdersRealtime.ts';
 import { KitchenOrderHistoryModal } from './KitchenOrderHistoryModal.tsx';
+import { KitchenOrderCancelModal } from './KitchenOrderCancelModal.tsx';
+import { loadKitchenOrdersAuditCloud, updateKitchenOrderStatusAtomicCloud } from '../services/kitchenOrderCancellation.ts';
 
 export const MinibarOperationalModule: React.FC<{ canManage: boolean }> = ({ canManage }) => {
   const { rooms, settings, refreshData } = useHotel();
@@ -104,6 +106,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   const { rooms, settings, refreshData } = useHotel();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [historyOrders, setHistoryOrders] = useState<KitchenOrder[]>([]);
   const [roomId, setRoomId] = useState('');
   const [destination, setDestination] = useState<'Quarto' | 'Restaurante' | 'Piscina'>(mode === 'room_service' ? 'Quarto' : 'Restaurante');
   const [instructions, setInstructions] = useState('');
@@ -111,6 +114,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
   const [submitting, setSubmitting] = useState(false);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
   const [showHistory, setShowHistory] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<KitchenOrder | null>(null);
   const currency = settings?.currency || 'R$';
   const occupiedRooms = rooms.filter(room => room.status === 'Ocupado');
   const sector: KitchenOrder['deliverySector'] = mode === 'room_service' ? 'Room Service' : 'Cozinha';
@@ -156,31 +160,33 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
     setSelectedItems([]);
     setInstructions('');
     setShowHistory(false);
+    setCancelTarget(null);
   }, [mode]);
 
-  const sectorOrders = useMemo(
-    () => mode === 'kitchen'
-      ? orders.filter(order => order.deliverySector === 'Cozinha' || order.deliverySector === 'Room Service')
-      : orders.filter(order => order.deliverySector === 'Room Service'),
-    [orders, mode]
-  );
+  const filterByMode = (source: KitchenOrder[]) => mode === 'kitchen'
+    ? source.filter(order => order.deliverySector === 'Cozinha' || order.deliverySector === 'Room Service')
+    : source.filter(order => order.deliverySector === 'Room Service');
 
-  const isArchivedDeliveredOrder = (order: KitchenOrder) => {
+  const sectorOrders = useMemo(() => filterByMode(orders), [orders, mode]);
+  const historySectorOrders = useMemo(() => filterByMode(historyOrders), [historyOrders, mode]);
+
+  const isArchivedOrder = (order: KitchenOrder) => {
+    if (order.status === 'Cancelado') return true;
     if (order.status !== 'Entregue' || !order.completedAt) return false;
     const completedAt = new Date(order.completedAt).getTime();
     return Number.isFinite(completedAt) && archiveClock - completedAt >= DELIVERED_ARCHIVE_AFTER_MS;
   };
 
   const visibleOrders = useMemo(
-    () => sectorOrders.filter(order => !isArchivedDeliveredOrder(order)),
+    () => sectorOrders.filter(order => !isArchivedOrder(order)),
     [sectorOrders, archiveClock]
   );
 
   const archivedOrders = useMemo(
-    () => sectorOrders
-      .filter(isArchivedDeliveredOrder)
-      .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()),
-    [sectorOrders, archiveClock]
+    () => (historySectorOrders.length > 0 ? historySectorOrders : sectorOrders)
+      .filter(isArchivedOrder)
+      .sort((a, b) => new Date((b as any).cancelledAt || b.completedAt || 0).getTime() - new Date((a as any).cancelledAt || a.completedAt || 0).getTime()),
+    [historySectorOrders, sectorOrders, archiveClock]
   );
 
   const changeItem = (menuItemId: string, delta: number) => {
@@ -214,8 +220,29 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
 
   const updateStatus = async (orderId: string, status: KitchenOrder['status']) => {
     if (!canManage) return;
-    await api.updateOrderStatus(orderId, status);
+    try {
+      await updateKitchenOrderStatusAtomicCloud(orderId, status);
+      setOrders(await api.getOrders());
+      setArchiveClock(Date.now());
+      await refreshData();
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao atualizar o pedido.');
+    }
+  };
+
+  const openHistory = async () => {
+    try {
+      setHistoryOrders(await loadKitchenOrdersAuditCloud());
+    } catch (error) {
+      console.warn('[Kitchen Orders] Falha ao carregar histórico auditado:', error);
+      setHistoryOrders([]);
+    }
+    setShowHistory(true);
+  };
+
+  const handleCancelled = async () => {
     setOrders(await api.getOrders());
+    setHistoryOrders(await loadKitchenOrdersAuditCloud());
     setArchiveClock(Date.now());
     await refreshData();
   };
@@ -228,7 +255,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
         <h2 className="text-xl sm:text-2xl font-bold text-[#2C3327] flex items-center gap-2">{mode === 'room_service' ? <BellRing className="w-5 h-5 text-[#D4A373]" /> : <ChefHat className="w-5 h-5 text-[#D4A373]" />}{title}</h2>
         <button
           type="button"
-          onClick={() => setShowHistory(true)}
+          onClick={openHistory}
           className="flex items-center justify-center space-x-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#3D4035] shadow-sm transition hover:bg-[#F8FAF2]"
         >
           <Archive className="w-4 h-4 text-[#588157]" />
@@ -247,10 +274,15 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
               <div className="text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Origem: {order.deliverySector} • Destino: {order.destination}</div>
               <div className="bg-[#F4F1EA] rounded-xl p-2.5 text-xs space-y-1">{order.items.map((item, index) => <div key={`${order.id}-${index}`} className="flex justify-between"><span>{item.quantity}x {item.name}</span><span>{currency} {(item.quantity * item.unitPrice).toFixed(2)}</span></div>)}</div>
               {order.specialInstructions && <p className="text-[11px] text-[#6B705C] italic">Obs: {order.specialInstructions}</p>}
-              <div className="pt-2 border-t border-[#E6E3D8]">
+              <div className="pt-2 border-t border-[#E6E3D8] space-y-2">
                 {canManage && order.status === 'Recebido' && <button onClick={() => updateStatus(order.id, 'Em Preparo')} className="w-full py-1.5 bg-[#D4A373] text-white font-bold rounded-lg text-xs">Iniciar Preparo</button>}
                 {canManage && order.status === 'Em Preparo' && <button onClick={() => updateStatus(order.id, 'Pronto')} className="w-full py-1.5 bg-[#A3B18A] text-white font-bold rounded-lg text-xs">Pronto para Entrega</button>}
                 {canManage && order.status === 'Pronto' && <button onClick={() => updateStatus(order.id, 'Entregue')} className="w-full py-1.5 bg-[#588157] text-white font-bold rounded-lg text-xs">Marcar como Entregue</button>}
+                {canManage && ['Recebido', 'Em Preparo', 'Pronto'].includes(order.status) && (
+                  <button onClick={() => setCancelTarget(order)} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-100">
+                    <XCircle className="h-3.5 w-3.5" /> Cancelar pedido
+                  </button>
+                )}
                 {order.status === 'Entregue' && <span className="text-[#588157] font-semibold flex items-center justify-center text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Entregue</span>}
               </div>
             </div>
@@ -280,6 +312,7 @@ export const OrdersOperationalModule: React.FC<{ mode: OrdersMode; canManage: bo
       </div>
 
       {showHistory && <KitchenOrderHistoryModal orders={archivedOrders} currency={currency} onClose={() => setShowHistory(false)} />}
+      {cancelTarget && <KitchenOrderCancelModal order={cancelTarget} onClose={() => setCancelTarget(null)} onCancelled={handleCancelled} />}
     </div>
   );
 };
