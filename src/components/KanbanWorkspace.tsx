@@ -255,12 +255,16 @@ function RoomsKanbanView({
         </div>
       )}
 
-      <div className={`grid grid-cols-1 gap-4 ${visibleColumns.length === 1 ? '' : 'xl:grid-cols-5 xl:items-start'}`}>
+      <div className={`grid grid-cols-1 gap-4 ${visibleColumns.length === 1 ? '' : 'xl:grid-cols-6 xl:items-start'}`}>
         {visibleColumns.map(column => {
           const ColumnIcon = column.icon;
           const columnRooms = visibleRooms.filter(room => room.status === column.status);
+          const isDenseColumn = visibleColumns.length > 1 && columnRooms.length >= 5;
           return (
-            <section key={column.status} className="min-w-0 self-start rounded-2xl border border-[#E6E3D8] bg-[#F8F7F2] p-3">
+            <section
+              key={column.status}
+              className={`min-w-0 self-start rounded-2xl border border-[#E6E3D8] bg-[#F8F7F2] p-3 ${isDenseColumn ? 'xl:col-span-2' : 'xl:col-span-1'}`}
+            >
               <header className="mb-3 flex items-start justify-between gap-2 px-1 pt-1">
                 <div>
                   <div className="flex items-center gap-2">
@@ -276,7 +280,7 @@ function RoomsKanbanView({
 
               <div className={visibleColumns.length === 1
                 ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'grid grid-cols-1 gap-3'}>
+                : `grid grid-cols-1 gap-3 ${isDenseColumn ? 'xl:grid-cols-2' : ''}`}>
                 {columnRooms.map(room => (
                   <RoomCard
                     key={room.id}
