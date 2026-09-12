@@ -1,0 +1,49 @@
+/* Reservation details drawer — final structural override.
+   The drawer itself fills the viewport, only the center content scrolls,
+   and the action group is always reachable at the bottom. */
+
+div[class~="z-[110]"][class~="inset-0"] > aside {
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > header {
+  position: relative !important;
+  top: auto !important;
+  flex: 0 0 auto !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  padding-bottom: 0 !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 10 !important;
+  flex: 0 0 auto !important;
+  margin-top: auto !important;
+  margin-left: -0.25rem !important;
+  margin-right: -0.25rem !important;
+  padding: 0.9rem 0.25rem max(1rem, env(safe-area-inset-bottom)) !important;
+  background: #FDFBF7 !important;
+  border-top: 1px solid #E6E3D8;
+  box-shadow: 0 -10px 24px rgba(44, 51, 39, 0.06);
+}
+
+@media (min-width: 640px) {
+  div[class~="z-[110]"][class~="inset-0"] > aside {
+    width: min(34rem, calc(100vw - 2rem)) !important;
+    max-width: 34rem !important;
+  }
+}

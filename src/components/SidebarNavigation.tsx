@@ -82,6 +82,19 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [collapsed, flyoutGroup]);
 
+  useEffect(() => {
+    const handleStandaloneNavigation = (event: Event) => {
+      const detail = (event as CustomEvent<{ module?: StandaloneModule }>).detail;
+      if (!detail?.module || !['checkin', 'checkout'].includes(detail.module)) return;
+      onNavigatePage(detail.module);
+      setCollapsed(true);
+      setFlyoutGroup(null);
+    };
+
+    window.addEventListener('hotel:navigate-standalone-module', handleStandaloneNavigation as EventListener);
+    return () => window.removeEventListener('hotel:navigate-standalone-module', handleStandaloneNavigation as EventListener);
+  }, [onNavigatePage]);
+
   if (!currentUser || mode !== 'admin') return null;
 
   const groups: Group[] = [
