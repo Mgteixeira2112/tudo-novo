@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   ArrowRight,
@@ -20,6 +20,15 @@ import { Reservation, ReservationStatus, Room } from '../types.ts';
 
 const VIEW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const RESERVATION_NAVIGATION_KEY = 'novohotel:reservation-navigation';
+
+type DashboardReservationFilter = 'ALL' | 'ARRIVALS_TODAY' | 'DEPARTURES_TODAY' | 'PENDING';
+
+const DASHBOARD_FILTER_LABELS: Record<Exclude<DashboardReservationFilter, 'ALL'>, string> = {
+  ARRIVALS_TODAY: 'Chegadas hoje',
+  DEPARTURES_TODAY: 'Saídas hoje',
+  PENDING: 'Reservas pendentes'
+};
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
   Pendente: 'Pendente',
@@ -133,6 +142,38 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const [archiveStatus, setArchiveStatus] = useState<'ALL' | 'CheckOut' | 'Cancelada'>('ALL');
   const [archivePeriod, setArchivePeriod] = useState<'7' | '30' | '90' | 'ALL'>('ALL');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [dashboardFilter, setDashboardFilter] = useState<DashboardReservationFilter>('ALL');
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(RESERVATION_NAVIGATION_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(RESERVATION_NAVIGATION_KEY);
+      const parsed = JSON.parse(raw) as { filter?: DashboardReservationFilter };
+      if (!parsed.filter || !['ARRIVALS_TODAY', 'DEPARTURES_TODAY', 'PENDING'].includes(parsed.filter)) return;
+
+      setSearch('');
+      setRoomTypeFilter('ALL');
+      setFloorFilter('ALL');
+      setTimelineStart(today);
+      setArchiveOpen(false);
+      setSelectedReservation(null);
+      setDashboardFilter(parsed.filter);
+
+      if (parsed.filter === 'DEPARTURES_TODAY') {
+        setStatusFilter('CheckIn');
+        setOperationalView('staying');
+      } else if (parsed.filter === 'PENDING') {
+        setStatusFilter('Pendente');
+        setOperationalView('active');
+      } else {
+        setStatusFilter('ALL');
+        setOperationalView('active');
+      }
+    } catch {
+      // Keep the default Central de Reservas view if transient navigation state is unavailable.
+    }
+  }, [today]);
 
   const timelineEnd = addDays(timelineStart, VIEW_DAYS);
   const visibleDays = useMemo(
@@ -158,6 +199,10 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
 
     return [...reservations]
       .filter(reservation => {
+        if (dashboardFilter === 'ARRIVALS_TODAY' && !(reservation.checkInDate === today && reservation.status !== 'CheckIn' && reservation.status !== 'CheckOut' && reservation.status !== 'Cancelada')) return false;
+        if (dashboardFilter === 'DEPARTURES_TODAY' && !(reservation.checkOutDate === today && reservation.status === 'CheckIn')) return false;
+        if (dashboardFilter === 'PENDING' && reservation.status !== 'Pendente') return false;
+
         const room = roomsById.get(reservation.roomId) || roomsByNumber.get(reservation.roomNumber);
         if (roomTypeFilter !== 'ALL' && (room?.typeName || reservation.roomTypeName) !== roomTypeFilter) return false;
         if (floorFilter !== 'ALL' && String(room?.floor ?? '') !== floorFilter) return false;
@@ -180,7 +225,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
         if (dateComparison !== 0) return dateComparison;
         return a.roomNumber.localeCompare(b.roomNumber, 'pt-BR', { numeric: true });
       });
-  }, [reservations, roomsById, roomsByNumber, search, roomTypeFilter, floorFilter]);
+  }, [reservations, roomsById, roomsByNumber, search, roomTypeFilter, floorFilter, dashboardFilter, today]);
 
   const filteredReservations = useMemo(
     () => scopedReservations.filter(reservation => statusFilter === 'ALL' || reservation.status === statusFilter),
@@ -194,10 +239,11 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
       .filter(room => roomTypeFilter === 'ALL' || room.typeName === roomTypeFilter)
       .filter(room => floorFilter === 'ALL' || String(room.floor) === floorFilter)
       .filter(room => {
+        const reservationMatch = filteredReservations.some(reservation => roomMatchesReservation(room, reservation));
+        if (dashboardFilter !== 'ALL' && !reservationMatch) return false;
         if (!query) return true;
         const directMatch = [room.number, room.typeName, room.floor]
           .some(value => String(value).toLowerCase().includes(query));
-        const reservationMatch = filteredReservations.some(reservation => roomMatchesReservation(room, reservation));
         return directMatch || reservationMatch;
       })
       .sort((a, b) => {
@@ -205,7 +251,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
         if (floorComparison !== 0) return floorComparison;
         return a.number.localeCompare(b.number, 'pt-BR', { numeric: true });
       });
-  }, [rooms, roomTypeFilter, floorFilter, search, filteredReservations]);
+  }, [rooms, roomTypeFilter, floorFilter, search, filteredReservations, dashboardFilter]);
 
   const activeReservations = useMemo(
     () => scopedReservations.filter(reservation => ['Pendente', 'Confirmada'].includes(reservation.status)),
@@ -244,10 +290,11 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const currentOperationalReservations = operationalView === 'active' ? activeReservations : stayingReservations;
 
   const hasFilters = Boolean(
-    search.trim() || statusFilter !== 'ALL' || roomTypeFilter !== 'ALL' || floorFilter !== 'ALL'
+    dashboardFilter !== 'ALL' || search.trim() || statusFilter !== 'ALL' || roomTypeFilter !== 'ALL' || floorFilter !== 'ALL'
   );
 
   const clearFilters = () => {
+    setDashboardFilter('ALL');
     setSearch('');
     setStatusFilter('ALL');
     setRoomTypeFilter('ALL');
@@ -272,6 +319,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
 
   const showSelectedOnTimeline = () => {
     if (!selectedReservation) return;
+    setDashboardFilter('ALL');
     setSearch('');
     setRoomTypeFilter('ALL');
     setFloorFilter('ALL');
@@ -363,6 +411,23 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
               Limpar
             </button>
           </div>
+
+          {dashboardFilter !== 'ALL' && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#CCD5AE] bg-[#F2F5E8] px-3 py-2 text-xs text-[#3A5A40]">
+              <span className="font-bold">Filtro recebido do Meu Painel:</span>
+              <strong>{DASHBOARD_FILTER_LABELS[dashboardFilter]}</strong>
+              <button
+                type="button"
+                onClick={() => {
+                  setDashboardFilter('ALL');
+                  setStatusFilter('ALL');
+                }}
+                className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 font-bold hover:bg-white/70"
+              >
+                <X className="w-3.5 h-3.5" /> Remover
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="bg-white border border-[#E6E3D8] rounded-2xl overflow-hidden">
