@@ -1,11 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import {
   Archive,
+  ArrowRight,
   BedDouble,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   CreditCard,
+  Mail,
+  Phone,
   RefreshCw,
   Search,
   Users,
@@ -87,6 +91,19 @@ const formatWeekday = (value: string) =>
     .toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'short' })
     .replace('.', '');
 
+const formatDateTime = (value?: string) => {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      dateStyle: 'short',
+      timeStyle: 'short'
+    });
+  } catch {
+    return value;
+  }
+};
+
 const currency = (value: number, symbol: string) =>
   `${symbol} ${Number(value || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
@@ -96,7 +113,11 @@ const currency = (value: number, symbol: string) =>
 const roomMatchesReservation = (room: Room, reservation: Reservation) =>
   reservation.roomId === room.id || reservation.roomNumber === room.number;
 
-export const ReservationsManager: React.FC = () => {
+interface ReservationsManagerProps {
+  onOpenCheckInOut?: () => void;
+}
+
+export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpenCheckInOut }) => {
   const { reservations, rooms, settings, refreshData } = useHotel();
   const today = hotelTodayKey();
 
@@ -111,6 +132,7 @@ export const ReservationsManager: React.FC = () => {
   const [archiveSearch, setArchiveSearch] = useState('');
   const [archiveStatus, setArchiveStatus] = useState<'ALL' | 'CheckOut' | 'Cancelada'>('ALL');
   const [archivePeriod, setArchivePeriod] = useState<'7' | '30' | '90' | 'ALL'>('ALL');
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   const timelineEnd = addDays(timelineStart, VIEW_DAYS);
   const visibleDays = useMemo(
@@ -242,6 +264,27 @@ export const ReservationsManager: React.FC = () => {
   };
 
   const shiftTimeline = (days: number) => setTimelineStart(previous => addDays(previous, days));
+
+  const openReservationDetails = (reservation: Reservation, closeArchive = false) => {
+    if (closeArchive) setArchiveOpen(false);
+    setSelectedReservation(reservation);
+  };
+
+  const showSelectedOnTimeline = () => {
+    if (!selectedReservation) return;
+    setSearch('');
+    setRoomTypeFilter('ALL');
+    setFloorFilter('ALL');
+    setStatusFilter(selectedReservation.status === 'Cancelada' ? 'Cancelada' : 'ALL');
+    setTimelineStart(selectedReservation.checkInDate);
+    setArchiveOpen(false);
+    setSelectedReservation(null);
+  };
+
+  const openCheckFlow = () => {
+    setSelectedReservation(null);
+    onOpenCheckInOut?.();
+  };
 
   return (
     <>
@@ -436,14 +479,16 @@ export const ReservationsManager: React.FC = () => {
                         const endsAfter = reservation.checkOutDate > timelineEnd;
 
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={reservation.id}
-                            className={`z-10 mx-1 my-3 h-10 rounded-lg border px-2 flex items-center overflow-hidden shadow-sm ${STATUS_CLASSES[reservation.status]}`}
+                            onClick={() => openReservationDetails(reservation)}
+                            className={`z-10 mx-1 my-3 h-10 rounded-lg border px-2 flex items-center overflow-hidden shadow-sm text-left cursor-pointer hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-[#588157]/30 ${STATUS_CLASSES[reservation.status]}`}
                             style={{
                               gridColumn: `${startIndex + 2} / span ${span}`,
                               gridRow: 1
                             }}
-                            title={`${reservation.code} · ${reservation.guestName} · ${formatDate(reservation.checkInDate)} → ${formatDate(reservation.checkOutDate)} · ${STATUS_LABELS[reservation.status]}`}
+                            title={`Abrir ${reservation.code} · ${reservation.guestName}`}
                           >
                             <div className="min-w-0 leading-tight">
                               <strong className="block truncate text-[10px]">
@@ -451,7 +496,7 @@ export const ReservationsManager: React.FC = () => {
                               </strong>
                               <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -508,7 +553,12 @@ export const ReservationsManager: React.FC = () => {
               {currentOperationalReservations.map((reservation: Reservation) => {
                 const room = roomsById.get(reservation.roomId) || roomsByNumber.get(reservation.roomNumber);
                 return (
-                  <article key={reservation.id} className="rounded-2xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 hover:border-[#CCD5AE] transition">
+                  <button
+                    type="button"
+                    key={reservation.id}
+                    onClick={() => openReservationDetails(reservation)}
+                    className="rounded-2xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 hover:border-[#CCD5AE] hover:shadow-sm transition text-left focus:outline-none focus:ring-2 focus:ring-[#588157]/20"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -540,7 +590,11 @@ export const ReservationsManager: React.FC = () => {
                         <span>{reservation.paymentStatus} · {reservation.paymentMethod}</span>
                       </div>
                     </div>
-                  </article>
+
+                    <div className="mt-3 pt-3 border-t border-[#E6E3D8] flex items-center justify-end gap-1 text-[11px] font-bold text-[#588157]">
+                      Ver detalhes <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -616,7 +670,12 @@ export const ReservationsManager: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {archiveReservations.map((reservation: Reservation) => (
-                    <article key={reservation.id} className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                    <button
+                      type="button"
+                      key={reservation.id}
+                      onClick={() => openReservationDetails(reservation, true)}
+                      className="rounded-2xl border border-[#E6E3D8] bg-white p-4 text-left hover:border-[#CCD5AE] hover:shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#588157]/20"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -644,7 +703,11 @@ export const ReservationsManager: React.FC = () => {
                           <span>{reservation.paymentStatus} · {reservation.paymentMethod}</span>
                         </div>
                       </div>
-                    </article>
+
+                      <div className="mt-3 pt-3 border-t border-[#E6E3D8] flex items-center justify-end gap-1 text-[11px] font-bold text-[#588157]">
+                        Consultar detalhes <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -654,6 +717,157 @@ export const ReservationsManager: React.FC = () => {
               {archiveReservations.length} registro(s) no arquivo atual
             </footer>
           </section>
+        </div>
+      )}
+
+      {selectedReservation && (
+        <div className="fixed inset-0 z-[110] bg-black/35 backdrop-blur-[1px] flex justify-end" onClick={() => setSelectedReservation(null)}>
+          <aside className="h-full w-full max-w-lg bg-[#FDFBF7] shadow-2xl overflow-y-auto" onClick={event => event.stopPropagation()}>
+            <header className="sticky top-0 z-10 border-b border-[#E6E3D8] bg-[#FDFBF7]/95 backdrop-blur px-5 py-4 flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.16em] font-black text-[#588157]">Detalhes da reserva</span>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <h3 className="text-2xl font-black text-[#2C3327]">{selectedReservation.code}</h3>
+                  <span className={`text-[10px] px-2 py-1 rounded-full border font-bold ${STATUS_CLASSES[selectedReservation.status]}`}>
+                    {STATUS_LABELS[selectedReservation.status]}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedReservation(null)}
+                className="rounded-xl p-2 text-[#6B705C] hover:bg-[#F4F1EA]"
+                aria-label="Fechar detalhes"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </header>
+
+            <div className="p-5 space-y-4">
+              <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                <h4 className="text-sm font-black text-[#2C3327]">Hóspede</h4>
+                <strong className="block mt-3 text-base text-[#2C3327]">{selectedReservation.guestName}</strong>
+                <div className="mt-2 space-y-2 text-xs text-[#6B705C]">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-[#588157] shrink-0" />
+                    <span className="break-all">{selectedReservation.guestEmail || 'E-mail não informado'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#588157] shrink-0" />
+                    <span>{selectedReservation.guestPhone || 'Telefone não informado'}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                <h4 className="text-sm font-black text-[#2C3327]">Estadia</h4>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block text-[#8A8F7D]">Entrada</span>
+                    <strong className="text-[#2C3327]">{formatDate(selectedReservation.checkInDate)}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Saída</span>
+                    <strong className="text-[#2C3327]">{formatDate(selectedReservation.checkOutDate)}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Quarto</span>
+                    <strong className="text-[#2C3327]">{selectedReservation.roomNumber}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Categoria</span>
+                    <strong className="text-[#2C3327]">{selectedReservation.roomTypeName}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Noites</span>
+                    <strong className="text-[#2C3327]">{selectedReservation.nights}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Hóspedes</span>
+                    <strong className="text-[#2C3327]">
+                      {selectedReservation.adults} adulto(s){selectedReservation.children ? ` + ${selectedReservation.children} criança(s)` : ''}
+                    </strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                <h4 className="text-sm font-black text-[#2C3327]">Pagamento</h4>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block text-[#8A8F7D]">Diária</span>
+                    <strong className="text-[#2C3327]">{currency(selectedReservation.pricePerNight, settings?.currency || 'R$')}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Total hospedagem</span>
+                    <strong className="text-[#2C3327]">{currency(selectedReservation.totalNightsAmount, settings?.currency || 'R$')}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Situação</span>
+                    <strong className="text-[#2C3327]">{selectedReservation.paymentStatus}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[#8A8F7D]">Forma</span>
+                    <strong className="text-[#2C3327]">{selectedReservation.paymentMethod}</strong>
+                  </div>
+                </div>
+              </section>
+
+              {selectedReservation.notes && (
+                <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                  <h4 className="text-sm font-black text-[#2C3327]">Observações</h4>
+                  <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-[#6B705C]">{selectedReservation.notes}</p>
+                </section>
+              )}
+
+              <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
+                <h4 className="flex items-center gap-2 text-sm font-black text-[#2C3327]">
+                  <Clock3 className="w-4 h-4 text-[#588157]" />
+                  Registro
+                </h4>
+                <div className="mt-3 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[#8A8F7D]">Criada em</span>
+                    <strong className="text-right text-[#2C3327]">{formatDateTime(selectedReservation.createdAt)}</strong>
+                  </div>
+                  {selectedReservation.checkedInAt && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[#8A8F7D]">Check-in registrado</span>
+                      <strong className="text-right text-[#2C3327]">{formatDateTime(selectedReservation.checkedInAt)}</strong>
+                    </div>
+                  )}
+                  {selectedReservation.checkedOutAt && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[#8A8F7D]">Check-out registrado</span>
+                      <strong className="text-right text-[#2C3327]">{formatDateTime(selectedReservation.checkedOutAt)}</strong>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={showSelectedOnTimeline}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DADFD1] bg-white px-4 py-3 text-xs font-extrabold text-[#2C3327] hover:bg-[#F4F1EA]"
+                >
+                  <CalendarDays className="w-4 h-4 text-[#588157]" />
+                  Mostrar no calendário
+                </button>
+
+                {onOpenCheckInOut && ['Pendente', 'Confirmada', 'CheckIn'].includes(selectedReservation.status) && (
+                  <button
+                    type="button"
+                    onClick={openCheckFlow}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#2C3327] bg-[#2C3327] px-4 py-3 text-xs font-extrabold text-white hover:bg-[#3A4235]"
+                  >
+                    Abrir Check-in / Check-out
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
       )}
     </>
