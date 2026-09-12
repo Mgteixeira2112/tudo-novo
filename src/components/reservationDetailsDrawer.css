@@ -70,6 +70,18 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
   backdrop-filter: blur(10px);
 }
 
+div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child::before {
+  content: "Atalhos operacionais";
+  grid-column: 1 / -1;
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #6B705C;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 767px) {
   div[class~="z-[110]"][class~="inset-0"] {
     padding: 0 !important;
