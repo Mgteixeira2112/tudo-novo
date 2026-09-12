@@ -299,3 +299,43 @@ div[class~="z-[70]"][class~="pointer-events-none"] > div[class~="inset-y-3"][cla
     padding-bottom: 3.5rem !important;
   }
 }
+
+/* Reservation details drawer: keep header and actions visible while only the content scrolls. */
+div[class~="z-[110]"][class~="inset-0"] > aside {
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > header {
+  position: relative !important;
+  top: auto !important;
+  flex: 0 0 auto;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0 -0.25rem;
+  padding: 0.75rem 0.25rem 0.25rem;
+  background: linear-gradient(to bottom, rgba(253,251,247,0.92), #FDFBF7 28%);
+}
+
+@media (min-width: 640px) {
+  div[class~="z-[110]"][class~="inset-0"] > aside {
+    width: min(34rem, calc(100vw - 2rem)) !important;
+    max-width: 34rem !important;
+  }
+}
