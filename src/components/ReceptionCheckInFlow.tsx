@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Banknote, CalendarDays, CreditCard, KeyRound, LogIn, QrCode } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { PaymentMethod, Reservation } from '../types.ts';
-import { api } from '../services/api.ts';
+import { processCheckInAtomicCloud } from '../services/checkInOutPages.ts';
 
 type ImmediatePaymentMethod = Exclude<PaymentMethod, 'Faturado'>;
 
@@ -28,6 +28,10 @@ function immediatePaymentMethod(value: Reservation['paymentMethod']): ImmediateP
   return value === 'PIX' || value === 'Cartao_Credito' || value === 'Cartao_Debito' || value === 'Dinheiro'
     ? value
     : '';
+}
+
+function paymentMethodLabel(value: ImmediatePaymentMethod | '') {
+  return paymentOptions.find(option => option.value === value)?.label || '';
 }
 
 export const ReceptionCheckInFlow: React.FC = () => {
@@ -91,7 +95,7 @@ export const ReceptionCheckInFlow: React.FC = () => {
 
     try {
       setProcessing(true);
-      await api.processCheckIn({
+      await processCheckInAtomicCloud({
         reservationId: selectedReservation.id,
         roomId: selectedRoomId,
         depositAmount: Number(depositAmount) || 0,
@@ -212,6 +216,11 @@ export const ReceptionCheckInFlow: React.FC = () => {
                   ))}
                 </div>
                 {depositAmount <= 0 && <p className="mt-2 text-[10px] text-[#8E9280]">Sem valor recebido no check-in, nenhum lançamento financeiro será criado.</p>}
+                {depositAmount > 0 && paymentMethod && (
+                  <p className="mt-2 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-3 py-2 text-[10px] font-bold text-[#3A5A40]">
+                    Será registrado: {currency} {Number(depositAmount).toLocaleString('pt-BR')} via {paymentMethodLabel(paymentMethod)}.
+                  </p>
+                )}
               </div>
 
               <div>
