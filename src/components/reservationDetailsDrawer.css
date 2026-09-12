@@ -54,6 +54,12 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div > section {
   border-radius: 1rem !important;
 }
 
+/* Reservation management needs the whole row. Keeping it inside one of the
+   compact information columns can clip Confirm/Edit/Cancel actions. */
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section[class~="border-[#CCD5AE]"][class~="bg-[#F7F8F2]"] {
+  grid-column: 1 / -1 !important;
+}
+
 div[class~="z-[110]"][class~="inset-0"] > aside > div > section h4 {
   font-size: 0.82rem !important;
 }
