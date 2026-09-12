@@ -1,22 +1,22 @@
-/* Reservation details — central operational record.
-   The existing reservation data is presented as a wide modal instead of a narrow side drawer. */
+/* Reservation details — compact central operational record.
+   Desktop prioritizes information density and uses width before vertical scroll. */
 
 div[class~="z-[110]"][class~="inset-0"] {
   align-items: center !important;
   justify-content: center !important;
-  padding: 1rem !important;
+  padding: 0.5rem !important;
 }
 
 div[class~="z-[110]"][class~="inset-0"] > aside {
-  width: min(72rem, calc(100vw - 2rem)) !important;
-  max-width: 72rem !important;
+  width: min(86rem, calc(100vw - 1rem)) !important;
+  max-width: 86rem !important;
   height: auto !important;
-  max-height: min(90dvh, 920px) !important;
+  max-height: 96dvh !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   border: 1px solid #DADFD1 !important;
-  border-radius: 1.5rem !important;
+  border-radius: 1.35rem !important;
   background: #FDFBF7 !important;
   box-shadow: 0 28px 80px rgba(31, 38, 56, 0.24) !important;
 }
@@ -25,12 +25,12 @@ div[class~="z-[110]"][class~="inset-0"] > aside > header {
   position: relative !important;
   top: auto !important;
   flex: 0 0 auto !important;
-  padding: 1.25rem 1.5rem !important;
+  padding: 0.9rem 1.1rem !important;
   background: rgba(253, 251, 247, 0.98) !important;
 }
 
 div[class~="z-[110]"][class~="inset-0"] > aside > header h3 {
-  font-size: clamp(1.45rem, 2vw, 2rem) !important;
+  font-size: clamp(1.25rem, 1.8vw, 1.75rem) !important;
 }
 
 div[class~="z-[110]"][class~="inset-0"] > aside > div {
@@ -39,34 +39,47 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   align-content: start !important;
-  gap: 1rem !important;
+  gap: 0.7rem !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
-  padding: 1.25rem 1.5rem 0 !important;
+  padding: 0.75rem 0.9rem 0 !important;
 }
 
-/* Guest identification deserves the full width; the remaining information
-   can be read side-by-side like an operational reservation record. */
-div[class~="z-[110]"][class~="inset-0"] > aside > div > section:first-child {
-  grid-column: 1 / -1 !important;
-}
-
+/* Use horizontal space: guest, stay, payment and audit can share the viewport
+   instead of forcing a tall single-column stack. */
 div[class~="z-[110]"][class~="inset-0"] > aside > div > section {
   min-width: 0;
-  height: 100%;
+  height: auto !important;
+  padding: 0.8rem !important;
+  border-radius: 1rem !important;
 }
 
-/* Operational shortcuts stay visible at the bottom and span the modal. */
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section h4 {
+  font-size: 0.82rem !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section > strong {
+  margin-top: 0.5rem !important;
+  font-size: 0.95rem !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section > div,
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section > p {
+  margin-top: 0.5rem !important;
+}
+
+/* Operational shortcuts stay visible and compact at the bottom. */
 div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
   position: sticky !important;
   bottom: 0 !important;
   z-index: 10 !important;
   grid-column: 1 / -1 !important;
-  margin: 0 -1.5rem !important;
-  padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom)) !important;
+  margin: 0 -0.9rem !important;
+  padding: 0.65rem 0.9rem max(0.7rem, env(safe-area-inset-bottom)) !important;
+  gap: 0.5rem !important;
   background: rgba(253, 251, 247, 0.98) !important;
   border-top: 1px solid #E6E3D8 !important;
-  box-shadow: 0 -12px 28px rgba(44, 51, 39, 0.06) !important;
+  box-shadow: 0 -10px 22px rgba(44, 51, 39, 0.05) !important;
   backdrop-filter: blur(10px);
 }
 
@@ -74,12 +87,23 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child::before {
   content: "Atalhos operacionais";
   grid-column: 1 / -1;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.1rem;
   color: #6B705C;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child button {
+  padding-top: 0.7rem !important;
+  padding-bottom: 0.7rem !important;
+}
+
+@media (min-width: 1100px) {
+  div[class~="z-[110]"][class~="inset-0"] > aside > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 767px) {
@@ -98,12 +122,12 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child::before {
 
   div[class~="z-[110]"][class~="inset-0"] > aside > div {
     grid-template-columns: 1fr !important;
-    padding: 1rem 1rem 0 !important;
+    padding: 0.75rem 0.75rem 0 !important;
   }
 
   div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
-    margin: 0 -1rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    margin: 0 -0.75rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
   }
 }
