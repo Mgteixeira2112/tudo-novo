@@ -36,11 +36,16 @@ export async function processCheckInAtomicCloud(data: {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
+  const depositAmount = Number(data.depositAmount || 0);
+  if (depositAmount > 0 && !data.paymentMethod) {
+    throw new Error('Selecione a forma de pagamento utilizada no check-in.');
+  }
+
   const { data: result, error } = await supabase.rpc('process_checkin_atomic', {
     p_reservation_id: data.reservationId,
     p_room_id: data.roomId,
-    p_deposit_amount: Number(data.depositAmount || 0),
-    p_payment_method: data.paymentMethod || 'Cartao_Credito',
+    p_deposit_amount: depositAmount,
+    p_payment_method: data.paymentMethod || null,
     p_key_card_number: data.keyCardNumber || null,
     p_notes: data.notes || null
   });
