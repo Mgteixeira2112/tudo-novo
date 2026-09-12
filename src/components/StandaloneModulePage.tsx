@@ -8,7 +8,6 @@ import { LaundryKanban } from './LaundryKanban.tsx';
 import { LossDamagePanel } from './LossDamagePanel.tsx';
 import { PurchaseNeedPanel } from './PurchaseNeedPanel.tsx';
 import { ReservationsManager } from './ReservationsManager.tsx';
-import { CheckInCheckOutModal } from './CheckInCheckOutModal.tsx';
 import { ReceptionCheckFlowPage } from './ReceptionCheckFlowPage.tsx';
 import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
@@ -52,7 +51,7 @@ const TITLES: Record<StandaloneModule, string> = {
   lossDamage: 'Perdas & Avarias',
   purchases: 'Compras',
   reservations: 'Reservas',
-  checkinout: 'Check-in / Check-out',
+  checkinout: 'Reservas',
   checkin: 'Check-in',
   checkout: 'Check-out',
   walkin: 'Check-in Direto',
@@ -154,7 +153,7 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><PurchaseNeedPanel /></div>
       )}
       {module === 'reservations' && <ReservationsManager />}
-      {module === 'checkinout' && <CheckInCheckOutModal />}
+      {module === 'checkinout' && <ReservationsManager />}
       {module === 'checkin' && <ReceptionCheckFlowPage flow="checkin" />}
       {module === 'checkout' && <ReceptionCheckFlowPage flow="checkout" />}
       {module === 'walkin' && <WalkInCheckIn />}
