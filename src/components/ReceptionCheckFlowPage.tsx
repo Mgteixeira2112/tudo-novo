@@ -1,16 +1,22 @@
 import React, { useEffect } from 'react';
 import { CheckInCheckOutModal } from './CheckInCheckOutModal.tsx';
+import { ReceptionCheckInFlow } from './ReceptionCheckInFlow.tsx';
 
 export type ReceptionCheckFlow = 'checkin' | 'checkout';
 
 export const ReceptionCheckFlowPage: React.FC<{ flow: ReceptionCheckFlow }> = ({ flow }) => {
   useEffect(() => {
+    if (flow !== 'checkout') return;
     const timer = window.setTimeout(() => {
-      document.getElementById(flow === 'checkin' ? 'tab-sub-checkin' : 'tab-sub-checkout')?.click();
+      document.getElementById('tab-sub-checkout')?.click();
     }, 0);
 
     return () => window.clearTimeout(timer);
   }, [flow]);
+
+  if (flow === 'checkin') {
+    return <ReceptionCheckInFlow />;
+  }
 
   return (
     <div className="reception-check-flow-page">
