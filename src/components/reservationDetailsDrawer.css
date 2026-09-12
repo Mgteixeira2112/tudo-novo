@@ -1,49 +1,109 @@
-/* Reservation details drawer — final structural override.
-   The drawer itself fills the viewport, only the center content scrolls,
-   and the action group is always reachable at the bottom. */
+/* Reservation details — central operational record.
+   The existing reservation data is presented as a wide modal instead of a narrow side drawer. */
+
+div[class~="z-[110]"][class~="inset-0"] {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+}
 
 div[class~="z-[110]"][class~="inset-0"] > aside {
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
+  width: min(72rem, calc(100vw - 2rem)) !important;
+  max-width: 72rem !important;
+  height: auto !important;
+  max-height: min(90dvh, 920px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  border: 1px solid #DADFD1 !important;
+  border-radius: 1.5rem !important;
+  background: #FDFBF7 !important;
+  box-shadow: 0 28px 80px rgba(31, 38, 56, 0.24) !important;
 }
 
 div[class~="z-[110]"][class~="inset-0"] > aside > header {
   position: relative !important;
   top: auto !important;
   flex: 0 0 auto !important;
+  padding: 1.25rem 1.5rem !important;
+  background: rgba(253, 251, 247, 0.98) !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > header h3 {
+  font-size: clamp(1.45rem, 2vw, 2rem) !important;
 }
 
 div[class~="z-[110]"][class~="inset-0"] > aside > div {
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-content: start !important;
+  gap: 1rem !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
-  padding-bottom: 0 !important;
+  padding: 1.25rem 1.5rem 0 !important;
 }
 
+/* Guest identification deserves the full width; the remaining information
+   can be read side-by-side like an operational reservation record. */
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section:first-child {
+  grid-column: 1 / -1 !important;
+}
+
+div[class~="z-[110]"][class~="inset-0"] > aside > div > section {
+  min-width: 0;
+  height: 100%;
+}
+
+/* Operational shortcuts stay visible at the bottom and span the modal. */
 div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
   position: sticky !important;
   bottom: 0 !important;
   z-index: 10 !important;
-  flex: 0 0 auto !important;
-  margin-top: auto !important;
-  margin-left: -0.25rem !important;
-  margin-right: -0.25rem !important;
-  padding: 0.9rem 0.25rem max(1rem, env(safe-area-inset-bottom)) !important;
-  background: #FDFBF7 !important;
-  border-top: 1px solid #E6E3D8;
-  box-shadow: 0 -10px 24px rgba(44, 51, 39, 0.06);
+  grid-column: 1 / -1 !important;
+  margin: 0 -1.5rem !important;
+  padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom)) !important;
+  background: rgba(253, 251, 247, 0.98) !important;
+  border-top: 1px solid #E6E3D8 !important;
+  box-shadow: 0 -12px 28px rgba(44, 51, 39, 0.06) !important;
+  backdrop-filter: blur(10px);
 }
 
-@media (min-width: 640px) {
+div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child::before {
+  content: "Atalhos operacionais";
+  grid-column: 1 / -1;
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #6B705C;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  div[class~="z-[110]"][class~="inset-0"] {
+    padding: 0 !important;
+  }
+
   div[class~="z-[110]"][class~="inset-0"] > aside {
-    width: min(34rem, calc(100vw - 2rem)) !important;
-    max-width: 34rem !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  div[class~="z-[110]"][class~="inset-0"] > aside > div {
+    grid-template-columns: 1fr !important;
+    padding: 1rem 1rem 0 !important;
+  }
+
+  div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
+    margin: 0 -1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 }
