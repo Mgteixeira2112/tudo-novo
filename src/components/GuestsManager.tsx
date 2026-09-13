@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Guest, Reservation } from '../types.ts';
 import { createGuestCloud, deleteGuestCloud, loadGuestsCloud, updateGuestCloud } from '../services/adminPages.ts';
+import { unlinkInconsistentReservationGuestCloud } from '../services/guestLinkReview.ts';
 import { loadReservationPreCheckInStatusesCloud, PreCheckInStatus } from '../services/preCheckin.ts';
 import { useHotel } from '../context/HotelContext.tsx';
 import { GuestPreCheckInModal } from './GuestPreCheckInModal.tsx';
@@ -113,10 +114,12 @@ export const GuestsManager: React.FC = () => {
   const [historyGuest, setHistoryGuest] = useState<Guest | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [unlinkingReservationId, setUnlinkingReservationId] = useState<string | null>(null);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
   const [preCheckInReservation, setPreCheckInReservation] = useState<Reservation | null>(null);
   const [preCheckInStatuses, setPreCheckInStatuses] = useState<Record<string, PreCheckInStatus>>({});
   const canManagePreCheckIn = hasPermission('manage_checkinout');
+  const canManageGuestLinks = hasPermission('manage_guests');
 
   const refresh = async () => {
     try {
@@ -219,12 +222,14 @@ export const GuestsManager: React.FC = () => {
       });
   }, [reservations, historyGuest]);
 
-  const unsafeHistoryLinks = useMemo(() => {
-    if (!historyGuest) return 0;
-    return reservations.filter(reservation =>
-      reservation.guestId === historyGuest.id &&
-      !isReservationLinkedToGuestSafely(reservation, historyGuest)
-    ).length;
+  const unsafeHistoryReservations = useMemo(() => {
+    if (!historyGuest) return [];
+    return reservations
+      .filter(reservation =>
+        reservation.guestId === historyGuest.id &&
+        !isReservationLinkedToGuestSafely(reservation, historyGuest)
+      )
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [reservations, historyGuest]);
 
   const historyCountForGuest = (guest: Guest) => reservations.filter(reservation =>
@@ -276,6 +281,27 @@ export const GuestsManager: React.FC = () => {
 
   const handlePreCheckInSaved = async () => {
     await Promise.all([refreshPreCheckInStatuses(), refreshData()]);
+  };
+
+  const handleUnlinkInconsistentReservation = async (reservation: Reservation) => {
+    if (!historyGuest || !canManageGuestLinks || reservation.guestId !== historyGuest.id) return;
+    const confirmed = confirm(
+      `Desvincular a reserva ${reservation.code} do cadastro ${historyGuest.fullName}?\n\n` +
+      'Os dados da reserva serão preservados e nenhum outro hóspede será atribuído automaticamente.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setUnlinkingReservationId(reservation.id);
+      setError(null);
+      const result = await unlinkInconsistentReservationGuestCloud(reservation.id, historyGuest.id);
+      setHistoryGuest(current => current ? { ...current, totalStays: result.totalStays } : current);
+      await Promise.all([refresh(), refreshData()]);
+    } catch (e: any) {
+      setError(e?.message || 'Não foi possível revisar o vínculo da reserva.');
+    } finally {
+      setUnlinkingReservationId(null);
+    }
   };
 
   return (
@@ -446,11 +472,61 @@ export const GuestsManager: React.FC = () => {
             </div>
 
             <div className="p-5 overflow-y-auto space-y-4">
-              {unsafeHistoryLinks > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 flex gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span><strong>{unsafeHistoryLinks}</strong> vínculo(s) legado(s) apontam para este cadastro, mas os dados de identidade não conferem. Eles foram ocultados deste histórico e permanecem disponíveis para revisão, sem correção automática.</span>
-                </div>
+              {unsafeHistoryReservations.length > 0 && (
+                <>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 flex gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span><strong>{unsafeHistoryReservations.length}</strong> vínculo(s) legado(s) apontam para este cadastro, mas os dados de identidade não conferem. Revise cada reserva individualmente; nenhuma reatribuição é feita automaticamente.</span>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-amber-200">
+                    <table className="w-full min-w-[860px] text-left text-xs">
+                      <thead className="bg-amber-50 text-amber-900">
+                        <tr>
+                          <th className="px-3 py-2.5">Reserva</th>
+                          <th className="px-3 py-2.5">Hóspede na reserva</th>
+                          <th className="px-3 py-2.5">Contato</th>
+                          <th className="px-3 py-2.5">Etapa</th>
+                          <th className="px-3 py-2.5 text-right">Revisão</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 bg-white">
+                        {unsafeHistoryReservations.map(reservation => {
+                          const journey = journeyForReservation(reservation, preCheckInStatuses[reservation.id]);
+                          const unlinking = unlinkingReservationId === reservation.id;
+                          return (
+                            <tr key={reservation.id}>
+                              <td className="px-3 py-2.5 font-bold text-[#2C3327]">{reservation.code}</td>
+                              <td className="px-3 py-2.5">
+                                <div className="font-semibold text-[#2C3327]">{reservation.guestName}</div>
+                                <div className="text-[10px] text-amber-700">Difere do cadastro {historyGuest.fullName}</div>
+                              </td>
+                              <td className="px-3 py-2.5 text-[#6B705C]">
+                                <div>{reservation.guestPhone || 'Sem telefone'}</div>
+                                <div className="max-w-[220px] truncate text-[10px] text-[#8E9280]">{reservation.guestEmail || 'Sem e-mail'}</div>
+                              </td>
+                              <td className="px-3 py-2.5"><span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-bold ${journey.className}`}>{journey.label}</span></td>
+                              <td className="px-3 py-2.5 text-right">
+                                {canManageGuestLinks ? (
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(unlinkingReservationId)}
+                                    onClick={() => handleUnlinkInconsistentReservation(reservation)}
+                                    className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                                  >
+                                    {unlinking ? 'Desvinculando...' : 'Desvincular incorreto'}
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-[#8E9280]">Somente leitura</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
 
               {historyReservations.length === 0 ? (
