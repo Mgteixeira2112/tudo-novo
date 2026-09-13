@@ -385,7 +385,7 @@ const AppContent: React.FC = () => {
                 {activeAdminTab === 'rooms_inventory' && <RoomsTransitionWorkspace />}
                 {activeAdminTab === 'kanbans' && <KanbanWorkspace />}
                 {activeAdminTab === 'checkinout' && <ReceptionManager />}
-                {activeAdminTab === 'guests' && <GuestsManager key={guestRealtimeRevision} />}
+                {activeAdminTab === 'guests' && <GuestsManager realtimeRevision={guestRealtimeRevision} />}
                 {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
                 {activeAdminTab === 'users' && <UsersManager />}
                 {activeAdminTab === 'settings' && <SettingsTransitionWorkspace onOpen={openSettingsAt} />}
