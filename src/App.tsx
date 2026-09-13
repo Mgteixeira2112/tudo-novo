@@ -22,6 +22,7 @@ import {
 import { subscribeToKitchenOrdersRealtime } from './services/supabase.ts';
 import { playOldHotelBell } from './services/alertBell.ts';
 import { subscribeToRoomsRealtime } from './services/roomsRealtime.ts';
+import { subscribeToReservationsRealtime } from './services/reservationsRealtime.ts';
 import { api } from './services/api.ts';
 import { AdminTab, KitchenOrder } from './types.ts';
 import {
@@ -47,6 +48,7 @@ const AppContent: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showHome, setShowHome] = useState(false);
   const [standaloneModule, setStandaloneModule] = useState<StandaloneModule | null>(null);
+  const [guestRealtimeRevision, setGuestRealtimeRevision] = useState(0);
 
   const openSettingsAt = (tab: SettingsEntryTab) => {
     setSettingsModalOpen(true);
@@ -233,6 +235,31 @@ const AppContent: React.FC = () => {
   }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, refreshData]);
 
   useEffect(() => {
+    if (!currentUser) return;
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToReservationsRealtime(
+      eventType => {
+        console.log('[App] Supabase Realtime detectou alteração em reservas:', eventType);
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(async () => {
+          await refreshData();
+          setGuestRealtimeRevision(value => value + 1);
+        }, 120);
+      },
+      {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      }
+    );
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, refreshData]);
+
+  useEffect(() => {
     const handleOrderCreatedEvent = (e: any) => {
       const order = e.detail;
       if (order && order.id) {
@@ -358,7 +385,7 @@ const AppContent: React.FC = () => {
                 {activeAdminTab === 'rooms_inventory' && <RoomsTransitionWorkspace />}
                 {activeAdminTab === 'kanbans' && <KanbanWorkspace />}
                 {activeAdminTab === 'checkinout' && <ReceptionManager />}
-                {activeAdminTab === 'guests' && <GuestsManager />}
+                {activeAdminTab === 'guests' && <GuestsManager key={guestRealtimeRevision} />}
                 {activeAdminTab === 'fnb' && <MinibarAndKitchen />}
                 {activeAdminTab === 'users' && <UsersManager />}
                 {activeAdminTab === 'settings' && <SettingsTransitionWorkspace onOpen={openSettingsAt} />}
