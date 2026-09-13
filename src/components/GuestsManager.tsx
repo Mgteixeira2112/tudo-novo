@@ -77,6 +77,12 @@ function isReservationLinkedSafely(reservation: Reservation, guests: Guest[]) {
   return sameName || sameEmail || samePhone;
 }
 
+function preCheckInActionLabel(status: PreCheckInStatus | undefined, canManage: boolean) {
+  if (!canManage || status === 'Concluido') return 'Visualizar';
+  if (status === 'EmAndamento') return 'Continuar';
+  return 'Preparar';
+}
+
 export const GuestsManager: React.FC = () => {
   const { reservations, hasPermission, refreshData } = useHotel();
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -279,7 +285,8 @@ export const GuestsManager: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#EEEAE1]">
                 {journeyReservations.map(reservation => {
-                  const journey = journeyForReservation(reservation, preCheckInStatuses[reservation.id]);
+                  const preCheckInStatus = preCheckInStatuses[reservation.id];
+                  const journey = journeyForReservation(reservation, preCheckInStatus);
                   const hasGuestId = Boolean(reservation.guestId);
                   const safeLink = isReservationLinkedSafely(reservation, guests);
                   const linkIsInconsistent = hasGuestId && !safeLink;
@@ -305,7 +312,7 @@ export const GuestsManager: React.FC = () => {
                       <td className="px-3 py-2.5 text-right">
                         {reservation.status === 'Confirmada' ? (
                           <button type="button" onClick={() => setPreCheckInReservation(reservation)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-2.5 py-1.5 text-[10px] font-bold text-[#3A5A40] hover:bg-[#E8EEDB]">
-                            <CalendarCheck2 className="h-3.5 w-3.5" /> {canManagePreCheckIn ? (preCheckInStatuses[reservation.id] === 'EmAndamento' ? 'Continuar' : 'Preparar') : 'Visualizar'}
+                            <CalendarCheck2 className="h-3.5 w-3.5" /> {preCheckInActionLabel(preCheckInStatus, canManagePreCheckIn)}
                           </button>
                         ) : <span className="text-[10px] text-[#B0B3A5]">—</span>}
                       </td>
