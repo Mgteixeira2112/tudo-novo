@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, ClipboardCheck, Save, X } from 'lucide-react';
+import { AlertTriangle, ClipboardCheck, Link2, Save, X } from 'lucide-react';
 import { Reservation } from '../types.ts';
 import {
+  buildPublicPreCheckInUrl,
+  issueReservationPreCheckInLinkCloud,
   loadReservationPreCheckInCloud,
   ReservationPreCheckInData,
   saveReservationPreCheckInStaffCloud
@@ -28,6 +30,7 @@ export const GuestPreCheckInModal: React.FC<{
   const [form, setForm] = useState<ReservationPreCheckInData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingLink, setGeneratingLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,11 +61,30 @@ export const GuestPreCheckInModal: React.FC<{
       });
       setForm(updated);
       await onSaved();
-      onClose();
     } catch (e: any) {
       setError(e?.message || 'Não foi possível salvar o pré-check-in.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const generateLink = async () => {
+    if (!canManage || reservation.status !== 'Confirmada') return;
+    try {
+      setGeneratingLink(true);
+      setError(null);
+      const issued = await issueReservationPreCheckInLinkCloud(reservation.id);
+      const url = buildPublicPreCheckInUrl(issued.token);
+      try {
+        await navigator.clipboard.writeText(url);
+        window.alert('Link de pré-check-in copiado para a área de transferência.');
+      } catch {
+        window.prompt('Copie o link de pré-check-in:', url);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Não foi possível gerar o link de pré-check-in.');
+    } finally {
+      setGeneratingLink(false);
     }
   };
 
@@ -86,7 +108,7 @@ export const GuestPreCheckInModal: React.FC<{
               {error && <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div>}
 
               <div className="rounded-xl border border-[#E6E3D8] bg-[#FAF9F5] px-4 py-3 text-xs text-[#6B705C]">
-                <strong className="text-[#2C3327]">Etapa administrativa:</strong> estes dados preparam a chegada. O aceite dos termos e a conclusão do pré-check-in serão feitos pelo próprio hóspede no fluxo digital.
+                <strong className="text-[#2C3327]">Etapa administrativa:</strong> estes dados preparam a chegada. O aceite da declaração e a conclusão do pré-check-in serão feitos pelo próprio hóspede no link público.
               </div>
 
               <section>
@@ -112,8 +134,9 @@ export const GuestPreCheckInModal: React.FC<{
             </div>
           )}
 
-          <footer className="sticky bottom-0 -mx-5 -mb-5 mt-5 flex justify-end gap-2 border-t border-[#E6E3D8] bg-white px-5 py-4">
-            <button type="button" onClick={onClose} className="rounded-xl bg-[#F4F1EA] px-4 py-2.5 text-xs font-bold text-[#3D4035]">Cancelar</button>
+          <footer className="sticky bottom-0 -mx-5 -mb-5 mt-5 flex flex-wrap justify-end gap-2 border-t border-[#E6E3D8] bg-white px-5 py-4">
+            <button type="button" onClick={onClose} className="rounded-xl bg-[#F4F1EA] px-4 py-2.5 text-xs font-bold text-[#3D4035]">Fechar</button>
+            {canManage && reservation.status === 'Confirmada' && <button type="button" onClick={generateLink} disabled={loading || generatingLink} className="inline-flex items-center gap-2 rounded-xl border border-[#CCD5AE] bg-[#F2F5E8] px-4 py-2.5 text-xs font-bold text-[#3A5A40] disabled:opacity-50"><Link2 className="h-4 w-4" />{generatingLink ? 'Gerando...' : 'Gerar link'}</button>}
             {canManage && reservation.status === 'Confirmada' && <button type="submit" disabled={loading || saving} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Salvando...' : 'Salvar preparação'}</button>}
           </footer>
         </form>
