@@ -109,10 +109,11 @@ export async function createReservationAtomicInSupabase(data: {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
-  const { data: row, error } = await supabase.rpc('create_reservation_atomic', {
+  const { data: row, error } = await supabase.rpc('create_reservation_atomic_v2', {
     p_guest_name: data.guestName,
     p_guest_email: data.guestEmail,
     p_guest_phone: data.guestPhone,
+    p_guest_document: data.document || null,
     p_room_type_id: data.roomTypeId,
     p_check_in_date: data.checkInDate,
     p_check_out_date: data.checkOutDate,
