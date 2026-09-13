@@ -32,9 +32,13 @@ export const GuestPreCheckInModal: React.FC<{
   const [saving, setSaving] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isCompleted = form.preCheckinStatus === 'Concluido';
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
+    setForm(emptyData);
     loadReservationPreCheckInCloud(reservation.id)
       .then(data => { if (active) setForm(data); })
       .catch((e: any) => { if (active) setError(e?.message || 'Não foi possível carregar o pré-check-in.'); })
@@ -44,7 +48,7 @@ export const GuestPreCheckInModal: React.FC<{
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canManage || reservation.status !== 'Confirmada') return;
+    if (!canManage || reservation.status !== 'Confirmada' || isCompleted) return;
     try {
       setSaving(true);
       setError(null);
@@ -69,7 +73,7 @@ export const GuestPreCheckInModal: React.FC<{
   };
 
   const generateLink = async () => {
-    if (!canManage || reservation.status !== 'Confirmada') return;
+    if (!canManage || reservation.status !== 'Confirmada' || isCompleted) return;
     try {
       setGeneratingLink(true);
       setError(null);
@@ -77,9 +81,9 @@ export const GuestPreCheckInModal: React.FC<{
       const url = buildPublicPreCheckInUrl(issued.token);
       try {
         await navigator.clipboard.writeText(url);
-        window.alert('Link de pré-check-in copiado para a área de transferência.');
+        window.alert(`Link da reserva ${reservation.code} copiado para a área de transferência.`);
       } catch {
-        window.prompt('Copie o link de pré-check-in:', url);
+        window.prompt(`Copie o link da reserva ${reservation.code}:`, url);
       }
     } catch (e: any) {
       setError(e?.message || 'Não foi possível gerar o link de pré-check-in.');
@@ -111,19 +115,25 @@ export const GuestPreCheckInModal: React.FC<{
                 <strong className="text-[#2C3327]">Etapa administrativa:</strong> estes dados preparam a chegada. O aceite da declaração e a conclusão do pré-check-in serão feitos pelo próprio hóspede no link público.
               </div>
 
+              {isCompleted && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800">
+                  Este pré-check-in já foi concluído pelo hóspede. A preparação administrativa e a geração de novos links estão bloqueadas para esta reserva.
+                </div>
+              )}
+
               <section>
                 <h4 className="mb-3 text-sm font-black text-[#2C3327]">Dados desta viagem</h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Motivo da viagem"><input value={form.travelReason} onChange={e => setForm({ ...form, travelReason: e.target.value })} className="precheck-input" placeholder="Ex.: lazer, negócios" /></Field>
-                  <Field label="Origem imediata"><input value={form.travelOrigin} onChange={e => setForm({ ...form, travelOrigin: e.target.value })} className="precheck-input" placeholder="Cidade / UF ou país" /></Field>
-                  <Field label="Próximo destino"><input value={form.nextDestination} onChange={e => setForm({ ...form, nextDestination: e.target.value })} className="precheck-input" placeholder="Quando houver" /></Field>
-                  <Field label="Meio de transporte"><input value={form.transportMode} onChange={e => setForm({ ...form, transportMode: e.target.value })} className="precheck-input" placeholder="Ex.: automóvel, avião" /></Field>
-                  <Field label="Placa do veículo"><input value={form.vehiclePlate} onChange={e => setForm({ ...form, vehiclePlate: e.target.value.toUpperCase() })} className="precheck-input uppercase" placeholder="Quando houver" /></Field>
+                  <Field label="Motivo da viagem"><input disabled={isCompleted} value={form.travelReason} onChange={e => setForm({ ...form, travelReason: e.target.value })} className="precheck-input" placeholder="Ex.: lazer, negócios" /></Field>
+                  <Field label="Origem imediata"><input disabled={isCompleted} value={form.travelOrigin} onChange={e => setForm({ ...form, travelOrigin: e.target.value })} className="precheck-input" placeholder="Cidade / UF ou país" /></Field>
+                  <Field label="Próximo destino"><input disabled={isCompleted} value={form.nextDestination} onChange={e => setForm({ ...form, nextDestination: e.target.value })} className="precheck-input" placeholder="Quando houver" /></Field>
+                  <Field label="Meio de transporte"><input disabled={isCompleted} value={form.transportMode} onChange={e => setForm({ ...form, transportMode: e.target.value })} className="precheck-input" placeholder="Ex.: automóvel, avião" /></Field>
+                  <Field label="Placa do veículo"><input disabled={isCompleted} value={form.vehiclePlate} onChange={e => setForm({ ...form, vehiclePlate: e.target.value.toUpperCase() })} className="precheck-input uppercase" placeholder="Quando houver" /></Field>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Menores vinculados"><input type="number" min="0" max={Math.max(0, reservation.children)} value={form.minorsCount} onChange={e => setForm({ ...form, minorsCount: Number(e.target.value) })} className="precheck-input" /></Field>
-                    <Field label="Incapazes vinculados"><input type="number" min="0" value={form.legallyIncapableCount} onChange={e => setForm({ ...form, legallyIncapableCount: Number(e.target.value) })} className="precheck-input" /></Field>
+                    <Field label="Menores vinculados"><input disabled={isCompleted} type="number" min="0" max={Math.max(0, reservation.children)} value={form.minorsCount} onChange={e => setForm({ ...form, minorsCount: Number(e.target.value) })} className="precheck-input" /></Field>
+                    <Field label="Incapazes vinculados"><input disabled={isCompleted} type="number" min="0" value={form.legallyIncapableCount} onChange={e => setForm({ ...form, legallyIncapableCount: Number(e.target.value) })} className="precheck-input" /></Field>
                   </div>
-                  <div className="sm:col-span-2"><Field label="Acompanhamento / autorizações"><textarea rows={3} value={form.responsibilityNotes} onChange={e => setForm({ ...form, responsibilityNotes: e.target.value })} className="precheck-input" placeholder="Registre apenas informações necessárias para acompanhamento e autorização aplicável." /></Field></div>
+                  <div className="sm:col-span-2"><Field label="Acompanhamento / autorizações"><textarea disabled={isCompleted} rows={3} value={form.responsibilityNotes} onChange={e => setForm({ ...form, responsibilityNotes: e.target.value })} className="precheck-input" placeholder="Registre apenas informações necessárias para acompanhamento e autorização aplicável." /></Field></div>
                 </div>
               </section>
 
@@ -136,12 +146,12 @@ export const GuestPreCheckInModal: React.FC<{
 
           <footer className="sticky bottom-0 -mx-5 -mb-5 mt-5 flex flex-wrap justify-end gap-2 border-t border-[#E6E3D8] bg-white px-5 py-4">
             <button type="button" onClick={onClose} className="rounded-xl bg-[#F4F1EA] px-4 py-2.5 text-xs font-bold text-[#3D4035]">Fechar</button>
-            {canManage && reservation.status === 'Confirmada' && <button type="button" onClick={generateLink} disabled={loading || generatingLink} className="inline-flex items-center gap-2 rounded-xl border border-[#CCD5AE] bg-[#F2F5E8] px-4 py-2.5 text-xs font-bold text-[#3A5A40] disabled:opacity-50"><Link2 className="h-4 w-4" />{generatingLink ? 'Gerando...' : 'Gerar link'}</button>}
-            {canManage && reservation.status === 'Confirmada' && <button type="submit" disabled={loading || saving} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Salvando...' : 'Salvar preparação'}</button>}
+            {canManage && reservation.status === 'Confirmada' && !isCompleted && <button type="button" onClick={generateLink} disabled={loading || generatingLink} className="inline-flex items-center gap-2 rounded-xl border border-[#CCD5AE] bg-[#F2F5E8] px-4 py-2.5 text-xs font-bold text-[#3A5A40] disabled:opacity-50"><Link2 className="h-4 w-4" />{generatingLink ? 'Gerando...' : 'Gerar link'}</button>}
+            {canManage && reservation.status === 'Confirmada' && !isCompleted && <button type="submit" disabled={loading || saving} className="inline-flex items-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Salvando...' : 'Salvar preparação'}</button>}
           </footer>
         </form>
       </div>
-      <style>{`.precheck-input{width:100%;padding:.65rem .75rem;border:1px solid #E6E3D8;border-radius:.75rem;outline:none;color:#3D4035;background:white}.precheck-input:focus{box-shadow:0 0 0 2px #CCD5AE}`}</style>
+      <style>{`.precheck-input{width:100%;padding:.65rem .75rem;border:1px solid #E6E3D8;border-radius:.75rem;outline:none;color:#3D4035;background:white}.precheck-input:focus{box-shadow:0 0 0 2px #CCD5AE}.precheck-input:disabled{background:#F4F1EA;color:#8E9280;cursor:not-allowed}`}</style>
     </div>
   );
 };
