@@ -5,7 +5,7 @@ import {
   completePublicPreCheckInCloud,
   loadPublicPreCheckInCloud,
   PublicPreCheckInData
-} from '../services/preCheckIn.ts';
+} from '../services/preCheckin.ts';
 
 const requiredClass = 'w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#CCD5AE]';
 
