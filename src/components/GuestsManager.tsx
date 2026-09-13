@@ -4,6 +4,7 @@ import {
   CalendarCheck2,
   Clock3,
   Edit2,
+  History,
   LogIn,
   Search,
   Trash2,
@@ -41,6 +42,10 @@ function formatDate(value?: string) {
   return `${day}/${month}/${year}`;
 }
 
+function formatCurrency(value?: number) {
+  return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
 function journeyForReservation(reservation: Reservation, preCheckInStatus?: PreCheckInStatus) {
   if (reservation.status === 'Pendente') {
     return { label: 'Reserva pendente', className: 'border-amber-200 bg-amber-50 text-amber-800' };
@@ -63,18 +68,31 @@ function journeyForReservation(reservation: Reservation, preCheckInStatus?: PreC
   return { label: 'Reserva cancelada', className: 'border-red-200 bg-red-50 text-red-700' };
 }
 
+function isReservationLinkedToGuestSafely(reservation: Reservation, guest: Guest) {
+  if (!reservation.guestId || reservation.guestId !== guest.id) return false;
+
+  const sameName = Boolean(guest.fullName && reservation.guestName) &&
+    normalizeText(guest.fullName) === normalizeText(reservation.guestName);
+  if (!sameName) return false;
+
+  const comparableContacts: boolean[] = [];
+  if (guest.email && reservation.guestEmail) {
+    comparableContacts.push(normalizeText(guest.email) === normalizeText(reservation.guestEmail));
+  }
+
+  const guestPhone = normalizePhone(guest.phone);
+  const reservationPhone = normalizePhone(reservation.guestPhone);
+  if (guestPhone && reservationPhone) {
+    comparableContacts.push(guestPhone === reservationPhone);
+  }
+
+  return comparableContacts.length === 0 || comparableContacts.some(Boolean);
+}
+
 function isReservationLinkedSafely(reservation: Reservation, guests: Guest[]) {
   if (!reservation.guestId) return false;
   const linked = guests.find(guest => guest.id === reservation.guestId);
-  if (!linked) return false;
-
-  const sameName = normalizeText(linked.fullName) === normalizeText(reservation.guestName);
-  const sameEmail = Boolean(linked.email && reservation.guestEmail) && normalizeText(linked.email) === normalizeText(reservation.guestEmail);
-  const linkedPhone = normalizePhone(linked.phone);
-  const reservationPhone = normalizePhone(reservation.guestPhone);
-  const samePhone = Boolean(linkedPhone && reservationPhone) && linkedPhone === reservationPhone;
-
-  return sameName || sameEmail || samePhone;
+  return linked ? isReservationLinkedToGuestSafely(reservation, linked) : false;
 }
 
 function preCheckInActionLabel(status: PreCheckInStatus | undefined, canManage: boolean) {
@@ -92,6 +110,7 @@ export const GuestsManager: React.FC = () => {
   const [status, setStatus] = useState<'Todos' | Guest['status']>('Todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Guest | null>(null);
+  const [historyGuest, setHistoryGuest] = useState<Guest | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
@@ -183,11 +202,34 @@ export const GuestsManager: React.FC = () => {
     pending: reservations.filter(reservation => reservation.status === 'Pendente').length,
     staying: reservations.filter(reservation => reservation.status === 'CheckIn').length,
     linkIssues: reservations.filter(reservation =>
-      ['Confirmada', 'CheckIn'].includes(reservation.status) &&
+      reservation.status !== 'Cancelada' &&
       reservation.guestId &&
       !isReservationLinkedSafely(reservation, guests)
     ).length
   }), [reservations, guests]);
+
+  const historyReservations = useMemo(() => {
+    if (!historyGuest) return [];
+    return reservations
+      .filter(reservation => isReservationLinkedToGuestSafely(reservation, historyGuest))
+      .sort((a, b) => {
+        const aDate = a.checkedOutAt || a.checkedInAt || a.createdAt || '';
+        const bDate = b.checkedOutAt || b.checkedInAt || b.createdAt || '';
+        return bDate.localeCompare(aDate);
+      });
+  }, [reservations, historyGuest]);
+
+  const unsafeHistoryLinks = useMemo(() => {
+    if (!historyGuest) return 0;
+    return reservations.filter(reservation =>
+      reservation.guestId === historyGuest.id &&
+      !isReservationLinkedToGuestSafely(reservation, historyGuest)
+    ).length;
+  }, [reservations, historyGuest]);
+
+  const historyCountForGuest = (guest: Guest) => reservations.filter(reservation =>
+    isReservationLinkedToGuestSafely(reservation, guest)
+  ).length;
 
   const openNew = () => {
     setEditing(null);
@@ -262,7 +304,7 @@ export const GuestsManager: React.FC = () => {
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h3 className="text-sm font-black text-[#2C3327]">Reservas em andamento</h3>
-            <p className="text-[11px] text-[#8E9280]">Mostra somente reservas que ainda exigem ação ou acompanhamento. Checkouts concluídos saem desta visão após 5 minutos e permanecem armazenados no histórico da reserva.</p>
+            <p className="text-[11px] text-[#8E9280]">Mostra somente reservas que ainda exigem ação ou acompanhamento. Checkouts concluídos saem desta visão após 5 minutos e permanecem disponíveis no histórico seguro do cadastro.</p>
           </div>
           <span className="text-[11px] font-semibold text-[#8E9280]">{journeyReservations.length} reserva(s) em andamento</span>
         </div>
@@ -328,7 +370,7 @@ export const GuestsManager: React.FC = () => {
       <section className="space-y-3 border-t border-[#E6E3D8] pt-5">
         <div>
           <h3 className="text-sm font-black text-[#2C3327]">Cadastros de hóspedes</h3>
-          <p className="mt-1 text-xs text-[#8E9280]">Cadastro permanente para consulta, edição e preparação do pré-check-in.</p>
+          <p className="mt-1 text-xs text-[#8E9280]">Cadastro permanente para consulta, edição e histórico seguro de reservas.</p>
         </div>
 
         <div className="bg-white border border-[#E6E3D8] rounded-xl p-3 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -358,27 +400,96 @@ export const GuestsManager: React.FC = () => {
                   <th className="px-3 py-2.5">Contato</th>
                   <th className="px-3 py-2.5">Localidade</th>
                   <th className="px-3 py-2.5">Status</th>
-                  <th className="px-3 py-2.5 text-center">Estadias</th>
+                  <th className="px-3 py-2.5 text-center">Histórico</th>
                   <th className="px-3 py-2.5 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EEEAE1]">
-                {filtered.map(g => (
-                  <tr key={g.id} className="hover:bg-[#FAF9F5]">
-                    <td className="px-3 py-2.5 font-bold text-[#2C3327]">{g.fullName}</td>
-                    <td className="px-3 py-2.5 text-[#6B705C]">{g.document ? `${g.documentType}: ${g.document}` : 'Não informado'}</td>
-                    <td className="px-3 py-2.5 text-[#6B705C]"><div>{g.phone || 'Sem telefone'}</div><div className="max-w-[220px] truncate text-[10px] text-[#8E9280]">{g.email || 'Sem e-mail'}</div></td>
-                    <td className="px-3 py-2.5 text-[#6B705C]">{[g.city, g.state].filter(Boolean).join(' / ') || '—'}</td>
-                    <td className="px-3 py-2.5"><span className="rounded-full border border-[#CCD5AE] bg-[#F2F5E8] px-2 py-1 text-[10px] font-bold text-[#3A5A40]">{g.status === 'Restricao' ? 'Restrição' : g.status}</span></td>
-                    <td className="px-3 py-2.5 text-center font-semibold text-[#6B705C]">{g.totalStays}</td>
-                    <td className="px-3 py-2.5"><div className="flex justify-end gap-1"><button onClick={() => openEdit(g)} className="p-1.5 rounded-lg hover:bg-[#F4F1EA]" title="Editar"><Edit2 className="w-4 h-4" /></button><button onClick={() => remove(g)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Excluir"><Trash2 className="w-4 h-4" /></button></div></td>
-                  </tr>
-                ))}
+                {filtered.map(g => {
+                  const safeHistoryCount = historyCountForGuest(g);
+                  const hasUnsafeLinks = reservations.some(reservation =>
+                    reservation.guestId === g.id && !isReservationLinkedToGuestSafely(reservation, g)
+                  );
+                  return (
+                    <tr key={g.id} className="hover:bg-[#FAF9F5]">
+                      <td className="px-3 py-2.5 font-bold text-[#2C3327]">{g.fullName}</td>
+                      <td className="px-3 py-2.5 text-[#6B705C]">{g.document ? `${g.documentType}: ${g.document}` : 'Não informado'}</td>
+                      <td className="px-3 py-2.5 text-[#6B705C]"><div>{g.phone || 'Sem telefone'}</div><div className="max-w-[220px] truncate text-[10px] text-[#8E9280]">{g.email || 'Sem e-mail'}</div></td>
+                      <td className="px-3 py-2.5 text-[#6B705C]">{[g.city, g.state].filter(Boolean).join(' / ') || '—'}</td>
+                      <td className="px-3 py-2.5"><span className="rounded-full border border-[#CCD5AE] bg-[#F2F5E8] px-2 py-1 text-[10px] font-bold text-[#3A5A40]">{g.status === 'Restricao' ? 'Restrição' : g.status}</span></td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button type="button" onClick={() => setHistoryGuest(g)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E3D8] bg-[#FAF9F5] px-2.5 py-1.5 text-[10px] font-bold text-[#6B705C] hover:bg-[#F4F1EA]" title="Abrir histórico seguro">
+                          <History className="h-3.5 w-3.5" /> {safeHistoryCount}
+                          {hasUnsafeLinks && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5"><div className="flex justify-end gap-1"><button onClick={() => openEdit(g)} className="p-1.5 rounded-lg hover:bg-[#F4F1EA]" title="Editar"><Edit2 className="w-4 h-4" /></button><button onClick={() => remove(g)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Excluir"><Trash2 className="w-4 h-4" /></button></div></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
+
+      {historyGuest && (
+        <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-start sm:items-center justify-center overflow-hidden">
+          <div className="w-full max-w-4xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#E6E3D8] overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-[#E6E3D8] flex items-start justify-between gap-4 shrink-0">
+              <div>
+                <div className="flex items-center gap-2 text-[#588157] text-xs font-bold uppercase tracking-wider"><History className="h-4 w-4" /> Histórico seguro</div>
+                <h3 className="mt-1 font-black text-[#2C3327]">{historyGuest.fullName}</h3>
+                <p className="mt-1 text-xs text-[#8E9280]">Somente reservas com vínculo de identidade consistente são atribuídas a este cadastro.</p>
+              </div>
+              <button type="button" onClick={() => setHistoryGuest(null)} className="p-2 rounded-lg hover:bg-[#F4F1EA]" aria-label="Fechar histórico"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              {unsafeHistoryLinks > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 flex gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span><strong>{unsafeHistoryLinks}</strong> vínculo(s) legado(s) apontam para este cadastro, mas os dados de identidade não conferem. Eles foram ocultados deste histórico e permanecem disponíveis para revisão, sem correção automática.</span>
+                </div>
+              )}
+
+              {historyReservations.length === 0 ? (
+                <div className="rounded-xl border border-[#E6E3D8] bg-[#FAF9F5] p-8 text-center text-sm text-[#8E9280]">Nenhuma reserva com vínculo seguro encontrada para este cadastro.</div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-[#E6E3D8]">
+                  <table className="w-full min-w-[820px] text-left text-xs">
+                    <thead className="bg-[#F4F1EA] text-[#6B705C]">
+                      <tr>
+                        <th className="px-3 py-2.5">Reserva</th>
+                        <th className="px-3 py-2.5">Período</th>
+                        <th className="px-3 py-2.5">Quarto</th>
+                        <th className="px-3 py-2.5">Etapa</th>
+                        <th className="px-3 py-2.5">Valor</th>
+                        <th className="px-3 py-2.5">Pagamento</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EEEAE1]">
+                      {historyReservations.map(reservation => {
+                        const journey = journeyForReservation(reservation, preCheckInStatuses[reservation.id]);
+                        return (
+                          <tr key={reservation.id} className="hover:bg-[#FAF9F5]">
+                            <td className="px-3 py-2.5 font-bold text-[#2C3327]">{reservation.code}</td>
+                            <td className="px-3 py-2.5 whitespace-nowrap text-[#6B705C]">{formatDate(reservation.checkInDate)} → {formatDate(reservation.checkOutDate)}</td>
+                            <td className="px-3 py-2.5 text-[#6B705C]">{reservation.roomNumber ? `Qto ${reservation.roomNumber}` : reservation.roomTypeName}</td>
+                            <td className="px-3 py-2.5"><span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-bold ${journey.className}`}>{journey.label}</span></td>
+                            <td className="px-3 py-2.5 font-semibold text-[#6B705C]">{formatCurrency(reservation.totalNightsAmount)}</td>
+                            <td className="px-3 py-2.5 text-[#6B705C]"><div>{reservation.paymentStatus}</div><div className="text-[10px] text-[#8E9280]">{reservation.paymentMethod || '—'}</div></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-start sm:items-center justify-center overflow-hidden">
