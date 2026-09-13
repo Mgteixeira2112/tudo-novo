@@ -14,7 +14,9 @@ import {
 } from 'lucide-react';
 import { Guest, Reservation } from '../types.ts';
 import { createGuestCloud, deleteGuestCloud, loadGuestsCloud, updateGuestCloud } from '../services/adminPages.ts';
+import { loadReservationPreCheckInStatusesCloud, PreCheckInStatus } from '../services/preCheckin.ts';
 import { useHotel } from '../context/HotelContext.tsx';
+import { GuestPreCheckInModal } from './GuestPreCheckInModal.tsx';
 
 const GUEST_NAVIGATION_KEY = 'novohotel:guest-navigation';
 const CHECKOUT_ARCHIVE_AFTER_MS = 5 * 60 * 1000;
@@ -39,11 +41,17 @@ function formatDate(value?: string) {
   return `${day}/${month}/${year}`;
 }
 
-function journeyForReservation(reservation: Reservation) {
+function journeyForReservation(reservation: Reservation, preCheckInStatus?: PreCheckInStatus) {
   if (reservation.status === 'Pendente') {
     return { label: 'Reserva pendente', className: 'border-amber-200 bg-amber-50 text-amber-800' };
   }
   if (reservation.status === 'Confirmada') {
+    if (preCheckInStatus === 'EmAndamento') {
+      return { label: 'Pré-check-in em andamento', className: 'border-sky-200 bg-sky-50 text-sky-800' };
+    }
+    if (preCheckInStatus === 'Concluido') {
+      return { label: 'Pré-check-in concluído', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
+    }
     return { label: 'Pré-check-in pendente', className: 'border-[#CCD5AE] bg-[#F2F5E8] text-[#3A5A40]' };
   }
   if (reservation.status === 'CheckIn') {
@@ -70,7 +78,7 @@ function isReservationLinkedSafely(reservation: Reservation, guests: Guest[]) {
 }
 
 export const GuestsManager: React.FC = () => {
-  const { reservations } = useHotel();
+  const { reservations, hasPermission, refreshData } = useHotel();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +89,9 @@ export const GuestsManager: React.FC = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
+  const [preCheckInReservation, setPreCheckInReservation] = useState<Reservation | null>(null);
+  const [preCheckInStatuses, setPreCheckInStatuses] = useState<Record<string, PreCheckInStatus>>({});
+  const canManagePreCheckIn = hasPermission('manage_checkinout');
 
   const refresh = async () => {
     try {
@@ -94,7 +105,15 @@ export const GuestsManager: React.FC = () => {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  const refreshPreCheckInStatuses = async () => {
+    try {
+      setPreCheckInStatuses(await loadReservationPreCheckInStatusesCloud());
+    } catch (e) {
+      console.warn('[Hóspedes] Falha ao carregar status do pré-check-in:', e);
+    }
+  };
+
+  useEffect(() => { refresh(); refreshPreCheckInStatuses(); }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setArchiveClock(Date.now()), 30_000);
@@ -207,6 +226,10 @@ export const GuestsManager: React.FC = () => {
     }
   };
 
+  const handlePreCheckInSaved = async () => {
+    await Promise.all([refreshPreCheckInStatuses(), refreshData()]);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -242,7 +265,7 @@ export const GuestsManager: React.FC = () => {
           <div className="rounded-xl border border-[#E6E3D8] bg-white p-6 text-center text-sm text-[#8E9280]">Nenhuma reserva em andamento.</div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[#E6E3D8] bg-white">
-            <table className="w-full min-w-[920px] text-left text-xs">
+            <table className="w-full min-w-[1040px] text-left text-xs">
               <thead className="bg-[#F4F1EA] text-[#6B705C]">
                 <tr>
                   <th className="px-3 py-2.5">Hóspede</th>
@@ -251,11 +274,12 @@ export const GuestsManager: React.FC = () => {
                   <th className="px-3 py-2.5">Quarto</th>
                   <th className="px-3 py-2.5">Etapa</th>
                   <th className="px-3 py-2.5">Cadastro</th>
+                  <th className="px-3 py-2.5 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EEEAE1]">
                 {journeyReservations.map(reservation => {
-                  const journey = journeyForReservation(reservation);
+                  const journey = journeyForReservation(reservation, preCheckInStatuses[reservation.id]);
                   const hasGuestId = Boolean(reservation.guestId);
                   const safeLink = isReservationLinkedSafely(reservation, guests);
                   const linkIsInconsistent = hasGuestId && !safeLink;
@@ -277,6 +301,13 @@ export const GuestsManager: React.FC = () => {
                         ) : (
                           <span className="text-[10px] text-[#8E9280]">Ainda não vinculado</span>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        {reservation.status === 'Confirmada' ? (
+                          <button type="button" onClick={() => setPreCheckInReservation(reservation)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-2.5 py-1.5 text-[10px] font-bold text-[#3A5A40] hover:bg-[#E8EEDB]">
+                            <CalendarCheck2 className="h-3.5 w-3.5" /> {canManagePreCheckIn ? (preCheckInStatuses[reservation.id] === 'EmAndamento' ? 'Continuar' : 'Preparar') : 'Visualizar'}
+                          </button>
+                        ) : <span className="text-[10px] text-[#B0B3A5]">—</span>}
                       </td>
                     </tr>
                   );
@@ -370,6 +401,16 @@ export const GuestsManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {preCheckInReservation && (
+        <GuestPreCheckInModal
+          reservation={preCheckInReservation}
+          canManage={canManagePreCheckIn}
+          onClose={() => setPreCheckInReservation(null)}
+          onSaved={handlePreCheckInSaved}
+        />
+      )}
+
       <style>{`.input{width:100%;padding:.65rem .75rem;border:1px solid #E6E3D8;border-radius:.75rem;outline:none;color:#3D4035;background:white}.input:focus{box-shadow:0 0 0 2px #CCD5AE}`}</style>
     </div>
   );
