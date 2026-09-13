@@ -32,6 +32,7 @@ import { HotelProvider } from './context/HotelContext.tsx';
 import { PublicBookingExperience } from './components/PublicBookingExperience.tsx';
 import { PublicSiteFloatingWhatsapp } from './components/PublicSiteFloatingWhatsapp.tsx';
 import { PublicSiteSeoHead } from './components/PublicSiteSeoHead.tsx';
+import { PublicPreCheckInPage } from './components/PublicPreCheckInPage.tsx';
 
 if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
   api.getSettings = loadSettingsCloud;
@@ -49,9 +50,9 @@ installTaskAlertIntegration();
 installKitchenOrderAlertIntegration();
 installGovernanceCheckoutAlertIntegration();
 
-const kdsToken = typeof window !== 'undefined'
-  ? new URLSearchParams(window.location.search).get('kds')
-  : null;
+const queryParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+const kdsToken = queryParams?.get('kds') || null;
+const preCheckInToken = queryParams?.get('precheckin') || null;
 
 const isSystemRoute = () => typeof window !== 'undefined' && window.location.hash.startsWith('#/sistema');
 
@@ -122,7 +123,9 @@ const ApplicationEntry = () => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {kdsToken ? (
+    {preCheckInToken ? (
+      <PublicPreCheckInPage token={preCheckInToken} />
+    ) : kdsToken ? (
       <KdsEntry token={kdsToken} />
     ) : (
       <ApplicationEntry />
