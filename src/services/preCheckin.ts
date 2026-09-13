@@ -64,6 +64,15 @@ export async function loadReservationPreCheckInCloud(reservationId: string): Pro
   return mapReservationPreCheckIn(data);
 }
 
+export async function loadReservationPreCheckInStatusesCloud(): Promise<Record<string, PreCheckInStatus>> {
+  const { data, error } = await client()
+    .from('reservations')
+    .select('id,pre_checkin_status')
+    .in('status', ['Confirmada', 'CheckIn']);
+  if (error) throw error;
+  return Object.fromEntries((data || []).map((row: any) => [row.id, (row.pre_checkin_status || 'NaoIniciado') as PreCheckInStatus]));
+}
+
 export async function saveReservationPreCheckInStaffCloud(input: SaveReservationPreCheckInInput): Promise<ReservationPreCheckInData> {
   const { data, error } = await client().rpc('save_reservation_precheckin_staff', {
     p_reservation_id: input.reservationId,
