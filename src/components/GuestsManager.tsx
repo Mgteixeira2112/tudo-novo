@@ -102,7 +102,11 @@ function preCheckInActionLabel(status: PreCheckInStatus | undefined, canManage: 
   return 'Preparar';
 }
 
-export const GuestsManager: React.FC = () => {
+interface GuestsManagerProps {
+  realtimeRevision?: number;
+}
+
+export const GuestsManager: React.FC<GuestsManagerProps> = ({ realtimeRevision = 0 }) => {
   const { reservations, hasPermission, refreshData } = useHotel();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +147,23 @@ export const GuestsManager: React.FC = () => {
   };
 
   useEffect(() => { refresh(); refreshPreCheckInStatuses(); }, []);
+
+  useEffect(() => {
+    if (realtimeRevision <= 0) return;
+    let cancelled = false;
+
+    Promise.all([loadGuestsCloud(), loadReservationPreCheckInStatusesCloud()])
+      .then(([nextGuests, nextStatuses]) => {
+        if (cancelled) return;
+        setGuests(nextGuests);
+        setPreCheckInStatuses(nextStatuses);
+      })
+      .catch(e => {
+        if (!cancelled) console.warn('[Hóspedes] Falha ao sincronizar dados via Realtime:', e);
+      });
+
+    return () => { cancelled = true; };
+  }, [realtimeRevision]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setArchiveClock(Date.now()), 30_000);
