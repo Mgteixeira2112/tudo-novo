@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Guest, Reservation } from '../types.ts';
 import { createGuestCloud, deleteGuestCloud, loadGuestsCloud, updateGuestCloud } from '../services/adminPages.ts';
-import { unlinkInconsistentReservationGuestCloud } from '../services/guestLinkReview.ts';
+import { createGuestFromReservationCloud, unlinkInconsistentReservationGuestCloud } from '../services/guestLinkReview.ts';
 import { loadReservationPreCheckInStatusesCloud, PreCheckInStatus } from '../services/preCheckin.ts';
 import { useHotel } from '../context/HotelContext.tsx';
 import { GuestPreCheckInModal } from './GuestPreCheckInModal.tsx';
@@ -115,6 +115,7 @@ export const GuestsManager: React.FC = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [unlinkingReservationId, setUnlinkingReservationId] = useState<string | null>(null);
+  const [creatingGuestReservationId, setCreatingGuestReservationId] = useState<string | null>(null);
   const [archiveClock, setArchiveClock] = useState(() => Date.now());
   const [preCheckInReservation, setPreCheckInReservation] = useState<Reservation | null>(null);
   const [preCheckInStatuses, setPreCheckInStatuses] = useState<Record<string, PreCheckInStatus>>({});
@@ -304,6 +305,26 @@ export const GuestsManager: React.FC = () => {
     }
   };
 
+  const handleCreateGuestFromReservation = async (reservation: Reservation) => {
+    if (!canManageGuestLinks || reservation.guestId) return;
+    const confirmed = confirm(
+      `Criar um novo cadastro para ${reservation.guestName} usando os dados da reserva ${reservation.code}?\n\n` +
+      'O cadastro será vinculado somente a esta reserva. Nenhum cadastro existente será escolhido automaticamente.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setCreatingGuestReservationId(reservation.id);
+      setError(null);
+      await createGuestFromReservationCloud(reservation.id);
+      await Promise.all([refresh(), refreshData()]);
+    } catch (e: any) {
+      setError(e?.message || 'Não foi possível criar o cadastro a partir da reserva.');
+    } finally {
+      setCreatingGuestReservationId(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -358,6 +379,7 @@ export const GuestsManager: React.FC = () => {
                   const hasGuestId = Boolean(reservation.guestId);
                   const safeLink = isReservationLinkedSafely(reservation, guests);
                   const linkIsInconsistent = hasGuestId && !safeLink;
+                  const creatingGuest = creatingGuestReservationId === reservation.id;
                   return (
                     <tr key={reservation.id} className="hover:bg-[#FAF9F5]">
                       <td className="px-3 py-2.5">
@@ -373,6 +395,16 @@ export const GuestsManager: React.FC = () => {
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#3A5A40]"><UserCheck className="h-3.5 w-3.5" /> Vinculado</span>
                         ) : linkIsInconsistent ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700"><AlertTriangle className="h-3.5 w-3.5" /> Revisar vínculo</span>
+                        ) : canManageGuestLinks ? (
+                          <button
+                            type="button"
+                            disabled={Boolean(creatingGuestReservationId)}
+                            onClick={() => handleCreateGuestFromReservation(reservation)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-2 py-1.5 text-[10px] font-bold text-[#3A5A40] hover:bg-[#E8EEDB] disabled:opacity-50"
+                            title="Criar cadastro usando os dados desta reserva"
+                          >
+                            <UserPlus className="h-3.5 w-3.5" /> {creatingGuest ? 'Criando...' : 'Criar cadastro'}
+                          </button>
                         ) : (
                           <span className="text-[10px] text-[#8E9280]">Ainda não vinculado</span>
                         )}
