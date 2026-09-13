@@ -94,7 +94,15 @@ begin
   end if;
 
   if v_res.guest_id is not null then
-    select * into v_guest from public.guests where id = v_res.guest_id;
+    select * into v_guest
+    from public.guests g
+    where g.id = v_res.guest_id
+      and (
+        lower(trim(g.full_name)) = lower(trim(coalesce(v_res.guest_name, '')))
+        or (g.email is not null and v_res.guest_email is not null and lower(trim(g.email)) = lower(trim(v_res.guest_email)))
+        or (g.phone is not null and v_res.guest_phone is not null and regexp_replace(g.phone, '\D', '', 'g') = regexp_replace(v_res.guest_phone, '\D', '', 'g'))
+      )
+    limit 1;
   end if;
 
   return jsonb_build_object(
@@ -210,7 +218,6 @@ begin
     raise exception 'É necessário confirmar a declaração do pré-check-in.';
   end if;
 
-  -- Reutiliza o vínculo atual somente quando ele é coerente com nome/e-mail/documento.
   if v_res.guest_id is not null then
     select * into v_guest from public.guests where id = v_res.guest_id;
     if found and (
@@ -222,7 +229,6 @@ begin
     end if;
   end if;
 
-  -- Procura cadastro existente por documento; como fallback, nome + e-mail.
   if v_guest_id is null then
     select id into v_guest_id
     from public.guests
@@ -302,5 +308,5 @@ grant execute on function public.issue_reservation_precheckin_link(text) to auth
 revoke all on function public.get_reservation_precheckin_public(text) from public;
 grant execute on function public.get_reservation_precheckin_public(text) to anon, authenticated;
 
-revoke all on function public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean) from public;
-grant execute on function public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean) to anon, authenticated;
+revoke all on function public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean) from public;
+grant execute on function public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean) to anon, authenticated;
