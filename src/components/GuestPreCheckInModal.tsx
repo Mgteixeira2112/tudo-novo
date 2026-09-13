@@ -7,7 +7,7 @@ import {
   loadReservationPreCheckInCloud,
   ReservationPreCheckInData,
   saveReservationPreCheckInStaffCloud
-} from '../services/preCheckIn.ts';
+} from '../services/preCheckin.ts';
 
 const emptyData: ReservationPreCheckInData = {
   travelReason: '',
