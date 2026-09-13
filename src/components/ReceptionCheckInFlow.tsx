@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Banknote, CalendarDays, CreditCard, KeyRound, LogIn, QrCode } from 'lucide-react';
+import { Banknote, CalendarDays, CreditCard, FileCheck2, KeyRound, LogIn, QrCode, UserCheck } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { PaymentMethod, Reservation } from '../types.ts';
 import { processCheckInAtomicCloud } from '../services/checkInOutPages.ts';
+import {
+  loadReservationPreCheckInCloud,
+  loadReservationPreCheckInStatusesCloud,
+  PreCheckInStatus,
+  ReservationPreCheckInData
+} from '../services/preCheckin.ts';
 
 type ImmediatePaymentMethod = Exclude<PaymentMethod, 'Faturado'>;
 
@@ -34,8 +40,20 @@ function paymentMethodLabel(value: ImmediatePaymentMethod | '') {
   return paymentOptions.find(option => option.value === value)?.label || '';
 }
 
+function preCheckInLabel(status?: PreCheckInStatus) {
+  if (status === 'Concluido') return 'Pré-check-in concluído';
+  if (status === 'EmAndamento') return 'Pré-check-in em andamento';
+  return 'Pré-check-in não iniciado';
+}
+
+function preCheckInBadgeClass(status?: PreCheckInStatus) {
+  if (status === 'Concluido') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'EmAndamento') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-[#E6E3D8] bg-[#F8F7F2] text-[#777A6A]';
+}
+
 export const ReceptionCheckInFlow: React.FC = () => {
-  const { rooms, reservations, settings, refreshData } = useHotel();
+  const { rooms, reservations, guests, settings, refreshData } = useHotel();
   const [selectedResId, setSelectedResId] = useState('');
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [keyCardNumber, setKeyCardNumber] = useState('');
@@ -43,6 +61,9 @@ export const ReceptionCheckInFlow: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<ImmediatePaymentMethod | ''>('');
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [preCheckInStatuses, setPreCheckInStatuses] = useState<Record<string, PreCheckInStatus>>({});
+  const [selectedPreCheckIn, setSelectedPreCheckIn] = useState<ReservationPreCheckInData | null>(null);
+  const [loadingPreCheckIn, setLoadingPreCheckIn] = useState(false);
   const today = hotelDateIso();
   const currency = settings?.currency || 'R$';
 
@@ -56,10 +77,21 @@ export const ReceptionCheckInFlow: React.FC = () => {
   );
 
   const selectedReservation = checkinReservations.find(reservation => reservation.id === selectedResId);
+  const selectedGuest = selectedReservation?.guestId
+    ? guests.find(guest => guest.id === selectedReservation.guestId)
+    : undefined;
   const availableCleanRooms = rooms.filter(room =>
     room.status === 'Disponivel' &&
     (!selectedReservation || room.typeName === selectedReservation.roomTypeName)
   );
+
+  useEffect(() => {
+    let active = true;
+    loadReservationPreCheckInStatusesCloud()
+      .then(statuses => { if (active) setPreCheckInStatuses(statuses); })
+      .catch(error => console.warn('[ReceptionCheckInFlow] Falha ao carregar status de pré-check-in.', error));
+    return () => { active = false; };
+  }, [reservations]);
 
   useEffect(() => {
     if (selectedResId && !selectedReservation) {
@@ -67,10 +99,11 @@ export const ReceptionCheckInFlow: React.FC = () => {
       setSelectedRoomId('');
       setDepositAmount(0);
       setPaymentMethod('');
+      setSelectedPreCheckIn(null);
     }
   }, [selectedResId, selectedReservation]);
 
-  const selectReservation = (reservation: Reservation) => {
+  const selectReservation = async (reservation: Reservation) => {
     setSelectedResId(reservation.id);
     const assignedRoom = rooms.find(room =>
       room.id === reservation.roomId &&
@@ -80,6 +113,17 @@ export const ReceptionCheckInFlow: React.FC = () => {
     setSelectedRoomId(assignedRoom?.id || '');
     setDepositAmount(reservation.paymentStatus === 'Pago' ? 0 : Number(reservation.totalNightsAmount || 0));
     setPaymentMethod(immediatePaymentMethod(reservation.paymentMethod));
+    setSelectedPreCheckIn(null);
+    setLoadingPreCheckIn(true);
+    try {
+      const data = await loadReservationPreCheckInCloud(reservation.id);
+      setSelectedPreCheckIn(data);
+      setPreCheckInStatuses(current => ({ ...current, [reservation.id]: data.preCheckinStatus }));
+    } catch (error) {
+      console.warn('[ReceptionCheckInFlow] Falha ao carregar conferência do pré-check-in.', error);
+    } finally {
+      setLoadingPreCheckIn(false);
+    }
   };
 
   const executeCheckIn = async (event: React.FormEvent) => {
@@ -110,6 +154,7 @@ export const ReceptionCheckInFlow: React.FC = () => {
       setDepositAmount(0);
       setPaymentMethod('');
       setNotes('');
+      setSelectedPreCheckIn(null);
       await refreshData();
       alert('Check-in realizado com sucesso. Quarto ocupado, financeiro registrado com a forma escolhida e Governança acionada.');
     } catch (error: any) {
@@ -149,11 +194,12 @@ export const ReceptionCheckInFlow: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {checkinReservations.map(reservation => {
                 const selected = reservation.id === selectedResId;
+                const preCheckInStatus = preCheckInStatuses[reservation.id];
                 return (
                   <button
                     key={reservation.id}
                     type="button"
-                    onClick={() => selectReservation(reservation)}
+                    onClick={() => void selectReservation(reservation)}
                     className={`rounded-2xl border bg-white p-4 text-left transition ${selected ? 'border-[#588157] ring-2 ring-[#588157]/20 shadow-md' : 'border-[#E6E3D8] hover:border-[#CCD5AE]'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -163,6 +209,11 @@ export const ReceptionCheckInFlow: React.FC = () => {
                     <h4 className="mt-3 text-sm font-bold text-[#2C3327]">{reservation.guestName}</h4>
                     <p className="mt-1 text-xs text-[#6B705C]">Entrada: {reservation.checkInDate.split('-').reverse().join('/')} • Saída: {reservation.checkOutDate.split('-').reverse().join('/')}</p>
                     <p className="mt-1 text-xs text-[#6B705C]">{reservation.roomTypeName} • Quarto {reservation.roomNumber || 'a definir'}</p>
+                    <div className="mt-2">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold ${preCheckInBadgeClass(preCheckInStatus)}`}>
+                        <FileCheck2 className="h-3 w-3" /> {preCheckInLabel(preCheckInStatus)}
+                      </span>
+                    </div>
                     <div className="mt-3 flex items-center justify-between border-t border-[#E6E3D8] pt-2 text-xs">
                       <span className="font-semibold text-[#6B705C]">{reservation.paymentStatus} via {reservation.paymentMethod || 'não definida'}</span>
                       <strong className="text-[#2C3327]">{currency} {Number(reservation.totalNightsAmount || 0).toLocaleString('pt-BR')}</strong>
@@ -177,11 +228,39 @@ export const ReceptionCheckInFlow: React.FC = () => {
         <div className="h-fit space-y-4 rounded-2xl border border-[#E6E3D8] bg-white p-5 shadow-xs">
           <div className="border-b border-[#E6E3D8] pb-3">
             <h3 className="flex items-center gap-2 text-sm font-bold text-[#2C3327]"><KeyRound className="h-4 w-4 text-[#588157]" /> Confirmar entrada</h3>
-            <p className="mt-1 text-xs text-[#6B705C]">O método financeiro abaixo será gravado exatamente como selecionado.</p>
+            <p className="mt-1 text-xs text-[#6B705C]">Confira presença/documento e finalize a entrada. O método financeiro será gravado exatamente como selecionado.</p>
           </div>
 
           {selectedReservation ? (
             <form onSubmit={executeCheckIn} className="space-y-4">
+              <div className={`rounded-xl border p-3 ${preCheckInBadgeClass(selectedPreCheckIn?.preCheckinStatus || preCheckInStatuses[selectedReservation.id])}`}>
+                <div className="flex items-center gap-2 text-xs font-extrabold">
+                  <UserCheck className="h-4 w-4" />
+                  {loadingPreCheckIn ? 'Carregando conferência...' : preCheckInLabel(selectedPreCheckIn?.preCheckinStatus || preCheckInStatuses[selectedReservation.id])}
+                </div>
+                {!loadingPreCheckIn && selectedPreCheckIn?.preCheckinStatus === 'Concluido' && (
+                  <div className="mt-3 space-y-2 text-[11px] leading-5 text-[#4F5647]">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <span><strong>Hóspede:</strong> {selectedGuest?.fullName || selectedReservation.guestName}</span>
+                      <span><strong>Documento:</strong> {selectedGuest?.document || 'conferir presencialmente'}</span>
+                      <span><strong>Telefone:</strong> {selectedGuest?.phone || selectedReservation.guestPhone || '—'}</span>
+                      <span><strong>E-mail:</strong> {selectedGuest?.email || selectedReservation.guestEmail || '—'}</span>
+                    </div>
+                    <div className="border-t border-current/10 pt-2">
+                      <strong>Viagem:</strong> {selectedPreCheckIn.travelReason || '—'}
+                      {selectedPreCheckIn.travelOrigin ? ` • Origem: ${selectedPreCheckIn.travelOrigin}` : ''}
+                      {selectedPreCheckIn.nextDestination ? ` • Destino: ${selectedPreCheckIn.nextDestination}` : ''}
+                      {selectedPreCheckIn.transportMode ? ` • Transporte: ${selectedPreCheckIn.transportMode}` : ''}
+                      {selectedPreCheckIn.vehiclePlate ? ` • Placa: ${selectedPreCheckIn.vehiclePlate}` : ''}
+                    </div>
+                    <p className="border-t border-current/10 pt-2 font-semibold">Pré-check-in recebido. Confirme presencialmente identidade/documento antes de efetuar o check-in.</p>
+                  </div>
+                )}
+                {!loadingPreCheckIn && selectedPreCheckIn?.preCheckinStatus !== 'Concluido' && (
+                  <p className="mt-2 text-[11px] leading-4">O pré-check-in não é obrigatório para concluir a entrada. Colete e confira presencialmente os dados/documentos necessários antes do check-in.</p>
+                )}
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-semibold text-[#6B705C]">Quarto a entregar *</label>
                 <select value={selectedRoomId} onChange={event => setSelectedRoomId(event.target.value)} required className="w-full rounded-xl border border-[#E6E3D8] px-3 py-2 text-sm text-[#3D4035] outline-none focus:ring-2 focus:ring-[#588157]">
