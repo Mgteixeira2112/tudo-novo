@@ -112,7 +112,7 @@ export const RoomReservationOperationalModal: React.FC<RoomReservationOperationa
 
   return (
     <div
-      className="fixed inset-0 z-[120] bg-black/35 backdrop-blur-[1px] flex justify-end"
+      className="fixed inset-0 z-[120] bg-black/35 backdrop-blur-[1px] flex items-center justify-center p-3 sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-label={reservation ? `Ficha da reserva ${reservation.code}` : `Detalhes do Quarto ${room.number}`}
@@ -120,7 +120,7 @@ export const RoomReservationOperationalModal: React.FC<RoomReservationOperationa
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <aside className="h-full w-full max-w-lg bg-[#FDFBF7] shadow-2xl overflow-y-auto" onMouseDown={event => event.stopPropagation()}>
+      <aside className="h-[calc(100vh-1.5rem)] sm:h-[calc(100vh-2.5rem)] w-full max-w-[1500px] overflow-y-auto rounded-2xl bg-[#FDFBF7] shadow-2xl" onMouseDown={event => event.stopPropagation()}>
         <header className="sticky top-0 z-10 border-b border-[#E6E3D8] bg-[#FDFBF7]/95 backdrop-blur px-5 py-4 flex items-start justify-between gap-4">
           <div>
             <span className="text-[10px] uppercase tracking-[0.16em] font-black text-[#588157]">
@@ -144,7 +144,7 @@ export const RoomReservationOperationalModal: React.FC<RoomReservationOperationa
           </button>
         </header>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4">
           {reservation && (
             <section className="rounded-2xl border border-[#E6E3D8] bg-white p-4">
               <div className="flex items-start justify-between gap-3">
