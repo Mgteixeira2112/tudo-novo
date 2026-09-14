@@ -14,6 +14,7 @@ import {
 } from '../types.ts';
 import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';
 import { loadReservationsFromSupabase, loadRoomsFromSupabase } from '../services/pagesData.ts';
+import { subscribeToReservationsRealtime } from '../services/reservationsRealtime.ts';
 import {
   hasPermission as checkHasPermission,
   canAccessTab as checkCanAccessTab,
@@ -411,6 +412,34 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
+  // Keep reservations state aligned directly with Supabase Realtime.
+  // The direct read avoids waiting for the API/polling layer after a database event.
+  useEffect(() => {
+    if (!currentUser) return;
+    let active = true;
+
+    const unsub = subscribeToReservationsRealtime(
+      () => {
+        loadReservationsFromSupabase()
+          .then(data => {
+            if (active) setReservations(data);
+          })
+          .catch(err => {
+            console.warn('[HotelContext] Falha ao recarregar reservas após Realtime:', err);
+          });
+      },
+      {
+        url: supabaseStatus?.supabaseUrl,
+        anonKey: supabaseStatus?.supabaseAnonKey
+      }
+    );
+
+    return () => {
+      active = false;
+      if (unsub) unsub();
+    };
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+
   // Real-time polling every 6 seconds to keep Kanbans, Room status, and financial counters synced across all screens
   useEffect(() => {
     if (!currentUser) return;
@@ -476,4 +505,3 @@ export const useHotel = () => {
   }
   return context;
 };
-
