@@ -24,6 +24,7 @@ interface EditFormState {
   guestName: string;
   guestEmail: string;
   guestPhone: string;
+  roomId: string;
   checkInDate: string;
   checkOutDate: string;
   adults: number;
@@ -35,6 +36,7 @@ const buildEditForm = (reservation: Reservation): EditFormState => ({
   guestName: reservation.guestName,
   guestEmail: reservation.guestEmail,
   guestPhone: reservation.guestPhone || '',
+  roomId: reservation.roomId,
   checkInDate: reservation.checkInDate,
   checkOutDate: reservation.checkOutDate,
   adults: reservation.adults,
@@ -43,7 +45,7 @@ const buildEditForm = (reservation: Reservation): EditFormState => ({
 });
 
 export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservation, roomCapacity, canManage, onUpdated }) => {
-  const { settings, transactions } = useHotel();
+  const { settings, transactions, rooms, reservations } = useHotel();
   const [mode, setMode] = useState<ActionMode>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +61,7 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
     setError('');
     setCancelReason('');
     setEditForm(buildEditForm(reservation));
-  }, [reservation.id, reservation.status, reservation.checkInDate, reservation.checkOutDate]);
+  }, [reservation.id, reservation.status, reservation.roomId, reservation.checkInDate, reservation.checkOutDate]);
 
   useEffect(() => {
     let active = true;
@@ -100,10 +102,47 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
     [transactions, reservation.id]
   );
 
-  const reservationRoomType = useMemo(
-    () => settings?.roomTypes?.find(type => type.name === reservation.roomTypeName),
-    [settings?.roomTypes, reservation.roomTypeName]
+  const selectedEditRoom = useMemo(
+    () => rooms.find(room => room.id === editForm.roomId) || rooms.find(room => room.id === reservation.roomId),
+    [rooms, editForm.roomId, reservation.roomId]
   );
+
+  const selectedEditRoomType = useMemo(
+    () => settings?.roomTypes?.find(type => type.id === selectedEditRoom?.typeId || type.name === selectedEditRoom?.typeName),
+    [settings?.roomTypes, selectedEditRoom?.typeId, selectedEditRoom?.typeName]
+  );
+
+  const editRoomOptions = useMemo(() => {
+    const start = editForm.checkInDate;
+    const end = editForm.checkOutDate;
+    const adults = Number(editForm.adults || 0);
+    const children = Number(editForm.children || 0);
+
+    return [...rooms]
+      .filter(room => {
+        const isCurrent = room.id === reservation.roomId;
+        const isSelected = room.id === editForm.roomId;
+        if (!isCurrent && !isSelected && ['Manutencao', 'Bloqueado'].includes(room.status)) return false;
+
+        const roomType = settings?.roomTypes?.find(type => type.id === room.typeId || type.name === room.typeName);
+        if (roomType) {
+          if (!evaluateRoomTypeCompatibility(roomType, adults, children).compatible && !isCurrent && !isSelected) return false;
+        } else if (room.capacity && adults + children > room.capacity && !isCurrent && !isSelected) {
+          return false;
+        }
+
+        if (!start || !end || end <= start || isCurrent || isSelected) return true;
+
+        return !reservations.some(other =>
+          other.id !== reservation.id
+          && other.roomId === room.id
+          && ['Pendente', 'Confirmada', 'CheckIn'].includes(other.status)
+          && other.checkInDate < end
+          && other.checkOutDate > start
+        );
+      })
+      .sort((a, b) => a.number.localeCompare(b.number, 'pt-BR', { numeric: true }));
+  }, [rooms, reservations, settings?.roomTypes, editForm.roomId, editForm.checkInDate, editForm.checkOutDate, editForm.adults, editForm.children, reservation.id, reservation.roomId]);
 
   const money = (value: number) => `${settings?.currency || 'R$'} ${Number(value || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
@@ -160,6 +199,10 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
       setError('Nome e e-mail do hóspede são obrigatórios.');
       return;
     }
+    if (!editForm.roomId || !selectedEditRoom) {
+      setError('Selecione um quarto válido para a reserva.');
+      return;
+    }
     if (!editForm.checkInDate || !editForm.checkOutDate || editForm.checkOutDate <= editForm.checkInDate) {
       setError('A data de saída deve ser posterior à data de entrada.');
       return;
@@ -168,9 +211,9 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
       setError('Informe ao menos 1 adulto e uma quantidade válida de crianças.');
       return;
     }
-    if (reservationRoomType) {
+    if (selectedEditRoomType) {
       const compatibility = evaluateRoomTypeCompatibility(
-        reservationRoomType,
+        selectedEditRoomType,
         Number(editForm.adults),
         Number(editForm.children)
       );
@@ -178,8 +221,8 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
         setError(compatibility.reason || 'A ocupação informada não é compatível com esta acomodação.');
         return;
       }
-    } else if (roomCapacity && Number(editForm.adults) + Number(editForm.children) > roomCapacity) {
-      setError(`A ocupação informada excede a capacidade do quarto (${roomCapacity} hóspede(s)).`);
+    } else if (selectedEditRoom.capacity && Number(editForm.adults) + Number(editForm.children) > selectedEditRoom.capacity) {
+      setError(`A ocupação informada excede a capacidade do quarto (${selectedEditRoom.capacity} hóspede(s)).`);
       return;
     }
 
@@ -191,6 +234,7 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
         guestName: editForm.guestName,
         guestEmail: editForm.guestEmail,
         guestPhone: editForm.guestPhone,
+        roomId: editForm.roomId,
         checkInDate: editForm.checkInDate,
         checkOutDate: editForm.checkOutDate,
         adults: Number(editForm.adults),
@@ -383,14 +427,23 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
                     <label className="text-xs font-bold text-[#2C3327]">Nome do hóspede<input value={editForm.guestName} onChange={event => setEditForm(previous => ({ ...previous, guestName: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">E-mail<input type="email" value={editForm.guestEmail} onChange={event => setEditForm(previous => ({ ...previous, guestEmail: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Telefone<input value={editForm.guestPhone} onChange={event => setEditForm(previous => ({ ...previous, guestPhone: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
-                    <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] px-3 py-2.5 text-xs text-[#6B705C]"><span className="block text-[10px] uppercase tracking-wider">Quarto mantido</span><strong className="mt-0.5 block text-[#2C3327]">{reservation.roomNumber} · {reservation.roomTypeName}</strong>{reservationRoomType ? <span className="mt-0.5 block">Capacidade comercial: {reservationRoomType.capacityAdults} adulto(s) · {reservationRoomType.capacityChildren} criança(s) · máx. {reservationRoomType.maxOccupancy}</span> : roomCapacity ? <span className="mt-0.5 block">Capacidade: {roomCapacity} hóspede(s)</span> : null}</div>
+                    <label className="text-xs font-bold text-[#2C3327]">Quarto
+                      <select value={editForm.roomId} onChange={event => setEditForm(previous => ({ ...previous, roomId: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25">
+                        {editRoomOptions.map(room => (
+                          <option key={room.id} value={room.id}>Quarto {room.number} · {room.typeName}{room.id === reservation.roomId ? ' (Atual)' : ''}</option>
+                        ))}
+                      </select>
+                      {selectedEditRoomType ? <span className="mt-1 block text-[10px] font-normal text-[#6B705C]">Capacidade: {selectedEditRoomType.capacityAdults} adulto(s) · {selectedEditRoomType.capacityChildren} criança(s) · máx. {selectedEditRoomType.maxOccupancy}</span> : null}
+                    </label>
                     <label className="text-xs font-bold text-[#2C3327]">Entrada<input type="date" value={editForm.checkInDate} onChange={event => setEditForm(previous => ({ ...previous, checkInDate: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Saída<input type="date" value={editForm.checkOutDate} onChange={event => setEditForm(previous => ({ ...previous, checkOutDate: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Adultos<input type="number" min={1} value={editForm.adults} onChange={event => setEditForm(previous => ({ ...previous, adults: Number(event.target.value) }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Crianças<input type="number" min={0} value={editForm.children} onChange={event => setEditForm(previous => ({ ...previous, children: Number(event.target.value) }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327] md:col-span-2">Observações<textarea value={editForm.notes} onChange={event => setEditForm(previous => ({ ...previous, notes: event.target.value }))} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                   </div>
-                  <p className="mt-3 text-[10px] leading-relaxed text-[#7B806E]">Ao alterar as datas, o Supabase verifica novamente conflito de quarto e recalcula noites e valor total da hospedagem.</p>
+                  <div className="mt-3 rounded-xl border border-[#FAEDCD] bg-[#FFF8EF] px-3 py-2 text-[10px] leading-relaxed text-[#7A552C]">
+                    O Supabase revalida disponibilidade, conflito e capacidade antes de salvar. Se o quarto for trocado, a tarifa original de <strong>{money(reservation.pricePerNight)} por diária</strong> será preservada e a troca ficará registrada nas observações.
+                  </div>
                   {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</p>}
                 </div>
                 <footer className="flex justify-end gap-2 border-t border-[#E6E3D8] bg-white px-5 py-3">
