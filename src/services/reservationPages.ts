@@ -59,6 +59,7 @@ export async function updateReservationAtomicCloud(data: {
   guestName: string;
   guestEmail: string;
   guestPhone: string;
+  roomId?: string;
   checkInDate: string;
   checkOutDate: string;
   adults: number;
@@ -68,11 +69,12 @@ export async function updateReservationAtomicCloud(data: {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
-  const { data: result, error } = await supabase.rpc('update_reservation_atomic', {
+  const { data: result, error } = await supabase.rpc('update_reservation_atomic_v2', {
     p_reservation_id: data.reservationId,
     p_guest_name: data.guestName.trim(),
     p_guest_email: data.guestEmail.trim(),
     p_guest_phone: data.guestPhone.trim(),
+    p_target_room_id: data.roomId?.trim() || null,
     p_check_in_date: data.checkInDate,
     p_check_out_date: data.checkOutDate,
     p_adults: Number(data.adults),
@@ -80,6 +82,18 @@ export async function updateReservationAtomicCloud(data: {
     p_notes: data.notes?.trim() || null
   });
 
-  if (error) throw new Error(error.message || 'Não foi possível editar a reserva.');
+  if (error) {
+    const message = String(error.message || 'Não foi possível editar a reserva.');
+    if (message.includes('outra reserva ativa no período')) {
+      throw new Error('O quarto selecionado não está disponível no período informado.');
+    }
+    if (message.includes('capacidade comercial')) {
+      throw new Error('O quarto selecionado não comporta a quantidade de hóspedes informada.');
+    }
+    if (message.includes('não pode receber a reserva')) {
+      throw new Error(message);
+    }
+    throw new Error(message);
+  }
   return mapReservationRow(result);
 }
