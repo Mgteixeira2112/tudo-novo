@@ -8,19 +8,16 @@ import {
   Sparkles,
   Wrench,
   Ban,
-  KeyRound,
-  Loader2,
-  ShieldCheck,
-  X
+  KeyRound
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { Room, RoomStatus, SectorType } from '../types.ts';
 import { updateRoomStatusSafeCloud } from '../services/roomStatusPages.ts';
 import { GRANULAR_PERMISSION_KEYS, hasPermission } from '../services/rbac.ts';
 import { KanbanBoard } from './KanbanBoard.tsx';
+import { RoomReservationOperationalModal } from './RoomReservationOperationalModal.tsx';
 
 type WorkspaceView = 'rooms' | 'tasks' | 'housekeeping' | 'maintenance';
-
 type NavigationWorkspaceView = 'rooms' | 'tasks';
 
 interface KanbanNavigationIntent {
@@ -80,111 +77,6 @@ function RoomCard({ room, onOpen }: { room: Room; onOpen: (room: Room) => void }
     >
       {room.number}
     </button>
-  );
-}
-
-function RoomDetailsModal({
-  room,
-  canManage,
-  busy,
-  onClose,
-  onChangeStatus
-}: {
-  room: Room;
-  canManage: boolean;
-  busy: boolean;
-  onClose: () => void;
-  onChangeStatus: (room: Room, status: RoomStatus) => Promise<void>;
-}) {
-  const targets = SAFE_TARGETS[room.status];
-
-  return (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-3 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Detalhes do Quarto ${room.number}`}
-      onMouseDown={event => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-[#FDFBF7] shadow-2xl">
-        <div className="flex items-center justify-between gap-4 border-b border-[#E6E3D8] bg-white px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F0F3E8] text-[#588157]">
-              <BedDouble className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A8F7D]">Quarto</p>
-              <h3 className="text-xl font-black text-[#2C3327]">{room.number}</h3>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-[#6B705C] transition hover:bg-[#F3F1EA] hover:text-[#2C3327]"
-            aria-label="Fechar detalhes do quarto"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4 p-5">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-[#E6E3D8] bg-white px-4 py-3">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Tipo</span>
-              <span className="mt-1 block text-sm font-bold text-[#3D4035]">{room.typeName || 'Não informado'}</span>
-            </div>
-            <div className="rounded-xl border border-[#E6E3D8] bg-white px-4 py-3">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Andar</span>
-              <span className="mt-1 block text-sm font-bold text-[#3D4035]">{room.floor}º andar</span>
-            </div>
-          </div>
-
-          {room.currentGuestName && (
-            <div className="rounded-xl border border-[#E9EDC9] bg-[#F7F9EF] px-4 py-3">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Hóspede atual</span>
-              <span className="mt-1 block text-sm font-semibold text-[#3D4035]">{room.currentGuestName}</span>
-            </div>
-          )}
-
-          {room.notes && (
-            <div className="rounded-xl border border-[#E6E3D8] bg-white px-4 py-3">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Observações</span>
-              <p className="mt-1 text-sm leading-relaxed text-[#6B705C]">{room.notes}</p>
-            </div>
-          )}
-
-          <div className="border-t border-[#E6E3D8] pt-4">
-            {room.status === 'Ocupado' ? (
-              <div className="flex items-start gap-2 rounded-xl bg-[#F8F7F2] px-4 py-3 text-xs leading-relaxed text-[#6B705C]">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#588157]" />
-                <span>Estado protegido. Entrada e saída são controladas pelos fluxos de check-in e checkout.</span>
-              </div>
-            ) : canManage ? (
-              <div className="space-y-3">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8A8F7D]">Alterar status com segurança</span>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {targets.map(target => (
-                    <button
-                      key={target}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => onChangeStatus(room, target)}
-                      className="flex min-h-10 items-center justify-center rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-3 py-2 text-center text-xs font-bold leading-tight text-[#3A5A40] transition hover:bg-[#E9EDC9] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : statusLabel(target)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs font-semibold text-[#8A8F7D]">Somente leitura para este perfil.</div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -320,9 +212,7 @@ function RoomsKanbanView({
                   </div>
                   <p className="mt-1 text-[10px] text-[#8A8F7D]">{column.description}</p>
                 </div>
-                <span className="min-w-6 rounded-full bg-white px-2 py-1 text-center text-[10px] font-black text-[#3A5A40] shadow-sm">
-                  {columnRooms.length}
-                </span>
+                <span className="min-w-6 rounded-full bg-white px-2 py-1 text-center text-[10px] font-black text-[#3A5A40] shadow-sm">{columnRooms.length}</span>
               </header>
 
               <div className={visibleColumns.length === 1
@@ -332,9 +222,7 @@ function RoomsKanbanView({
                   <RoomCard key={room.id} room={room} onOpen={roomToOpen => setSelectedRoomId(roomToOpen.id)} />
                 ))}
                 {columnRooms.length === 0 && (
-                  <div className="col-span-full rounded-xl border border-dashed border-[#DADFD1] bg-white/60 px-3 py-6 text-center text-[10px] text-[#8E9280]">
-                    Nenhum quarto neste status
-                  </div>
+                  <div className="col-span-full rounded-xl border border-dashed border-[#DADFD1] bg-white/60 px-3 py-6 text-center text-[10px] text-[#8E9280]">Nenhum quarto neste status</div>
                 )}
               </div>
             </section>
@@ -343,10 +231,12 @@ function RoomsKanbanView({
       </div>
 
       {selectedRoom && (
-        <RoomDetailsModal
+        <RoomReservationOperationalModal
           room={selectedRoom}
           canManage={canManage}
           busy={busyRoomId === selectedRoom.id}
+          safeTargets={SAFE_TARGETS[selectedRoom.status]}
+          statusLabel={statusLabel}
           onClose={() => setSelectedRoomId(null)}
           onChangeStatus={handleChangeStatus}
         />
@@ -386,9 +276,7 @@ export const KanbanWorkspace: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
       <div className="flex flex-col gap-4 rounded-2xl border border-[#E6E3D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-black tracking-tight text-[#2C3327]">Operação Hoteleira</h2>
-        </div>
+        <div><h2 className="text-xl font-black tracking-tight text-[#2C3327]">Operação Hoteleira</h2></div>
 
         <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-1">
           <button
@@ -396,16 +284,14 @@ export const KanbanWorkspace: React.FC = () => {
             onClick={() => setView('rooms')}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'rooms' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
-            <BedDouble className="h-4 w-4" />
-            Quartos Geral
+            <BedDouble className="h-4 w-4" /> Quartos Geral
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'rooms' ? 'bg-white/15' : 'bg-white'}`}>{rooms.length}</span>
           </button>
           <button
             onClick={() => setView('tasks')}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'tasks' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
-            <ClipboardList className="h-4 w-4" />
-            Tarefas Geral
+            <ClipboardList className="h-4 w-4" /> Tarefas Geral
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'tasks' ? 'bg-white/15' : 'bg-white'}`}>{openTasks}</span>
           </button>
           <button
@@ -413,8 +299,7 @@ export const KanbanWorkspace: React.FC = () => {
             onClick={() => setView('housekeeping')}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'housekeeping' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
-            <Sparkles className="h-4 w-4" />
-            Governança
+            <Sparkles className="h-4 w-4" /> Governança
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'housekeeping' ? 'bg-white/15' : 'bg-white'}`}>{housekeepingOpen}</span>
           </button>
           <button
@@ -422,28 +307,19 @@ export const KanbanWorkspace: React.FC = () => {
             onClick={() => setView('maintenance')}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold whitespace-nowrap transition ${view === 'maintenance' ? 'bg-[#2C3327] text-white shadow-sm' : 'text-[#6B705C] hover:bg-white'}`}
           >
-            <Wrench className="h-4 w-4" />
-            Manutenção
+            <Wrench className="h-4 w-4" /> Manutenção
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${view === 'maintenance' ? 'bg-white/15' : 'bg-white'}`}>{maintenanceOpen}</span>
           </button>
         </div>
       </div>
 
-      {view === 'rooms' && (
-        <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} initialSearch={initialRoomSearch} />
-      )}
-
-      {view === 'tasks' && (
-        <KanbanBoard key={`tasks-${navigationVersion}`} initialSector={initialTaskSector || 'Todos'} />
-      )}
+      {view === 'rooms' && <RoomsKanbanView key={`rooms-${navigationVersion}`} initialStatus={initialRoomStatus} initialSearch={initialRoomSearch} />}
+      {view === 'tasks' && <KanbanBoard key={`tasks-${navigationVersion}`} initialSector={initialTaskSector || 'Todos'} />}
 
       {view === 'housekeeping' && (
         <div className="space-y-2">
           <div className="rounded-2xl border border-[#CCD5AE] bg-[#F8FAF2] p-5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#588157]" />
-              <h3 className="text-lg font-black text-[#2C3327]">Governança</h3>
-            </div>
+            <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#588157]" /><h3 className="text-lg font-black text-[#2C3327]">Governança</h3></div>
           </div>
           <RoomsKanbanView lockedStatus="Limpeza" />
           <KanbanBoard lockedSector="Governanca" />
@@ -453,10 +329,7 @@ export const KanbanWorkspace: React.FC = () => {
       {view === 'maintenance' && (
         <div className="space-y-2">
           <div className="rounded-2xl border border-[#D4A373]/40 bg-[#FAEDCD]/30 p-5">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-5 w-5 text-[#BC6C25]" />
-              <h3 className="text-lg font-black text-[#2C3327]">Manutenção</h3>
-            </div>
+            <div className="flex items-center gap-2"><Wrench className="h-5 w-5 text-[#BC6C25]" /><h3 className="text-lg font-black text-[#2C3327]">Manutenção</h3></div>
           </div>
           <RoomsKanbanView lockedStatus="Manutencao" />
           <KanbanBoard lockedSector="Manutencao" />
