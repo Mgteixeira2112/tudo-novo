@@ -95,6 +95,11 @@ begin
       end
   where id = v_room.id;
 
+  delete from public.operational_notifications
+  where type = 'reception_overstay'
+    and source_type = 'reservation'
+    and source_id = v_res.id;
+
   return v_res;
 end;
 $$;
