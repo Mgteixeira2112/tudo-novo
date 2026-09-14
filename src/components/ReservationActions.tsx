@@ -8,6 +8,7 @@ import {
   updateReservationAtomicCloud
 } from '../services/reservationPages.ts';
 import { KitchenOrder, Reservation, RoomMinibarConsumption } from '../types.ts';
+import { evaluateRoomTypeCompatibility } from '../services/roomCompatibility.ts';
 import { calculateReservationFolio } from '../utils/folio.ts';
 
 type ActionMode = 'confirm' | 'edit' | 'cancel' | null;
@@ -99,6 +100,11 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
     [transactions, reservation.id]
   );
 
+  const reservationRoomType = useMemo(
+    () => settings?.roomTypes?.find(type => type.name === reservation.roomTypeName),
+    [settings?.roomTypes, reservation.roomTypeName]
+  );
+
   const money = (value: number) => `${settings?.currency || 'R$'} ${Number(value || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -162,7 +168,17 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
       setError('Informe ao menos 1 adulto e uma quantidade válida de crianças.');
       return;
     }
-    if (roomCapacity && Number(editForm.adults) + Number(editForm.children) > roomCapacity) {
+    if (reservationRoomType) {
+      const compatibility = evaluateRoomTypeCompatibility(
+        reservationRoomType,
+        Number(editForm.adults),
+        Number(editForm.children)
+      );
+      if (!compatibility.compatible) {
+        setError(compatibility.reason || 'A ocupação informada não é compatível com esta acomodação.');
+        return;
+      }
+    } else if (roomCapacity && Number(editForm.adults) + Number(editForm.children) > roomCapacity) {
       setError(`A ocupação informada excede a capacidade do quarto (${roomCapacity} hóspede(s)).`);
       return;
     }
@@ -367,7 +383,7 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
                     <label className="text-xs font-bold text-[#2C3327]">Nome do hóspede<input value={editForm.guestName} onChange={event => setEditForm(previous => ({ ...previous, guestName: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">E-mail<input type="email" value={editForm.guestEmail} onChange={event => setEditForm(previous => ({ ...previous, guestEmail: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Telefone<input value={editForm.guestPhone} onChange={event => setEditForm(previous => ({ ...previous, guestPhone: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
-                    <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] px-3 py-2.5 text-xs text-[#6B705C]"><span className="block text-[10px] uppercase tracking-wider">Quarto mantido</span><strong className="mt-0.5 block text-[#2C3327]">{reservation.roomNumber} · {reservation.roomTypeName}</strong>{roomCapacity ? <span className="mt-0.5 block">Capacidade: {roomCapacity} hóspede(s)</span> : null}</div>
+                    <div className="rounded-xl border border-[#E6E3D8] bg-[#F7F8F2] px-3 py-2.5 text-xs text-[#6B705C]"><span className="block text-[10px] uppercase tracking-wider">Quarto mantido</span><strong className="mt-0.5 block text-[#2C3327]">{reservation.roomNumber} · {reservation.roomTypeName}</strong>{reservationRoomType ? <span className="mt-0.5 block">Capacidade comercial: {reservationRoomType.capacityAdults} adulto(s) · {reservationRoomType.capacityChildren} criança(s) · máx. {reservationRoomType.maxOccupancy}</span> : roomCapacity ? <span className="mt-0.5 block">Capacidade: {roomCapacity} hóspede(s)</span> : null}</div>
                     <label className="text-xs font-bold text-[#2C3327]">Entrada<input type="date" value={editForm.checkInDate} onChange={event => setEditForm(previous => ({ ...previous, checkInDate: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Saída<input type="date" value={editForm.checkOutDate} onChange={event => setEditForm(previous => ({ ...previous, checkOutDate: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
                     <label className="text-xs font-bold text-[#2C3327]">Adultos<input type="number" min={1} value={editForm.adults} onChange={event => setEditForm(previous => ({ ...previous, adults: Number(event.target.value) }))} className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/25" /></label>
