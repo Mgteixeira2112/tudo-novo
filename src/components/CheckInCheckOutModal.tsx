@@ -47,8 +47,15 @@ export const CheckInCheckOutModal: React.FC = () => {
   // Available clean rooms
   const selectedReservation = reservations.find(r => r.id === selectedResId);
   const availableCleanRooms = rooms.filter(r => r.status === 'Disponivel' && (!selectedReservation || r.typeName === selectedReservation.roomTypeName));
-  // Occupied rooms for check-out
-  const occupiedRooms = rooms.filter(r => r.status === 'Ocupado');
+  // Active stays eligible for checkout: normal occupied rooms plus overdue stays
+  // that were operationally blocked while preserving their active CheckIn reservation.
+  const checkoutRooms = rooms.filter(room => {
+    if (room.status === 'Ocupado') return true;
+    if (room.status !== 'Bloqueado' || !room.currentReservationId) return false;
+    return reservations.some(reservation =>
+      reservation.id === room.currentReservationId && reservation.status === 'CheckIn'
+    );
+  });
 
   // When selecting a reservation for check-in, prefill room and deposit
   const handleSelectReservation = (resId: string) => {
@@ -208,7 +215,7 @@ export const CheckInCheckOutModal: React.FC = () => {
             }`}
           >
             <LogOut className="w-4 h-4 text-[#BC6C25]" />
-            <span>Check-out & Extrato ({occupiedRooms.length})</span>
+            <span>Check-out & Extrato ({checkoutRooms.length})</span>
           </button>
         </div>
       </div>
@@ -384,19 +391,19 @@ export const CheckInCheckOutModal: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {activeTab === 'checkout' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Column 1: Quartos Ocupados */}
+          {/* Column 1: Active stays eligible for checkout */}
           <div className="space-y-4">
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#2C3327]">
-              Quartos Ocupados ({occupiedRooms.length})
+              Hospedagens para Check-out ({checkoutRooms.length})
             </h3>
 
-            {occupiedRooms.length === 0 ? (
+            {checkoutRooms.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#E6E3D8] p-8 text-center text-[#8E9280] text-sm">
-                Nenhum quarto ocupado no momento.
+                Nenhuma hospedagem disponível para check-out no momento.
               </div>
             ) : (
               <div className="space-y-2">
-                {occupiedRooms.map(room => {
+                {checkoutRooms.map(room => {
                   const isSelected = selectedOccupiedRoom?.id === room.id;
                   return (
                     <div
@@ -416,7 +423,9 @@ export const CheckInCheckOutModal: React.FC = () => {
                           </span>
                           <span className="text-xs text-[#6B705C]">({room.typeName})</span>
                         </div>
-                        <span className="text-xs text-[#BC6C25] font-bold">Checkout</span>
+                        <span className="text-xs text-[#BC6C25] font-bold">
+                          {room.status === 'Bloqueado' ? 'Regularizar / Checkout' : 'Checkout'}
+                        </span>
                       </div>
                       <p className="text-xs text-[#3D4035] mt-1 font-medium">
                         Hóspede: {room.currentGuestName || 'Não identificado'}
@@ -642,7 +651,7 @@ export const CheckInCheckOutModal: React.FC = () => {
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-[#E6E3D8] p-12 text-center text-[#8E9280] text-sm">
-                Selecione um quarto ocupado na coluna à esquerda para carregar o extrato completo e finalizar o check-out.
+                Selecione uma hospedagem na coluna à esquerda para carregar o extrato completo e finalizar o check-out.
               </div>
             )}
           </div>
@@ -693,7 +702,7 @@ export const CheckInCheckOutModal: React.FC = () => {
             </div>
 
             <div className="p-3 bg-[#F2F5E8] border border-[#CCD5AE] rounded-xl text-xs text-[#2C3327]">
-              🧹 O quarto foi marcado como <strong>"Limpeza"</strong> e uma tarefa urgente foi gerada no Kanban da Governança.
+              🧹 O quarto foi marcado como <strong>\"Limpeza\"</strong> e uma tarefa urgente foi gerada no Kanban da Governança.
             </div>
 
             <div className="flex justify-end space-x-2 pt-2">
