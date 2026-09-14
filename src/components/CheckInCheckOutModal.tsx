@@ -97,6 +97,7 @@ export const CheckInCheckOutModal: React.FC = () => {
     setSelectedOccupiedRoom(room);
     setCompletedFolio(null);
     const reservation = reservations.find(r => r.id === room.currentReservationId);
+    setCheckoutPaymentMethod(reservation?.paymentMethod || 'Cartao_Credito');
 
     try {
       const [consumptions, allOrders] = await Promise.all([
