@@ -100,7 +100,7 @@ export const OverdueStaysPanel: React.FC = () => {
       setTransferRooms(options);
       setSelectedTransferRoomId(options[0]?.id || '');
       if (options.length === 0) {
-        setExtensionError('O quarto atual possui conflito e não há outro quarto disponível do mesmo tipo para todo o novo período.');
+        setExtensionError('O quarto atual possui conflito e não há outro quarto compatível disponível para todo o novo período.');
       } else {
         setExtensionError('O quarto atual possui outra reserva no período. Selecione abaixo um quarto compatível para prorrogar com transferência.');
       }
@@ -236,7 +236,7 @@ export const OverdueStaysPanel: React.FC = () => {
             </div>
 
             <div className="mt-5 rounded-2xl border border-[#E7C8A2] bg-[#FFF8EF] p-4 text-xs text-[#6B4423]">
-              A prorrogação recalcula as diárias. Se o quarto atual tiver conflito, o sistema buscará automaticamente outro quarto disponível do mesmo tipo.
+              A prorrogação recalcula as diárias. Se o quarto atual tiver conflito, o sistema buscará automaticamente outra acomodação compatível com os adultos, crianças e ocupação total da hospedagem.
             </div>
 
             <div className="mt-5 space-y-4">
@@ -258,13 +258,13 @@ export const OverdueStaysPanel: React.FC = () => {
 
               {transferRooms.length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between"><span className="text-xs font-black text-[#2C3327]">Quartos disponíveis para transferência</span><span className="text-[10px] font-bold text-[#6B705C]">Mesmo tipo · mesma tarifa da reserva</span></div>
+                  <div className="flex items-center justify-between"><span className="text-xs font-black text-[#2C3327]">Quartos disponíveis para transferência</span><span className="text-[10px] font-bold text-[#6B705C]">Categoria compatível · tarifa original preservada</span></div>
                   {transferRooms.map(room => (
                     <label key={room.id} className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3 transition ${selectedTransferRoomId === room.id ? 'border-[#588157] bg-[#F2F5E8] ring-2 ring-[#588157]/15' : 'border-[#E6E3D8] bg-white hover:border-[#A3B18A]'}`}>
-                      <div className="flex items-center gap-3"><input type="radio" name="transfer-room" value={room.id} checked={selectedTransferRoomId === room.id} onChange={() => setSelectedTransferRoomId(room.id)} /><div><strong className="block text-sm text-[#2C3327]">Quarto {room.number}</strong><span className="text-[11px] text-[#6B705C]">{room.typeName} · Andar {room.floor} · Capacidade {room.capacity}</span></div></div>
+                      <div className="flex items-center gap-3"><input type="radio" name="transfer-room" value={room.id} checked={selectedTransferRoomId === room.id} onChange={() => setSelectedTransferRoomId(room.id)} /><div><strong className="block text-sm text-[#2C3327]">Quarto {room.number}</strong><span className="text-[11px] text-[#6B705C]">{room.typeName} · Andar {room.floor} · Capacidade física {room.capacity}</span></div></div>
                     </label>
                   ))}
-                  <p className="text-[11px] leading-relaxed text-[#8A8F7D]">Ao confirmar, o quarto atual vai para Limpeza e a Governança recebe uma tarefa urgente. A hospedagem continua ativa no novo quarto.</p>
+                  <p className="text-[11px] leading-relaxed text-[#8A8F7D]">Ao confirmar, o quarto atual vai para Limpeza e a Governança recebe uma tarefa urgente. A hospedagem continua ativa no novo quarto com a tarifa original da reserva.</p>
                 </div>
               )}
             </div>
