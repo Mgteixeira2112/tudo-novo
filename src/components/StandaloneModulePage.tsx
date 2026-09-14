@@ -13,6 +13,7 @@ import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
 import { MenuManagementModule } from './MenuManagementModule.tsx';
 import { OperationalStandalonePage } from './OperationalStandalonePage.tsx';
+import { OverdueStaysPanel } from './OverdueStaysPanel.tsx';
 import { PublicSiteSettingsEditor } from './PublicSiteSettingsEditor.tsx';
 import './reservationDetailsDrawer.css';
 
@@ -31,6 +32,7 @@ export type StandaloneModule =
   | 'checkin'
   | 'checkout'
   | 'walkin'
+  | 'overdueStays'
   | 'minibar'
   | 'roomService'
   | 'kitchen'
@@ -56,6 +58,7 @@ const TITLES: Record<StandaloneModule, string> = {
   checkin: 'Check-in',
   checkout: 'Check-out',
   walkin: 'Check-in Direto',
+  overdueStays: 'Hospedagens vencidas',
   minibar: 'Frigobar',
   roomService: 'Room Service',
   kitchen: 'Cozinha',
@@ -109,17 +112,19 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
               ? canViewKanbans
               : ['inventory', 'kardex', 'replenishment', 'linen', 'laundry', 'lossDamage', 'purchases'].includes(module)
                 ? canViewInventory
-                : ['checkin', 'checkout', 'walkin'].includes(module)
-                  ? canManageCheckInOut
-                  : ['reservations', 'checkinout'].includes(module)
-                    ? canAccessReception
-                    : module === 'minibar'
-                      ? canViewMinibar
-                      : module === 'roomService'
-                        ? canViewRoomService
-                        : module === 'kitchen'
-                          ? canViewKitchen
-                          : canManageMenu;
+                : module === 'overdueStays'
+                  ? canAccessReception
+                  : ['checkin', 'checkout', 'walkin'].includes(module)
+                    ? canManageCheckInOut
+                    : ['reservations', 'checkinout'].includes(module)
+                      ? canAccessReception
+                      : module === 'minibar'
+                        ? canViewMinibar
+                        : module === 'roomService'
+                          ? canViewRoomService
+                          : module === 'kitchen'
+                            ? canViewKitchen
+                            : canManageMenu;
 
   if (!allowed) {
     return (
@@ -169,6 +174,7 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'checkin' && <ReceptionCheckFlowPage flow="checkin" />}
       {module === 'checkout' && <ReceptionCheckFlowPage flow="checkout" />}
       {module === 'walkin' && <WalkInCheckIn />}
+      {module === 'overdueStays' && <OverdueStaysPanel />}
       {module === 'minibar' && <MinibarOperationalModule canManage={canManageMinibar} />}
       {module === 'roomService' && <OrdersOperationalModule mode="room_service" canManage={canManageRoomService} />}
       {module === 'kitchen' && <OrdersOperationalModule mode="kitchen" canManage={canManageKitchen} />}
