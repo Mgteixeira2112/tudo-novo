@@ -312,6 +312,27 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
       });
   }, [rooms, roomTypeFilter, floorFilter, search, filteredReservations, dashboardFilter]);
 
+  const availabilityByDay = useMemo(() => {
+    const blockingReservations = reservations.filter(reservation =>
+      ['Pendente', 'Confirmada', 'CheckIn'].includes(reservation.status)
+    );
+
+    return new Map(visibleDays.map(day => {
+      const occupied = filteredRooms.filter(room =>
+        blockingReservations.some(reservation =>
+          roomMatchesReservation(room, reservation)
+          && reservation.checkInDate <= day
+          && reservation.checkOutDate > day
+        )
+      ).length;
+
+      return [day, {
+        available: Math.max(0, filteredRooms.length - occupied),
+        occupied
+      }] as const;
+    }));
+  }, [reservations, filteredRooms, visibleDays]);
+
   const activeReservations = useMemo(
     () => scopedReservations.filter(reservation => ['Pendente', 'Confirmada'].includes(reservation.status)),
     [scopedReservations]
@@ -570,6 +591,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
               </div>
             ))}
             <span className="text-[10px] text-[#8A8F7D]">Canceladas só aparecem na grade quando esse status é filtrado.</span>
+            <span className="text-[10px] text-[#8A8F7D]">Disponibilidade considera reservas Pendentes, Confirmadas e hóspedes em Check-in.</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -583,13 +605,20 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                 </div>
                 {visibleDays.map(day => {
                   const isToday = day === today;
+                  const availability = availabilityByDay.get(day) || { available: filteredRooms.length, occupied: 0 };
                   return (
                     <div
                       key={day}
+                      title={`${availability.available} quarto(s) livre(s) · ${availability.occupied} ocupado(s)/reservado(s)`}
                       className={`px-2 py-2.5 text-center border-r border-[#E6E3D8] ${isToday ? 'bg-[#E9EDC9]' : ''}`}
                     >
                       <span className="block text-[9px] uppercase tracking-wider font-bold text-[#7B806E]">{formatWeekday(day)}</span>
                       <strong className={`block mt-0.5 text-xs ${isToday ? 'text-[#3A5A40]' : 'text-[#2C3327]'}`}>{formatDayNumber(day)}</strong>
+                      <div className="mt-1 flex items-center justify-center gap-1 text-[8px] font-bold whitespace-nowrap">
+                        <span className="text-[#588157]">{availability.available} livres</span>
+                        <span className="text-[#B0B4A4]">·</span>
+                        <span className="text-[#8A8F7D]">{availability.occupied} ocup.</span>
+                      </div>
                     </div>
                   );
                 })}
