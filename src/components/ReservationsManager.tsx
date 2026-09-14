@@ -10,6 +10,7 @@ import {
   CreditCard,
   Mail,
   Phone,
+  Plus,
   RefreshCw,
   Search,
   Users,
@@ -18,6 +19,7 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 import { loadGuestsCloud } from '../services/adminPages.ts';
 import { ReservationActions } from './ReservationActions.tsx';
+import { ReservationQuickCreateModal } from './ReservationQuickCreateModal.tsx';
 import { Guest, Reservation, ReservationStatus, Room } from '../types.ts';
 
 const VIEW_DAYS = 14;
@@ -167,6 +169,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [dashboardFilter, setDashboardFilter] = useState<DashboardReservationFilter>('ALL');
   const [guestDirectory, setGuestDirectory] = useState<Guest[]>(guests);
+  const [quickCreate, setQuickCreate] = useState<{ room: Room; checkInDate: string } | null>(null);
 
   useEffect(() => {
     if (guests.length > 0) {
@@ -253,6 +256,10 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
       : guestDirectory.find(guest => safelyMatchesGuest(guest, selectedReservation))
     : undefined;
 
+  const quickCreateRoomType = quickCreate
+    ? settings?.roomTypes?.find(roomType => roomType.id === quickCreate.room.typeId)
+    : undefined;
+
   const scopedReservations = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -312,11 +319,12 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
       });
   }, [rooms, roomTypeFilter, floorFilter, search, filteredReservations, dashboardFilter]);
 
-  const availabilityByDay = useMemo(() => {
-    const blockingReservations = reservations.filter(reservation =>
-      ['Pendente', 'Confirmada', 'CheckIn'].includes(reservation.status)
-    );
+  const blockingReservations = useMemo(
+    () => reservations.filter(reservation => ['Pendente', 'Confirmada', 'CheckIn'].includes(reservation.status)),
+    [reservations]
+  );
 
+  const availabilityByDay = useMemo(() => {
     return new Map(visibleDays.map(day => {
       const occupied = filteredRooms.filter(room =>
         blockingReservations.some(reservation =>
@@ -331,7 +339,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
         occupied
       }] as const;
     }));
-  }, [reservations, filteredRooms, visibleDays]);
+  }, [blockingReservations, filteredRooms, visibleDays]);
 
   const activeReservations = useMemo(
     () => scopedReservations.filter(reservation => ['Pendente', 'Confirmada'].includes(reservation.status)),
@@ -394,6 +402,27 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
 
   const openReservationDetails = (reservation: Reservation, closeArchive = false) => {
     if (closeArchive) setArchiveOpen(false);
+    setSelectedReservation(reservation);
+  };
+
+  const openQuickCreate = (room: Room, checkInDate: string) => {
+    if (!hasPermission('manage_checkinout')) return;
+    if (checkInDate < today) return;
+    if (room.status === 'Manutencao' || room.status === 'Bloqueado') return;
+
+    const blocked = blockingReservations.some(reservation =>
+      roomMatchesReservation(room, reservation)
+      && reservation.checkInDate <= checkInDate
+      && reservation.checkOutDate > checkInDate
+    );
+    if (blocked) return;
+
+    setQuickCreate({ room, checkInDate });
+  };
+
+  const handleQuickReservationCreated = async (reservation: Reservation) => {
+    await refreshData();
+    setQuickCreate(null);
     setSelectedReservation(reservation);
   };
 
@@ -592,6 +621,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
             ))}
             <span className="text-[10px] text-[#8A8F7D]">Canceladas só aparecem na grade quando esse status é filtrado.</span>
             <span className="text-[10px] text-[#8A8F7D]">Disponibilidade considera reservas Pendentes, Confirmadas e hóspedes em Check-in.</span>
+            {hasPermission('manage_checkinout') && <span className="text-[10px] font-bold text-[#588157]">Clique em um espaço livre futuro para criar uma reserva.</span>}
           </div>
 
           <div className="overflow-x-auto">
@@ -650,13 +680,42 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                         </div>
                       </div>
 
-                      {visibleDays.map((day, index) => (
-                        <div
-                          key={`${room.id}-${day}`}
-                          className={`min-h-[66px] border-r border-[#EEEAE1] ${day === today ? 'bg-[#F6F8ED]' : index % 2 === 1 ? 'bg-[#FDFCF9]' : 'bg-white'}`}
-                          style={{ gridColumn: index + 2, gridRow: 1 }}
-                        />
-                      ))}
+                      {visibleDays.map((day, index) => {
+                        const blockedForDay = blockingReservations.some(reservation =>
+                          roomMatchesReservation(room, reservation)
+                          && reservation.checkInDate <= day
+                          && reservation.checkOutDate > day
+                        );
+                        const canCreate = hasPermission('manage_checkinout')
+                          && day >= today
+                          && room.status !== 'Manutencao'
+                          && room.status !== 'Bloqueado'
+                          && !blockedForDay;
+                        const cellClass = `min-h-[66px] border-r border-[#EEEAE1] ${day === today ? 'bg-[#F6F8ED]' : index % 2 === 1 ? 'bg-[#FDFCF9]' : 'bg-white'}`;
+
+                        return canCreate ? (
+                          <button
+                            type="button"
+                            key={`${room.id}-${day}`}
+                            onClick={() => openQuickCreate(room, day)}
+                            title={`Criar reserva no quarto ${room.number} a partir de ${formatDate(day)}`}
+                            className={`${cellClass} group relative cursor-pointer hover:bg-[#F2F5E8] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#588157]/30`}
+                            style={{ gridColumn: index + 2, gridRow: 1 }}
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-[#CCD5AE] bg-white/90 px-2 py-1 text-[9px] font-black text-[#588157] shadow-sm">
+                                <Plus className="w-3 h-3" /> Reserva
+                              </span>
+                            </span>
+                          </button>
+                        ) : (
+                          <div
+                            key={`${room.id}-${day}`}
+                            className={cellClass}
+                            style={{ gridColumn: index + 2, gridRow: 1 }}
+                          />
+                        );
+                      })}
 
                       {roomReservations.map(reservation => {
                         const visibleStart = reservation.checkInDate < timelineStart ? timelineStart : reservation.checkInDate;
@@ -789,6 +848,18 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
           )}
         </section>
       </div>
+
+      {quickCreate && (
+        <ReservationQuickCreateModal
+          room={quickCreate.room}
+          roomType={quickCreateRoomType}
+          initialCheckInDate={quickCreate.checkInDate}
+          minimumCheckInDate={today}
+          currencySymbol={settings?.currency || 'R$'}
+          onClose={() => setQuickCreate(null)}
+          onCreated={handleQuickReservationCreated}
+        />
+      )}
 
       {archiveOpen && (
         <div className="fixed inset-0 z-[95] bg-black/40 backdrop-blur-[1px] flex items-center justify-center p-4" onClick={() => setArchiveOpen(false)}>
