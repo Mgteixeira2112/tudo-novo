@@ -126,6 +126,22 @@ const currency = (value: number, symbol: string) =>
 const normalizePhone = (value?: string) => (value || '').replace(/\D/g, '');
 const normalizedText = (value?: string) => (value || '').trim().toLowerCase();
 
+const safelyMatchesGuest = (guest: Guest, reservation: Reservation) => {
+  if (normalizedText(guest.fullName) !== normalizedText(reservation.guestName)) return false;
+
+  const guestEmail = normalizedText(guest.email);
+  const reservationEmail = normalizedText(reservation.guestEmail);
+  const guestPhone = normalizePhone(guest.phone);
+  const reservationPhone = normalizePhone(reservation.guestPhone);
+  const hasComparableContact = Boolean(
+    (guestEmail && reservationEmail) || (guestPhone && reservationPhone)
+  );
+
+  return !hasComparableContact
+    || Boolean(guestEmail && reservationEmail && guestEmail === reservationEmail)
+    || Boolean(guestPhone && reservationPhone && guestPhone === reservationPhone);
+};
+
 const roomMatchesReservation = (room: Room, reservation: Reservation) =>
   reservation.roomId === room.id || reservation.roomNumber === room.number;
 
@@ -225,13 +241,9 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
     : undefined;
 
   const selectedGuest = selectedReservation
-    ? guestDirectory.find(guest => guest.id === selectedReservation.guestId)
-      || guestDirectory.find(guest => selectedReservation.guestEmail && normalizedText(guest.email) === normalizedText(selectedReservation.guestEmail))
-      || guestDirectory.find(guest => {
-        const reservationPhone = normalizePhone(selectedReservation.guestPhone);
-        return Boolean(reservationPhone) && normalizePhone(guest.phone) === reservationPhone;
-      })
-      || guestDirectory.find(guest => normalizedText(guest.fullName) === normalizedText(selectedReservation.guestName))
+    ? selectedReservation.guestId
+      ? guestDirectory.find(guest => guest.id === selectedReservation.guestId && safelyMatchesGuest(guest, selectedReservation))
+      : guestDirectory.find(guest => safelyMatchesGuest(guest, selectedReservation))
     : undefined;
 
   const scopedReservations = useMemo(() => {
