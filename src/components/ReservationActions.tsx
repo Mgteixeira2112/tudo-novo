@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, Pencil, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Ban, CheckCircle2, CreditCard, Pencil, Receipt, Utensils, Wine, X } from 'lucide-react';
+import { useHotel } from '../context/HotelContext.tsx';
+import { api } from '../services/api.ts';
 import {
   cancelReservationAtomicCloud,
   confirmReservationAtomicCloud,
   updateReservationAtomicCloud
 } from '../services/reservationPages.ts';
-import { Reservation } from '../types.ts';
+import { KitchenOrder, Reservation, RoomMinibarConsumption } from '../types.ts';
+import { calculateReservationFolio } from '../utils/folio.ts';
 
 type ActionMode = 'confirm' | 'edit' | 'cancel' | null;
 
@@ -39,11 +42,16 @@ const buildEditForm = (reservation: Reservation): EditFormState => ({
 });
 
 export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservation, roomCapacity, canManage, onUpdated }) => {
+  const { settings, transactions } = useHotel();
   const [mode, setMode] = useState<ActionMode>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [editForm, setEditForm] = useState<EditFormState>(() => buildEditForm(reservation));
+  const [folioConsumptions, setFolioConsumptions] = useState<RoomMinibarConsumption[]>([]);
+  const [folioOrders, setFolioOrders] = useState<KitchenOrder[]>([]);
+  const [folioLoading, setFolioLoading] = useState(false);
+  const [folioError, setFolioError] = useState('');
 
   useEffect(() => {
     setMode(null);
@@ -51,6 +59,50 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
     setCancelReason('');
     setEditForm(buildEditForm(reservation));
   }, [reservation.id, reservation.status, reservation.checkInDate, reservation.checkOutDate]);
+
+  useEffect(() => {
+    let active = true;
+    setFolioLoading(true);
+    setFolioError('');
+
+    Promise.all([
+      api.getRoomConsumptions(reservation.roomId),
+      api.getOrders()
+    ])
+      .then(([consumptions, orders]) => {
+        if (!active) return;
+        setFolioConsumptions(consumptions.filter(item => item.reservationId === reservation.id));
+        setFolioOrders(orders.filter(item => item.reservationId === reservation.id));
+      })
+      .catch(err => {
+        if (!active) return;
+        setFolioConsumptions([]);
+        setFolioOrders([]);
+        setFolioError(err?.message || 'Não foi possível carregar todos os lançamentos do folio.');
+      })
+      .finally(() => {
+        if (active) setFolioLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [reservation.id, reservation.roomId]);
+
+  const folio = useMemo(
+    () => calculateReservationFolio(reservation, folioConsumptions, folioOrders, transactions),
+    [reservation, folioConsumptions, folioOrders, transactions]
+  );
+
+  const reservationPayments = useMemo(
+    () => transactions.filter(tx => tx.reservationId === reservation.id && tx.type === 'Receita' && tx.status === 'Pago'),
+    [transactions, reservation.id]
+  );
+
+  const money = (value: number) => `${settings?.currency || 'R$'} ${Number(value || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 
   const closeAction = () => {
     if (busy) return;
@@ -137,31 +189,131 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
     }
   };
 
-  if (!canManage || !['Pendente', 'Confirmada'].includes(reservation.status)) return null;
+  const canManageReservation = canManage && ['Pendente', 'Confirmada'].includes(reservation.status);
 
   return (
     <>
-      <section className="rounded-2xl border border-[#CCD5AE] bg-[#F7F8F2] p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="rounded-2xl border border-[#DADFD1] bg-white p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h4 className="text-xs font-black uppercase tracking-[0.12em] text-[#3A5A40]">Gestão da reserva</h4>
-            <p className="mt-1 text-[10px] text-[#6B705C]">Ações com validação e persistência direta no Supabase.</p>
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-[#588157]" />
+              <h4 className="text-sm font-black text-[#2C3327]">Resumo financeiro da hospedagem</h4>
+            </div>
+            <p className="mt-1 text-[10px] text-[#7B806E]">Consulta do folio. A quitação continua sendo realizada no fluxo de Check-out.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {reservation.status === 'Pendente' && (
-              <button type="button" onClick={() => { setMode('confirm'); setError(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-[#588157] bg-[#588157] px-3 py-2 text-[11px] font-extrabold text-white hover:bg-[#466747]">
-                <CheckCircle2 className="h-4 w-4" /> Confirmar
-              </button>
-            )}
-            <button type="button" onClick={() => { setEditForm(buildEditForm(reservation)); setMode('edit'); setError(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DADFD1] bg-white px-3 py-2 text-[11px] font-extrabold text-[#2C3327] hover:bg-[#F4F1EA]">
-              <Pencil className="h-4 w-4 text-[#588157]" /> Editar
-            </button>
-            <button type="button" onClick={() => { setMode('cancel'); setError(''); setCancelReason(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-[11px] font-extrabold text-red-700 hover:bg-red-50">
-              <Ban className="h-4 w-4" /> Cancelar
-            </button>
+          <div className="text-left sm:text-right">
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Saldo atual</span>
+            <strong className={`text-lg ${folio.balance > 0 ? 'text-[#BC6C25]' : 'text-[#588157]'}`}>{money(folio.balance)}</strong>
           </div>
         </div>
+
+        {folioLoading ? (
+          <div className="mt-4 rounded-xl bg-[#F7F8F2] px-3 py-4 text-center text-xs text-[#6B705C]">Carregando lançamentos...</div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {folioError && <div className="rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">{folioError}</div>}
+
+            <div className="rounded-xl border border-[#EEEAE1] bg-[#FDFBF7]">
+              <div className="flex items-center justify-between gap-3 border-b border-[#EEEAE1] px-3 py-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-[#588157]" />
+                  <span><strong>Hospedagem</strong> · {reservation.nights} diária(s)</span>
+                </div>
+                <strong>{money(folio.nightsTotal)}</strong>
+              </div>
+
+              <div className="border-b border-[#EEEAE1] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2"><Wine className="h-4 w-4 text-[#588157]" /><strong>Frigobar</strong></div>
+                  <strong>{money(folio.minibarTotal)}</strong>
+                </div>
+                {folioConsumptions.length > 0 && (
+                  <div className="mt-2 space-y-1 pl-6 text-[10px] text-[#6B705C]">
+                    {folioConsumptions.map(item => (
+                      <div key={item.id} className="flex justify-between gap-3">
+                        <span>{item.itemName} · {item.quantity} × {money(item.unitPrice)}</span>
+                        <span>{money(item.totalPrice)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-b border-[#EEEAE1] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2"><Utensils className="h-4 w-4 text-[#BC6C25]" /><strong>Cozinha & Room Service entregues</strong></div>
+                  <strong>{money(folio.kitchenTotal)}</strong>
+                </div>
+                {folio.deliveredKitchenOrders.length > 0 && (
+                  <div className="mt-2 space-y-1.5 pl-6 text-[10px] text-[#6B705C]">
+                    {folio.deliveredKitchenOrders.map(order => (
+                      <div key={order.id} className="flex justify-between gap-3">
+                        <span>#{order.orderNumber} · {order.items.map(item => `${item.quantity}× ${item.name}`).join(', ')}</span>
+                        <span>{money(order.totalAmount + (order.deliveryFee || 0))}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-[#588157]" /><strong>Pagamentos já realizados</strong></div>
+                  <strong className="text-[#588157]">− {money(folio.priorPaid)}</strong>
+                </div>
+                {reservationPayments.length > 0 && (
+                  <div className="mt-2 space-y-1 pl-6 text-[10px] text-[#6B705C]">
+                    {reservationPayments.map(payment => (
+                      <div key={payment.id} className="flex justify-between gap-3">
+                        <span>{payment.paymentMethod} · {payment.description}</span>
+                        <span>− {money(payment.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {folio.pendingKitchenOrders.length > 0 && (
+              <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span><strong>{folio.pendingKitchenOrders.length} pedido(s) de Cozinha/Room Service ainda não entregue(s).</strong> Eles não entram no valor do folio até serem marcados como Entregue.</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+              <div className="rounded-xl bg-[#F7F8F2] px-3 py-2"><span className="block text-[9px] uppercase tracking-wider text-[#8A8F7D]">Total lançado</span><strong>{money(folio.grossTotal)}</strong></div>
+              <div className="rounded-xl bg-[#F7F8F2] px-3 py-2"><span className="block text-[9px] uppercase tracking-wider text-[#8A8F7D]">Já pago</span><strong className="text-[#588157]">{money(folio.priorPaid)}</strong></div>
+              <div className="col-span-2 rounded-xl bg-[#F2F5E8] px-3 py-2 sm:col-span-1"><span className="block text-[9px] uppercase tracking-wider text-[#6B705C]">Saldo</span><strong className={folio.balance > 0 ? 'text-[#BC6C25]' : 'text-[#588157]'}>{money(folio.balance)}</strong></div>
+            </div>
+          </div>
+        )}
       </section>
+
+      {canManageReservation && (
+        <section className="rounded-2xl border border-[#CCD5AE] bg-[#F7F8F2] p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.12em] text-[#3A5A40]">Gestão da reserva</h4>
+              <p className="mt-1 text-[10px] text-[#6B705C]">Ações com validação e persistência direta no Supabase.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {reservation.status === 'Pendente' && (
+                <button type="button" onClick={() => { setMode('confirm'); setError(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-[#588157] bg-[#588157] px-3 py-2 text-[11px] font-extrabold text-white hover:bg-[#466747]">
+                  <CheckCircle2 className="h-4 w-4" /> Confirmar
+                </button>
+              )}
+              <button type="button" onClick={() => { setEditForm(buildEditForm(reservation)); setMode('edit'); setError(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DADFD1] bg-white px-3 py-2 text-[11px] font-extrabold text-[#2C3327] hover:bg-[#F4F1EA]">
+                <Pencil className="h-4 w-4 text-[#588157]" /> Editar
+              </button>
+              <button type="button" onClick={() => { setMode('cancel'); setError(''); setCancelReason(''); }} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-[11px] font-extrabold text-red-700 hover:bg-red-50">
+                <Ban className="h-4 w-4" /> Cancelar
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {mode && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]" onClick={closeAction}>

@@ -18,6 +18,7 @@ import {
 import { useHotel } from '../context/HotelContext.tsx';
 import { Room, Reservation, RoomMinibarConsumption, KitchenOrder } from '../types.ts';
 import { api } from '../services/api.ts';
+import { calculateReservationFolio } from '../utils/folio.ts';
 
 export const CheckInCheckOutModal: React.FC = () => {
   const { rooms, reservations, settings, transactions, refreshData } = useHotel();
@@ -125,16 +126,17 @@ export const CheckInCheckOutModal: React.FC = () => {
     ? reservations.find(r => r.id === selectedOccupiedRoom.currentReservationId)
     : null;
 
-  // Compute checkout totals. Kitchen/Room Service is charged only after delivery.
-  const nightsTotal = activeReservation ? activeReservation.totalNightsAmount : 0;
-  const minibarTotal = roomConsumptions.reduce((acc, c) => acc + c.totalPrice, 0);
-  const deliveredKitchenOrders = roomOrders.filter(o => o.status === 'Entregue');
-  const pendingKitchenOrders = roomOrders.filter(o => !['Entregue', 'Cancelado'].includes(o.status));
-  const kitchenTotal = deliveredKitchenOrders.reduce((acc, o) => acc + o.totalAmount + (o.deliveryFee || 0), 0);
-  const priorPaid = activeReservation
-    ? transactions.filter(tx => tx.reservationId === activeReservation.id && tx.type === 'Receita' && tx.status === 'Pago').reduce((acc, tx) => acc + tx.amount, 0)
-    : 0;
-  const totalBill = Math.max(0, nightsTotal + minibarTotal + kitchenTotal - (checkoutDiscount || 0) - priorPaid);
+  // Shared folio calculation used by checkout and the reservation detail view.
+  const checkoutFolio = activeReservation
+    ? calculateReservationFolio(activeReservation, roomConsumptions, roomOrders, transactions, checkoutDiscount)
+    : null;
+  const nightsTotal = checkoutFolio?.nightsTotal || 0;
+  const minibarTotal = checkoutFolio?.minibarTotal || 0;
+  const deliveredKitchenOrders = checkoutFolio?.deliveredKitchenOrders || [];
+  const pendingKitchenOrders = checkoutFolio?.pendingKitchenOrders || [];
+  const kitchenTotal = checkoutFolio?.kitchenTotal || 0;
+  const priorPaid = checkoutFolio?.priorPaid || 0;
+  const totalBill = checkoutFolio?.balance || 0;
 
   const handleExecuteCheckOut = async () => {
     if (!activeReservation || !selectedOccupiedRoom) return;
