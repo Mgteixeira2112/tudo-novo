@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Banknote, CalendarDays, CreditCard, FileCheck2, KeyRound, LogIn, QrCode, UserCheck } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
-import { PaymentMethod, Reservation } from '../types.ts';
+import { Guest, PaymentMethod, Reservation } from '../types.ts';
 import { processCheckInAtomicCloud } from '../services/checkInOutPages.ts';
 import {
   loadReservationPreCheckInCloud,
@@ -52,6 +52,25 @@ function preCheckInBadgeClass(status?: PreCheckInStatus) {
   return 'border-[#E6E3D8] bg-[#F8F7F2] text-[#777A6A]';
 }
 
+const normalizePhone = (value?: string) => (value || '').replace(/\D/g, '');
+const normalizedText = (value?: string) => (value || '').trim().toLowerCase();
+
+function safelyMatchesGuest(guest: Guest, reservation: Reservation) {
+  if (normalizedText(guest.fullName) !== normalizedText(reservation.guestName)) return false;
+
+  const guestEmail = normalizedText(guest.email);
+  const reservationEmail = normalizedText(reservation.guestEmail);
+  const guestPhone = normalizePhone(guest.phone);
+  const reservationPhone = normalizePhone(reservation.guestPhone);
+  const hasComparableContact = Boolean(
+    (guestEmail && reservationEmail) || (guestPhone && reservationPhone)
+  );
+
+  return !hasComparableContact
+    || Boolean(guestEmail && reservationEmail && guestEmail === reservationEmail)
+    || Boolean(guestPhone && reservationPhone && guestPhone === reservationPhone);
+}
+
 export const ReceptionCheckInFlow: React.FC = () => {
   const { rooms, reservations, guests, settings, refreshData } = useHotel();
   const [selectedResId, setSelectedResId] = useState('');
@@ -77,8 +96,11 @@ export const ReceptionCheckInFlow: React.FC = () => {
   );
 
   const selectedReservation = checkinReservations.find(reservation => reservation.id === selectedResId);
-  const selectedGuest = selectedReservation?.guestId
+  const linkedGuest = selectedReservation?.guestId
     ? guests.find(guest => guest.id === selectedReservation.guestId)
+    : undefined;
+  const selectedGuest = linkedGuest && selectedReservation && safelyMatchesGuest(linkedGuest, selectedReservation)
+    ? linkedGuest
     : undefined;
   const availableCleanRooms = rooms.filter(room =>
     room.status === 'Disponivel' &&
