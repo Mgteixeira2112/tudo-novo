@@ -1,6 +1,16 @@
 import { Reservation } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
 
+export type OverdueTransferRoom = {
+  id: string;
+  number: string;
+  typeId: string;
+  typeName: string;
+  floor: number;
+  capacity: number;
+  pricePerNight: number;
+};
+
 function mapReservation(row: any): Reservation {
   return {
     id: row.id,
@@ -46,10 +56,57 @@ export async function extendOverdueStayAtomic(input: {
   if (error) {
     const message = String(error.message || 'Erro ao prorrogar hospedagem.');
     if (message.includes('outra reserva ativa')) {
-      throw new Error('Não é possível prorrogar: o quarto possui outra reserva ativa no novo período.');
+      const conflictError = new Error('Não é possível manter o quarto atual: existe outra reserva ativa no novo período.');
+      (conflictError as any).code = 'ROOM_CONFLICT';
+      throw conflictError;
     }
     throw new Error(message);
   }
 
+  return mapReservation(data);
+}
+
+export async function findOverdueStayTransferRooms(input: {
+  reservationId: string;
+  newCheckOutDate: string;
+}): Promise<OverdueTransferRoom[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data, error } = await supabase.rpc('find_overdue_stay_transfer_rooms', {
+    p_reservation_id: input.reservationId,
+    p_new_check_out_date: input.newCheckOutDate
+  });
+
+  if (error) throw new Error(String(error.message || 'Erro ao buscar quartos compatíveis.'));
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    number: row.number,
+    typeId: row.type_id,
+    typeName: row.type_name,
+    floor: Number(row.floor || 0),
+    capacity: Number(row.capacity || 0),
+    pricePerNight: Number(row.price_per_night || 0)
+  }));
+}
+
+export async function extendOverdueStayWithTransferAtomic(input: {
+  reservationId: string;
+  newCheckOutDate: string;
+  newRoomId: string;
+  reason?: string;
+}): Promise<Reservation> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data, error } = await supabase.rpc('extend_overdue_stay_with_transfer_atomic', {
+    p_reservation_id: input.reservationId,
+    p_new_check_out_date: input.newCheckOutDate,
+    p_new_room_id: input.newRoomId,
+    p_reason: input.reason || null
+  });
+
+  if (error) throw new Error(String(error.message || 'Erro ao prorrogar e transferir hospedagem.'));
   return mapReservation(data);
 }
