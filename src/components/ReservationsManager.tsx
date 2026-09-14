@@ -187,6 +187,13 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   }, [guests]);
 
   useEffect(() => {
+    if (!selectedReservation) return;
+    const latest = reservations.find(item => item.id === selectedReservation.id);
+    if (!latest) return;
+    setSelectedReservation(current => current?.id === latest.id ? latest : current);
+  }, [reservations, selectedReservation?.id]);
+
+  useEffect(() => {
     try {
       const raw = sessionStorage.getItem(RESERVATION_NAVIGATION_KEY);
       if (!raw) return;
