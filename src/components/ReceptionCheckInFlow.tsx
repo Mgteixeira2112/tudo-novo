@@ -88,7 +88,7 @@ export const ReceptionCheckInFlow: React.FC = () => {
 
   const checkinReservations = useMemo(
     () => reservations.filter(reservation =>
-      (reservation.status === 'Confirmada' || reservation.status === 'Pendente') &&
+      reservation.status === 'Confirmada' &&
       reservation.checkInDate <= today &&
       today < reservation.checkOutDate
     ),
@@ -193,7 +193,7 @@ export const ReceptionCheckInFlow: React.FC = () => {
           <LogIn className="h-5 w-5 text-[#588157]" /> Check-in
         </h2>
         <p className="mt-1 text-xs text-[#6B705C]">
-          Exibe somente reservas cujo período permite entrada hoje, considerando o horário do hotel (America/Sao_Paulo).
+          Exibe somente reservas confirmadas cujo período permite entrada hoje, considerando o horário do hotel (America/Sao_Paulo).
         </p>
       </div>
 
