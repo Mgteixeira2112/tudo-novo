@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Bell, CalendarPlus, Clock3, DoorOpen, LogOut, RefreshCw, X } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import {
+  authorizeOverdueStayExceptionAtomic,
   extendOverdueStayAtomic,
   extendOverdueStayWithTransferAtomic,
   findOverdueStayTransferRooms,
@@ -39,6 +40,13 @@ const overdueLabel = (checkOutDate: string, checkOutTime: string) => {
   return `${minutes}min`;
 };
 
+const defaultExceptionalTime = () => {
+  const now = saoPauloNowKey();
+  const [hour, minute] = now.slice(11, 16).split(':').map(Number);
+  const total = Math.min(23 * 60 + 59, hour * 60 + minute + 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
 export const OverdueStaysPanel: React.FC = () => {
   const { reservations, rooms, settings, refreshData } = useHotel();
   const checkOutTime = settings?.checkOutTime || '11:00';
@@ -55,16 +63,28 @@ export const OverdueStaysPanel: React.FC = () => {
   const [selectedTransferRoomId, setSelectedTransferRoomId] = useState('');
   const [searchingTransferRooms, setSearchingTransferRooms] = useState(false);
 
+  const [exceptionReservationId, setExceptionReservationId] = useState<string | null>(null);
+  const [exceptionUntilTime, setExceptionUntilTime] = useState(defaultExceptionalTime());
+  const [exceptionReason, setExceptionReason] = useState('');
+  const [exceptionError, setExceptionError] = useState('');
+  const [savingException, setSavingException] = useState(false);
+
   const overdue = useMemo(() => reservations
-    .filter(reservation => reservation.status === 'CheckIn' && `${reservation.checkOutDate}T${checkOutTime}` <= nowKey)
     .map(reservation => ({
       reservation,
       room: rooms.find(room => room.id === reservation.roomId || room.number === reservation.roomNumber)
     }))
+    .filter(({ reservation, room }) =>
+      reservation.status === 'CheckIn' &&
+      `${reservation.checkOutDate}T${checkOutTime}` <= nowKey &&
+      room?.status === 'Bloqueado' &&
+      room.currentReservationId === reservation.id
+    )
     .sort((a, b) => `${a.reservation.checkOutDate}T${checkOutTime}`.localeCompare(`${b.reservation.checkOutDate}T${checkOutTime}`)),
   [reservations, rooms, checkOutTime, nowKey]);
 
   const reservationBeingExtended = reservations.find(item => item.id === extendingReservationId) || null;
+  const reservationBeingExceptional = reservations.find(item => item.id === exceptionReservationId) || null;
 
   const resetTransferOptions = () => {
     setTransferRooms([]);
@@ -87,6 +107,47 @@ export const OverdueStaysPanel: React.FC = () => {
     setExtendingReservationId(null);
     setExtensionError('');
     resetTransferOptions();
+  };
+
+  const openException = (reservationId: string) => {
+    setExceptionReservationId(reservationId);
+    setExceptionUntilTime(defaultExceptionalTime());
+    setExceptionReason('');
+    setExceptionError('');
+  };
+
+  const closeException = () => {
+    if (savingException) return;
+    setExceptionReservationId(null);
+    setExceptionError('');
+  };
+
+  const confirmException = async () => {
+    if (!reservationBeingExceptional) return;
+    if (!exceptionUntilTime || exceptionUntilTime <= nowKey.slice(11, 16)) {
+      setExceptionError('Escolha um horário posterior ao horário atual.');
+      return;
+    }
+    if (!exceptionReason.trim()) {
+      setExceptionError('Informe o motivo da permanência excepcional.');
+      return;
+    }
+
+    try {
+      setSavingException(true);
+      setExceptionError('');
+      await authorizeOverdueStayExceptionAtomic({
+        reservationId: reservationBeingExceptional.id,
+        untilTime: exceptionUntilTime,
+        reason: exceptionReason.trim()
+      });
+      await refreshData();
+      setExceptionReservationId(null);
+    } catch (error: any) {
+      setExceptionError(error?.message || 'Não foi possível autorizar a permanência excepcional.');
+    } finally {
+      setSavingException(false);
+    }
   };
 
   const searchTransferOptions = async () => {
@@ -217,6 +278,7 @@ export const OverdueStaysPanel: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col">
+                    <button type="button" onClick={() => openException(reservation.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8B48A] bg-[#FFF8EF] px-4 py-2.5 text-xs font-black text-[#8A4F1F] transition hover:bg-[#FFF3E4]"><Clock3 className="h-4 w-4" />Permanência excepcional</button>
                     <button type="button" onClick={() => openExtension(reservation.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#A3B18A] bg-[#F2F5E8] px-4 py-2.5 text-xs font-black text-[#3A5A40] transition hover:bg-[#E9EDC9]"><CalendarPlus className="h-4 w-4" />Prorrogar hospedagem</button>
                     <button type="button" onClick={openCheckout} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2C3327] px-4 py-2.5 text-xs font-black text-white transition hover:bg-[#394233]"><LogOut className="h-4 w-4" />Ir para Checkout</button>
                   </div>
@@ -276,6 +338,43 @@ export const OverdueStaysPanel: React.FC = () => {
               ) : (
                 <button type="button" onClick={confirmExtension} disabled={savingExtension || searchingTransferRooms} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2C3327] px-5 py-2.5 text-xs font-black text-white hover:bg-[#394233] disabled:opacity-50"><CalendarPlus className="h-4 w-4" />{savingExtension ? 'Prorrogando...' : 'Confirmar prorrogação'}</button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reservationBeingExceptional && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-[#E6E3D8] bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#BC6C25]">Regularização excepcional</span>
+                <h3 className="mt-1 text-xl font-black text-[#2C3327]">Permanência excepcional</h3>
+                <p className="mt-1 text-sm text-[#6B705C]">Quarto {reservationBeingExceptional.roomNumber} · {reservationBeingExceptional.guestName}</p>
+              </div>
+              <button type="button" onClick={closeException} className="rounded-xl p-2 text-[#6B705C] hover:bg-[#F4F1EA]" aria-label="Fechar"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-[#E7C8A2] bg-[#FFF8EF] p-4 text-xs leading-relaxed text-[#6B4423]">
+              Esta autorização vale somente até um horário de hoje. Ela não cria nova diária e não altera a tarifa. Se houver outra reserva aguardando este quarto, a operação será recusada. Ao vencer o prazo, o quarto volta automaticamente para regularização obrigatória.
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-black text-[#2C3327]">Autorizar permanência até</label>
+                <input type="time" max="23:59" value={exceptionUntilTime} onChange={event => { setExceptionUntilTime(event.target.value); setExceptionError(''); }} className="w-full rounded-xl border border-[#DADFD1] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:border-[#BC6C25] focus:ring-2 focus:ring-[#BC6C25]/15" />
+                <p className="mt-1 text-[11px] text-[#8A8F7D]">Somente para hoje, {formatDate(hotelDate)}.</p>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-black text-[#2C3327]">Motivo obrigatório</label>
+                <textarea rows={3} maxLength={500} value={exceptionReason} onChange={event => { setExceptionReason(event.target.value); setExceptionError(''); }} placeholder="Ex.: autorizado pela gerência por atraso no transporte do hóspede" className="w-full resize-none rounded-xl border border-[#DADFD1] px-3 py-2.5 text-sm text-[#2C3327] outline-none focus:border-[#BC6C25] focus:ring-2 focus:ring-[#BC6C25]/15" />
+              </div>
+              {exceptionError && <div className="rounded-xl border border-[#F3C4C4] bg-[#FFF1F1] px-3 py-2.5 text-xs font-semibold text-[#8B1E1E]">{exceptionError}</div>}
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={closeException} disabled={savingException} className="rounded-xl border border-[#DADFD1] px-4 py-2.5 text-xs font-black text-[#6B705C] hover:bg-[#F4F1EA] disabled:opacity-50">Cancelar</button>
+              <button type="button" onClick={confirmException} disabled={savingException} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#BC6C25] px-5 py-2.5 text-xs font-black text-white hover:bg-[#A65F20] disabled:opacity-50"><Clock3 className="h-4 w-4" />{savingException ? 'Autorizando...' : 'Autorizar permanência'}</button>
             </div>
           </div>
         </div>
