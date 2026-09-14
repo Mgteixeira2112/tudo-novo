@@ -110,3 +110,28 @@ export async function extendOverdueStayWithTransferAtomic(input: {
   if (error) throw new Error(String(error.message || 'Erro ao prorrogar e transferir hospedagem.'));
   return mapReservation(data);
 }
+
+export async function authorizeOverdueStayExceptionAtomic(input: {
+  reservationId: string;
+  untilTime: string;
+  reason: string;
+}): Promise<Reservation> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase não configurado.');
+
+  const { data, error } = await supabase.rpc('authorize_overdue_stay_exception_atomic', {
+    p_reservation_id: input.reservationId,
+    p_until_time: input.untilTime,
+    p_reason: input.reason
+  });
+
+  if (error) {
+    const message = String(error.message || 'Erro ao autorizar permanência excepcional.');
+    if (message.includes('outra reserva aguardando')) {
+      throw new Error('Não é possível autorizar permanência excepcional: já existe outra reserva aguardando este quarto.');
+    }
+    throw new Error(message);
+  }
+
+  return mapReservation(data);
+}
