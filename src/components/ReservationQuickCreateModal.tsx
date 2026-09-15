@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BedDouble, CalendarDays, CreditCard, Loader2, Users, X } from 'lucide-react';
-import { Reservation, Room, RoomTypeConfig } from '../types.ts';
+import { useHotel } from '../context/HotelContext.tsx';
+import { loadGuestsCloud } from '../services/adminPages.ts';
+import { Guest, Reservation, Room, RoomTypeConfig } from '../types.ts';
 import { createReservationForRoomAtomic } from '../services/reservationQuickCreate.ts';
 
 const addDays = (value: string, amount: number) => {
@@ -39,12 +41,15 @@ export const ReservationQuickCreateModal: React.FC<ReservationQuickCreateModalPr
   onClose,
   onCreated
 }) => {
+  const { guests } = useHotel();
   const [checkInDate, setCheckInDate] = useState(initialCheckInDate);
   const [checkOutDate, setCheckOutDate] = useState(addDays(initialCheckInDate, 1));
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestDocument, setGuestDocument] = useState('');
+  const [guestDirectory, setGuestDirectory] = useState<Guest[]>(guests);
+  const [selectedGuestId, setSelectedGuestId] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<Reservation['paymentMethod']>('PIX');
@@ -63,6 +68,11 @@ export const ReservationQuickCreateModal: React.FC<ReservationQuickCreateModalPr
     return Math.round((end - start) / 86400000);
   }, [checkInDate, checkOutDate]);
 
+  const sortedGuests = useMemo(
+    () => [...guestDirectory].sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt-BR')),
+    [guestDirectory]
+  );
+
   const totalAmount = nights * Number(room.pricePerNight || 0);
 
   useEffect(() => {
@@ -70,6 +80,37 @@ export const ReservationQuickCreateModal: React.FC<ReservationQuickCreateModalPr
       setCheckOutDate(addDays(checkInDate, 1));
     }
   }, [checkInDate, checkOutDate]);
+
+  useEffect(() => {
+    if (guests.length > 0) {
+      setGuestDirectory(guests);
+      return;
+    }
+
+    let active = true;
+    loadGuestsCloud()
+      .then(data => {
+        if (active) setGuestDirectory(data);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [guests]);
+
+  const selectExistingGuest = (guestId: string) => {
+    setSelectedGuestId(guestId);
+    if (!guestId) return;
+
+    const guest = guestDirectory.find(item => item.id === guestId);
+    if (!guest) return;
+
+    setGuestName(guest.fullName || '');
+    setGuestEmail(guest.email || '');
+    setGuestPhone(guest.phone || '');
+    setGuestDocument(guest.document || '');
+  };
 
   const close = () => {
     if (!saving) onClose();
@@ -162,6 +203,32 @@ export const ReservationQuickCreateModal: React.FC<ReservationQuickCreateModalPr
               </div>
             </div>
           </section>
+
+          {sortedGuests.length > 0 && (
+            <section className="rounded-2xl border border-[#DADFD1] bg-white p-4">
+              <div className="flex items-start gap-3">
+                <Users className="mt-0.5 w-4 h-4 shrink-0 text-[#588157]" />
+                <div className="min-w-0 flex-1">
+                  <label className="block text-xs font-bold text-[#4F5548]">
+                    Hóspede já cadastrado (opcional)
+                    <select
+                      value={selectedGuestId}
+                      onChange={event => selectExistingGuest(event.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-[#E6E3D8] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#588157]/30"
+                    >
+                      <option value="">Preencher manualmente</option>
+                      {sortedGuests.map(guest => (
+                        <option key={guest.id} value={guest.id}>
+                          {guest.fullName}{guest.email ? ` · ${guest.email}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="mt-2 text-[10px] leading-relaxed text-[#7B806E]">Selecionar um cadastro existente apenas preenche os dados abaixo. Você ainda pode revisar tudo antes de criar a reserva.</p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="text-xs font-bold text-[#4F5548]">
