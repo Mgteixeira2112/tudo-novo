@@ -8,6 +8,7 @@ import { LaundryKanban } from './LaundryKanban.tsx';
 import { LossDamagePanel } from './LossDamagePanel.tsx';
 import { PurchaseNeedPanel } from './PurchaseNeedPanel.tsx';
 import { ReservationsManager } from './ReservationsManager.tsx';
+import { ReservationsPaymentIndicator } from './ReservationsPaymentIndicator.tsx';
 import { ReceptionCheckFlowPage } from './ReceptionCheckFlowPage.tsx';
 import { WalkInCheckIn } from './WalkInCheckIn.tsx';
 import { MinibarOperationalModule, OrdersOperationalModule } from './FnbOperationalModules.tsx';
@@ -169,8 +170,18 @@ export const StandaloneModulePage: React.FC<{ module: StandaloneModule }> = ({ m
       {module === 'purchases' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><PurchaseNeedPanel /></div>
       )}
-      {module === 'reservations' && <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />}
-      {module === 'checkinout' && <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />}
+      {module === 'reservations' && (
+        <>
+          <ReservationsPaymentIndicator />
+          <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />
+        </>
+      )}
+      {module === 'checkinout' && (
+        <>
+          <ReservationsPaymentIndicator />
+          <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />
+        </>
+      )}
       {module === 'checkin' && <ReceptionCheckFlowPage flow="checkin" />}
       {module === 'checkout' && <ReceptionCheckFlowPage flow="checkout" />}
       {module === 'walkin' && <WalkInCheckIn />}
