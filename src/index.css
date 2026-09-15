@@ -339,3 +339,65 @@ div[class~="z-[110]"][class~="inset-0"] > aside > div > div:last-child {
     max-width: 34rem !important;
   }
 }
+
+/* Reservation calendar: stronger visual hierarchy for timeline cards only. */
+div.z-10.mx-1.my-3.h-10.rounded-lg {
+  border-width: 1px !important;
+  box-shadow: 0 2px 7px rgba(44, 51, 39, 0.16) !important;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(44, 51, 39, 0.22) !important;
+  filter: saturate(1.06);
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"] {
+  background: linear-gradient(135deg, #F6D98F 0%, #F1C86D 100%) !important;
+  border-color: #C98221 !important;
+  color: #6D3B08 !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"] {
+  background: linear-gradient(135deg, #C8D9A8 0%, #AFC989 100%) !important;
+  border-color: #6D8F4E !important;
+  color: #27432D !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#DDE5D5]"] {
+  background: linear-gradient(135deg, #8FB39A 0%, #6F9A7D 100%) !important;
+  border-color: #3F6F50 !important;
+  color: #153521 !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#F4F1EA]"] {
+  background: linear-gradient(135deg, #DDD7CC 0%, #C9C1B4 100%) !important;
+  border-color: #8F877B !important;
+  color: #4E4A43 !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-red-50"] {
+  background: linear-gradient(135deg, #F4C4C0 0%, #E8A6A0 100%) !important;
+  border-color: #B85C55 !important;
+  color: #7A2722 !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg > button:first-child strong {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg > button:first-child span {
+  opacity: 0.9 !important;
+  font-weight: 700;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg > button:not(:first-child) {
+  border-left-color: rgba(44, 51, 39, 0.24) !important;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg > button:not(:first-child):hover {
+  background: rgba(255, 255, 255, 0.34) !important;
+}
