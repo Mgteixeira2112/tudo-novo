@@ -600,6 +600,19 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
               >
                 Hoje
               </button>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-[#E6E3D8] bg-white px-3 py-1.5 text-xs text-[#6B705C]">
+                <span className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider">Ir para</span>
+                <input
+                  type="date"
+                  value={timelineStart}
+                  onChange={event => {
+                    if (event.target.value) setTimelineStart(event.target.value);
+                  }}
+                  aria-label="Ir para data"
+                  title="Ir para data"
+                  className="min-w-[128px] bg-transparent text-xs font-bold text-[#2C3327] outline-none"
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => shiftTimeline(7)}
