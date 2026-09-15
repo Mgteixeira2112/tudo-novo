@@ -685,6 +685,12 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                     if (reservation.status === 'Cancelada' && statusFilter !== 'Cancelada') return false;
                     return reservation.checkInDate < timelineEnd && reservation.checkOutDate > timelineStart;
                   });
+                  const todayIndex = visibleDays.indexOf(today);
+                  const departureToday = filteredReservations.find(reservation =>
+                    roomMatchesReservation(room, reservation)
+                    && reservation.status === 'CheckIn'
+                    && reservation.checkOutDate === today
+                  );
 
                   return (
                     <div
@@ -739,6 +745,18 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                         );
                       })}
 
+                      {departureToday && todayIndex >= 0 && (
+                        <button
+                          type="button"
+                          onClick={() => openReservationDetails(departureToday)}
+                          title={`Saída hoje · ${departureToday.code} · ${departureToday.guestName}`}
+                          className="z-20 self-end mx-1 mb-0.5 h-3 rounded-full border border-[#BC6C25]/50 bg-[#FFF4E6] px-1.5 text-[7px] font-black uppercase tracking-wide leading-none text-[#9C5B1A] shadow-sm hover:bg-[#FAEDCD] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#D4A373]/40"
+                          style={{ gridColumn: todayIndex + 2, gridRow: 1 }}
+                        >
+                          Sai hoje
+                        </button>
+                      )}
+
                       {roomReservations.map(reservation => {
                         const visibleStart = reservation.checkInDate < timelineStart ? timelineStart : reservation.checkInDate;
                         const visibleFinish = reservation.checkOutDate > timelineEnd ? timelineEnd : reservation.checkOutDate;
@@ -748,6 +766,8 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                         const endsAfter = reservation.checkOutDate > timelineEnd;
                         const canQuickEdit = hasPermission('manage_checkinout') && ['Pendente', 'Confirmada'].includes(reservation.status);
                         const canQuickConfirm = hasPermission('manage_checkinout') && reservation.status === 'Pendente';
+                        const arrivesToday = reservation.checkInDate === today && ['Pendente', 'Confirmada'].includes(reservation.status);
+                        const departsToday = reservation.checkOutDate === today && reservation.status === 'CheckIn';
 
                         return (
                           <div
@@ -768,7 +788,14 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                                 <strong className="block truncate text-[10px]">
                                   {beginsBefore ? '← ' : ''}{reservation.guestName}{endsAfter ? ' →' : ''}
                                 </strong>
-                                <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
+                                {(arrivesToday || departsToday) ? (
+                                  <span className="block truncate text-[9px] font-black">
+                                    <span className="uppercase tracking-wide">{arrivesToday ? 'Chega hoje' : 'Sai hoje'}</span>
+                                    <span className="opacity-70"> · {reservation.code}</span>
+                                  </span>
+                                ) : (
+                                  <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
+                                )}
                               </div>
                             </button>
                             {canQuickConfirm && (
