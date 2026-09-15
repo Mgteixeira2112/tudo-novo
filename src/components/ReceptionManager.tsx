@@ -1,6 +1,7 @@
 import React from 'react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { ReservationsManager } from './ReservationsManager.tsx';
+import { ReservationsPaymentIndicator } from './ReservationsPaymentIndicator.tsx';
 
 /**
  * Compatibilidade para rotas antigas que ainda apontam para o AdminTab `checkinout`.
@@ -21,5 +22,10 @@ export const ReceptionManager: React.FC = () => {
     window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module } }));
   };
 
-  return <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />;
+  return (
+    <>
+      <ReservationsPaymentIndicator />
+      <ReservationsManager onOpenCheckInOut={openSelectedReservationFlow} />
+    </>
+  );
 };
