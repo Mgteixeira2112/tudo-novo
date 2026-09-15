@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, PackageCheck, X } from 'lucide-react';
+import { CheckCircle2, PackageCheck, Sparkles, X } from 'lucide-react';
 import { InventoryItem, KanbanTask } from '../types.ts';
 import { api } from '../services/api.ts';
 import { completeGovernanceTaskAtomic } from '../services/governanceTaskCompletion.ts';
+import {
+  GovernanceAmenitySuggestion,
+  loadGovernanceAmenitySuggestion
+} from '../services/governancePreparationSuggestion.ts';
 
 interface GovernanceTaskCompletionModalProps {
   task: KanbanTask;
@@ -20,16 +24,21 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
   const [choice, setChoice] = useState<ConsumptionChoice>(null);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [suggestion, setSuggestion] = useState<GovernanceAmenitySuggestion | null>(null);
+  const [loadedMaterials, setLoadedMaterials] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (choice !== 'yes' || items.length > 0) return;
+    if (choice !== 'yes' || loadedMaterials) return;
     let active = true;
     setLoading(true);
-    api.getInventoryItems('Governanca_Enxoval')
-      .then(result => {
+    Promise.all([
+      api.getInventoryItems('Governanca_Enxoval'),
+      task.roomNumber ? loadGovernanceAmenitySuggestion(task.roomNumber) : Promise.resolve(null)
+    ])
+      .then(([result, loadedSuggestion]) => {
         if (!active) return;
         const consumables = result
           .filter(item => item.currentStock > 0 && item.category !== 'Enxoval & Rouparia')
@@ -38,6 +47,17 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
             return amenityOrder || a.name.localeCompare(b.name, 'pt-BR');
           });
         setItems(consumables);
+        setSuggestion(loadedSuggestion);
+        if (loadedSuggestion) {
+          const suggested: Record<string, number> = {};
+          loadedSuggestion.items.forEach(item => {
+            if (item.suggestedQuantity && item.suggestedQuantity > 0) {
+              suggested[item.inventoryItemId] = item.suggestedQuantity;
+            }
+          });
+          setQuantities(suggested);
+        }
+        setLoadedMaterials(true);
       })
       .catch(err => {
         if (active) setError(err?.message || 'Não foi possível carregar os materiais da Governança.');
@@ -46,7 +66,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [choice, items.length]);
+  }, [choice, loadedMaterials, task.roomNumber]);
 
   const selectedMaterials = useMemo(() => {
     return items
@@ -54,10 +74,22 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
       .filter(item => item.quantity > 0);
   }, [items, quantities]);
 
+  const suggestedByItem = useMemo(() => {
+    return new Map((suggestion?.items || []).map(item => [item.inventoryItemId, item]));
+  }, [suggestion]);
+
+  const shortages = useMemo(() => {
+    return items.filter(item => Number(quantities[item.id] || 0) > Number(item.currentStock || 0));
+  }, [items, quantities]);
+
   const confirmCompletion = async () => {
     if (choice === null) return;
     if (choice === 'yes' && selectedMaterials.length === 0) {
       setError('Informe pelo menos um material utilizado ou selecione “Não”.');
+      return;
+    }
+    if (choice === 'yes' && shortages.length > 0) {
+      setError(`Estoque insuficiente para: ${shortages.map(item => item.name).join(', ')}.`);
       return;
     }
 
@@ -122,34 +154,58 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
                   <PackageCheck className="h-4 w-4 text-[#588157]" />
                   <p className="text-xs font-extrabold uppercase tracking-wide text-[#6B705C]">Amenities e materiais consumíveis</p>
                 </div>
-                <p className="mt-1 text-[11px] text-[#8E9280]">Amenities de Quarto aparecem primeiro. Enxoval reutilizável é tratado separadamente e não entra como consumo.</p>
+                <p className="mt-1 text-[11px] text-[#8E9280]">O padrão do quarto é sugerido automaticamente quando existe informação suficiente. Você continua podendo ajustar os materiais realmente utilizados antes de concluir.</p>
               </div>
 
+              {!loading && suggestion && suggestion.items.length > 0 && (
+                <div className="rounded-xl border border-[#DADFD1] bg-[#F2F5E8] px-4 py-3 text-[11px] leading-5 text-[#4F5B43]">
+                  <div className="flex items-center gap-2 font-black text-[#2C3327]"><Sparkles className="h-3.5 w-3.5 text-[#588157]" /> Padrão de preparação identificado</div>
+                  {suggestion.reservationId ? (
+                    <p className="mt-1">Próxima hospedagem: <strong>{suggestion.guestName}</strong>{suggestion.reservationCode ? ` • ${suggestion.reservationCode}` : ''} • {suggestion.guestCount} hóspede(s) ({suggestion.adults} adulto(s) + {suggestion.children} criança(s)).</p>
+                  ) : suggestion.hasPerGuestItemsWithoutReservation ? (
+                    <p className="mt-1">Ainda não existe próxima reserva vinculada a este quarto. Itens “por hóspede” não foram preenchidos automaticamente; itens fixos por quarto continuam disponíveis.</p>
+                  ) : (
+                    <p className="mt-1">Padrão fixo do quarto carregado.</p>
+                  )}
+                </div>
+              )}
+
               {loading ? (
-                <p className="py-4 text-center text-xs text-[#8E9280]">Carregando estoque da Governança...</p>
+                <p className="py-4 text-center text-xs text-[#8E9280]">Carregando estoque e padrão do quarto...</p>
               ) : items.length === 0 ? (
                 <p className="py-4 text-center text-xs text-[#8E9280]">Nenhum amenity ou material consumível com saldo disponível foi encontrado.</p>
               ) : (
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {items.map(item => (
-                    <div key={item.id} className="grid grid-cols-[1fr_110px] items-center gap-3 rounded-lg border border-[#E6E3D8] bg-white p-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-[#2C3327]">{item.name}</p>
-                        <p className="mt-0.5 text-[11px] font-semibold text-[#588157]">{item.category}</p>
-                        <p className="mt-0.5 text-[11px] text-[#6B705C]">Disponível: {item.currentStock} {item.unit}</p>
+                  {items.map(item => {
+                    const recommended = suggestedByItem.get(item.id);
+                    const entered = Number(quantities[item.id] || 0);
+                    const shortage = entered > Number(item.currentStock || 0);
+                    return (
+                      <div key={item.id} className={`grid grid-cols-[1fr_110px] items-center gap-3 rounded-lg border bg-white p-3 ${shortage ? 'border-red-300' : 'border-[#E6E3D8]'}`}>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-[#2C3327]">{item.name}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold text-[#588157]">{item.category}</p>
+                          <p className="mt-0.5 text-[11px] text-[#6B705C]">Disponível: {item.currentStock} {item.unit}</p>
+                          {recommended && (
+                            <p className="mt-1 text-[10px] font-bold text-[#7A6A3A]">
+                              Padrão: {recommended.baseQuantity} {recommended.quantityBasis === 'per_guest' ? 'por hóspede' : 'fixo por quarto'}
+                              {recommended.suggestedQuantity != null ? ` → sugerido ${recommended.suggestedQuantity}` : ''}
+                            </p>
+                          )}
+                          {shortage && <p className="mt-1 text-[10px] font-bold text-red-600">Quantidade maior que o saldo disponível.</p>}
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={quantities[item.id] || ''}
+                          onChange={e => setQuantities(current => ({ ...current, [item.id]: Number(e.target.value || 0) }))}
+                          placeholder="Qtd."
+                          className="w-full rounded-lg border border-[#E6E3D8] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#588157]"
+                        />
                       </div>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        max={item.currentStock}
-                        value={quantities[item.id] || ''}
-                        onChange={e => setQuantities(current => ({ ...current, [item.id]: Number(e.target.value || 0) }))}
-                        placeholder="Qtd."
-                        className="w-full rounded-lg border border-[#E6E3D8] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#588157]"
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
