@@ -72,7 +72,7 @@ function safelyMatchesGuest(guest: Guest, reservation: Reservation) {
 }
 
 export const ReceptionCheckInFlow: React.FC = () => {
-  const { rooms, reservations, guests, settings, refreshData } = useHotel();
+  const { rooms, reservations, guests, settings, transactions, refreshData } = useHotel();
   const [selectedResId, setSelectedResId] = useState('');
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [keyCardNumber, setKeyCardNumber] = useState('');
@@ -86,6 +86,20 @@ export const ReceptionCheckInFlow: React.FC = () => {
   const today = hotelDateIso();
   const currency = settings?.currency || 'R$';
 
+  const paidByReservationId = useMemo(() => {
+    const result = new Map<string, number>();
+    transactions.forEach(transaction => {
+      if (!transaction.reservationId || transaction.type !== 'Receita' || transaction.status !== 'Pago') return;
+      result.set(transaction.reservationId, (result.get(transaction.reservationId) || 0) + Number(transaction.amount || 0));
+    });
+    return result;
+  }, [transactions]);
+
+  const money = (value: number) => `${currency} ${Number(value || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+
   const checkinReservations = useMemo(
     () => reservations.filter(reservation =>
       reservation.status === 'Confirmada' &&
@@ -96,6 +110,10 @@ export const ReceptionCheckInFlow: React.FC = () => {
   );
 
   const selectedReservation = checkinReservations.find(reservation => reservation.id === selectedResId);
+  const selectedPriorPaid = selectedReservation ? Number(paidByReservationId.get(selectedReservation.id) || 0) : 0;
+  const selectedRemainingBalance = selectedReservation
+    ? Math.max(Number(selectedReservation.totalNightsAmount || 0) - selectedPriorPaid, 0)
+    : 0;
   const linkedGuest = selectedReservation?.guestId
     ? guests.find(guest => guest.id === selectedReservation.guestId)
     : undefined;
@@ -132,9 +150,11 @@ export const ReceptionCheckInFlow: React.FC = () => {
       room.status === 'Disponivel' &&
       room.typeName === reservation.roomTypeName
     );
+    const priorPaid = Number(paidByReservationId.get(reservation.id) || 0);
+    const remainingBalance = Math.max(Number(reservation.totalNightsAmount || 0) - priorPaid, 0);
     setSelectedRoomId(assignedRoom?.id || '');
-    setDepositAmount(reservation.paymentStatus === 'Pago' ? 0 : Number(reservation.totalNightsAmount || 0));
-    setPaymentMethod(immediatePaymentMethod(reservation.paymentMethod));
+    setDepositAmount(remainingBalance);
+    setPaymentMethod(remainingBalance > 0 ? immediatePaymentMethod(reservation.paymentMethod) : '');
     setSelectedPreCheckIn(null);
     setLoadingPreCheckIn(true);
     try {
@@ -152,6 +172,10 @@ export const ReceptionCheckInFlow: React.FC = () => {
     event.preventDefault();
     if (!selectedReservation || !selectedRoomId) {
       alert('Selecione uma reserva válida e um quarto disponível para o check-in.');
+      return;
+    }
+    if (depositAmount < 0 || depositAmount > selectedRemainingBalance) {
+      alert(`O valor recebido no check-in deve ficar entre 0 e o saldo restante de ${money(selectedRemainingBalance)}.`);
       return;
     }
     if (depositAmount > 0 && !paymentMethod) {
@@ -217,6 +241,8 @@ export const ReceptionCheckInFlow: React.FC = () => {
               {checkinReservations.map(reservation => {
                 const selected = reservation.id === selectedResId;
                 const preCheckInStatus = preCheckInStatuses[reservation.id];
+                const priorPaid = Number(paidByReservationId.get(reservation.id) || 0);
+                const remainingBalance = Math.max(Number(reservation.totalNightsAmount || 0) - priorPaid, 0);
                 return (
                   <button
                     key={reservation.id}
@@ -237,8 +263,8 @@ export const ReceptionCheckInFlow: React.FC = () => {
                       </span>
                     </div>
                     <div className="mt-3 flex items-center justify-between border-t border-[#E6E3D8] pt-2 text-xs">
-                      <span className="font-semibold text-[#6B705C]">{reservation.paymentStatus} via {reservation.paymentMethod || 'não definida'}</span>
-                      <strong className="text-[#2C3327]">{currency} {Number(reservation.totalNightsAmount || 0).toLocaleString('pt-BR')}</strong>
+                      <span className="font-semibold text-[#6B705C]">Saldo: {money(remainingBalance)}</span>
+                      <strong className="text-[#2C3327]">Total: {money(Number(reservation.totalNightsAmount || 0))}</strong>
                     </div>
                   </button>
                 );
@@ -296,9 +322,27 @@ export const ReceptionCheckInFlow: React.FC = () => {
                 <input value={keyCardNumber} onChange={event => setKeyCardNumber(event.target.value)} placeholder="Ex: CARD-101 ou TAG-982" className="w-full rounded-xl border border-[#E6E3D8] px-3 py-2 text-sm text-[#3D4035] outline-none focus:ring-2 focus:ring-[#588157]" />
               </div>
 
+              <div className="rounded-xl border border-[#E6E3D8] bg-[#F8F7F2] p-3">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase tracking-wide text-[#8E9280]">Total</span>
+                    <strong className="text-xs text-[#2C3327]">{money(Number(selectedReservation.totalNightsAmount || 0))}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase tracking-wide text-[#8E9280]">Já pago</span>
+                    <strong className="text-xs text-[#588157]">{money(selectedPriorPaid)}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase tracking-wide text-[#8E9280]">Saldo</span>
+                    <strong className="text-xs text-[#BC6C25]">{money(selectedRemainingBalance)}</strong>
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="mb-1 block text-xs font-semibold text-[#6B705C]">Depósito / pagamento no Check-in ({currency})</label>
-                <input type="number" min="0" step="0.01" value={depositAmount} onChange={event => setDepositAmount(Number(event.target.value))} className="w-full rounded-xl border border-[#E6E3D8] px-3 py-2 text-sm text-[#3D4035] outline-none focus:ring-2 focus:ring-[#588157]" />
+                <label className="mb-1 block text-xs font-semibold text-[#6B705C]">Pagamento recebido no Check-in ({currency})</label>
+                <input type="number" min="0" max={selectedRemainingBalance} step="0.01" value={depositAmount} onChange={event => setDepositAmount(Number(event.target.value))} className="w-full rounded-xl border border-[#E6E3D8] px-3 py-2 text-sm text-[#3D4035] outline-none focus:ring-2 focus:ring-[#588157]" />
+                <p className="mt-1 text-[10px] text-[#8E9280]">Máximo permitido: saldo restante de {money(selectedRemainingBalance)}.</p>
               </div>
 
               <div>
@@ -319,7 +363,7 @@ export const ReceptionCheckInFlow: React.FC = () => {
                 {depositAmount <= 0 && <p className="mt-2 text-[10px] text-[#8E9280]">Sem valor recebido no check-in, nenhum lançamento financeiro será criado.</p>}
                 {depositAmount > 0 && paymentMethod && (
                   <p className="mt-2 rounded-lg border border-[#CCD5AE] bg-[#F2F5E8] px-3 py-2 text-[10px] font-bold text-[#3A5A40]">
-                    Será registrado: {currency} {Number(depositAmount).toLocaleString('pt-BR')} via {paymentMethodLabel(paymentMethod)}.
+                    Será registrado: {money(Number(depositAmount))} via {paymentMethodLabel(paymentMethod)}.
                   </p>
                 )}
               </div>
