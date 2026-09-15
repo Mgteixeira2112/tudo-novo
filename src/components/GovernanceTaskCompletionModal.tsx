@@ -107,9 +107,9 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl border border-[#E6E3D8] bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#E6E3D8] p-5">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4">
+      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#E6E3D8] bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
+        <div className="flex shrink-0 items-start justify-between border-b border-[#E6E3D8] bg-white p-5">
           <div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-[#588157]" />
@@ -124,7 +124,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
           </button>
         </div>
 
-        <div className="space-y-5 p-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
           <div>
             <p className="text-sm font-bold text-[#2C3327]">Houve utilização de produtos ou materiais?</p>
             <p className="mt-1 text-xs text-[#6B705C]">A tarefa só será concluída depois desta confirmação.</p>
@@ -175,7 +175,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
               ) : items.length === 0 ? (
                 <p className="py-4 text-center text-xs text-[#8E9280]">Nenhum amenity ou material consumível com saldo disponível foi encontrado.</p>
               ) : (
-                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                <div className="space-y-2">
                   {items.map(item => {
                     const recommended = suggestedByItem.get(item.id);
                     const entered = Number(quantities[item.id] || 0);
@@ -214,7 +214,7 @@ export const GovernanceTaskCompletionModal: React.FC<GovernanceTaskCompletionMod
           {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">{error}</div>}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[#E6E3D8] p-5">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-[#E6E3D8] bg-white p-5">
           <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-xs font-semibold text-[#6B705C] hover:text-[#2C3327] disabled:opacity-50">Cancelar</button>
           <button
             type="button"
