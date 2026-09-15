@@ -401,3 +401,39 @@ div.z-10.mx-1.my-3.h-10.rounded-lg > button:not(:first-child) {
 div.z-10.mx-1.my-3.h-10.rounded-lg > button:not(:first-child):hover {
   background: rgba(255, 255, 255, 0.34) !important;
 }
+
+/* Reservation calendar: keep today's arrival marker readable on one-night cards. */
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"]:has(span.uppercase.tracking-wide) > button:first-child,
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"]:has(span.uppercase.tracking-wide) > button:first-child {
+  padding-left: 4px !important;
+  padding-right: 3px !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"]:has(span.uppercase.tracking-wide) > button:first-child strong,
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"]:has(span.uppercase.tracking-wide) > button:first-child strong {
+  font-size: 9px !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"] > button:first-child span.uppercase.tracking-wide,
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"] > button:first-child span.uppercase.tracking-wide {
+  font-size: 0 !important;
+  letter-spacing: 0 !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"] > button:first-child span.uppercase.tracking-wide::after,
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"] > button:first-child span.uppercase.tracking-wide::after {
+  content: "CHEGA";
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"]:has(span.uppercase.tracking-wide) > button:first-child span.opacity-70,
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"]:has(span.uppercase.tracking-wide) > button:first-child span.opacity-70 {
+  display: none !important;
+}
+
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#FAEDCD]"]:has(span.uppercase.tracking-wide) > button:not(:first-child),
+div.z-10.mx-1.my-3.h-10.rounded-lg[class~="bg-[#E9EDC9]"]:has(span.uppercase.tracking-wide) > button:not(:first-child) {
+  width: 24px !important;
+}
