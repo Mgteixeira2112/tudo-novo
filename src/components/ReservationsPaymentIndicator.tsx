@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useHotel } from '../context/HotelContext.tsx';
+import { ReservationsCancelShortcut } from './ReservationsCancelShortcut.tsx';
 
 const ACTIVE_RESERVATION_STATUSES = new Set(['Pendente', 'Confirmada', 'CheckIn']);
 
@@ -61,52 +62,55 @@ export const ReservationsPaymentIndicator: React.FC = () => {
   }, [reservations]);
 
   return (
-    <style>{`
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator] {
-        position: relative;
-      }
+    <>
+      <ReservationsCancelShortcut />
+      <style>{`
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator] {
+          position: relative;
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator]::after {
-        content: '$';
-        position: absolute;
-        top: 3px;
-        z-index: 30;
-        width: 13px;
-        height: 13px;
-        border-radius: 999px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 8px;
-        line-height: 1;
-        font-weight: 900;
-        pointer-events: none;
-        box-shadow: 0 1px 3px rgba(44, 51, 39, 0.22);
-      }
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator]::after {
+          content: '$';
+          position: absolute;
+          top: 3px;
+          z-index: 30;
+          width: 13px;
+          height: 13px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+          line-height: 1;
+          font-weight: 900;
+          pointer-events: none;
+          box-shadow: 0 1px 3px rgba(44, 51, 39, 0.22);
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='Pendente']::after {
-        right: 59px;
-      }
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='Pendente']::after {
+          right: 59px;
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='Confirmada']::after {
-        right: 31px;
-      }
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='Confirmada']::after {
+          right: 31px;
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='CheckIn']::after {
-        right: 4px;
-      }
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-reservation-status='CheckIn']::after {
+          right: 4px;
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator='Pendente']::after {
-        background: #FFF4E6;
-        border: 1px solid #C98221;
-        color: #8A4D0F;
-      }
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator='Pendente']::after {
+          background: #FFF4E6;
+          border: 1px solid #C98221;
+          color: #8A4D0F;
+        }
 
-      div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator='Parcial']::after {
-        background: #E8F1FF;
-        border: 1px solid #5B7FAF;
-        color: #315A88;
-      }
-    `}</style>
+        div.z-10.mx-1.my-3.h-10.rounded-lg[data-payment-indicator='Parcial']::after {
+          background: #E8F1FF;
+          border: 1px solid #5B7FAF;
+          color: #315A88;
+        }
+      `}</style>
+    </>
   );
 };
