@@ -1,5 +1,7 @@
 import { getSupabaseClient } from './supabase.ts';
 
+export type RoomAmenityQuantityBasis = 'per_guest' | 'fixed_per_room';
+
 export interface RoomAmenityInventoryItem {
   id: string;
   sku: string;
@@ -13,6 +15,7 @@ export interface RoomPreparationKitItem {
   id: string;
   inventoryItemId: string;
   quantity: number;
+  quantityBasis: RoomAmenityQuantityBasis;
 }
 
 export interface RoomPreparationKit {
@@ -34,7 +37,7 @@ export async function loadRoomPreparationKits(): Promise<RoomPreparationKit[]> {
   const supabase = client();
   const { data, error } = await supabase
     .from('room_amenity_kits')
-    .select('id,name,room_type_id,active,notes,room_amenity_kit_items(id,inventory_item_id,quantity)')
+    .select('id,name,room_type_id,active,notes,room_amenity_kit_items(id,inventory_item_id,quantity,quantity_basis)')
     .eq('active', true)
     .eq('name', 'Padrão de Preparação')
     .order('room_type_id');
@@ -50,7 +53,8 @@ export async function loadRoomPreparationKits(): Promise<RoomPreparationKit[]> {
     items: (row.room_amenity_kit_items || []).map((item: any) => ({
       id: item.id,
       inventoryItemId: item.inventory_item_id,
-      quantity: Number(item.quantity || 0)
+      quantity: Number(item.quantity || 0),
+      quantityBasis: item.quantity_basis === 'per_guest' ? 'per_guest' : 'fixed_per_room'
     }))
   }));
 }
@@ -79,7 +83,7 @@ export async function loadRoomAmenityInventoryItems(): Promise<RoomAmenityInvent
 export async function saveRoomPreparationKit(input: {
   roomTypeId: string;
   notes?: string;
-  items: Array<{ inventoryItemId: string; quantity: number }>;
+  items: Array<{ inventoryItemId: string; quantity: number; quantityBasis: RoomAmenityQuantityBasis }>;
 }) {
   const supabase = client();
   const { data, error } = await supabase.rpc('save_room_amenity_kit_atomic', {
