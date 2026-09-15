@@ -19,6 +19,7 @@ import {
   LogIn,
   LogOut,
   Monitor,
+  PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -129,6 +130,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ onHome, on
       items: [
         { label: 'Tarefas', icon: ClipboardList, page: 'tasks', allowed: has('view_kanbans') },
         { label: 'Governança', icon: Sparkles, page: 'housekeeping', allowed: has('view_kanbans') },
+        { label: 'Padrão dos Quartos', icon: PackageCheck, page: 'roomPreparation', allowed: has('view_kanbans') || has('view_inventory') },
         { label: 'Manutenção', icon: Wrench, page: 'maintenance', allowed: has('view_kanbans') },
         { label: 'Lavanderia', icon: WashingMachine, page: 'laundry', allowed: has('view_inventory') }
       ]
