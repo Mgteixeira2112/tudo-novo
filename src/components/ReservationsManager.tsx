@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BedDouble,
   CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -168,7 +169,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const [archiveStatus, setArchiveStatus] = useState<'ALL' | 'CheckOut' | 'Cancelada'>('ALL');
   const [archivePeriod, setArchivePeriod] = useState<'7' | '30' | '90' | 'ALL'>('ALL');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
-  const [selectedActionMode, setSelectedActionMode] = useState<'edit' | null>(null);
+  const [selectedActionMode, setSelectedActionMode] = useState<'confirm' | 'edit' | null>(null);
   const [dashboardFilter, setDashboardFilter] = useState<DashboardReservationFilter>('ALL');
   const [guestDirectory, setGuestDirectory] = useState<Guest[]>(guests);
   const [quickCreate, setQuickCreate] = useState<{ room: Room; checkInDate: string } | null>(null);
@@ -405,7 +406,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
 
   const shiftTimeline = (days: number) => setTimelineStart(previous => addDays(previous, days));
 
-  const openReservationDetails = (reservation: Reservation, closeArchive = false, initialMode: 'edit' | null = null) => {
+  const openReservationDetails = (reservation: Reservation, closeArchive = false, initialMode: 'confirm' | 'edit' | null = null) => {
     if (closeArchive) setArchiveOpen(false);
     setSelectedActionMode(initialMode);
     setSelectedReservation(reservation);
@@ -746,6 +747,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                         const beginsBefore = reservation.checkInDate < timelineStart;
                         const endsAfter = reservation.checkOutDate > timelineEnd;
                         const canQuickEdit = hasPermission('manage_checkinout') && ['Pendente', 'Confirmada'].includes(reservation.status);
+                        const canQuickConfirm = hasPermission('manage_checkinout') && reservation.status === 'Pendente';
 
                         return (
                           <div
@@ -769,6 +771,17 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                                 <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
                               </div>
                             </button>
+                            {canQuickConfirm && (
+                              <button
+                                type="button"
+                                onClick={() => openReservationDetails(reservation, false, 'confirm')}
+                                className="w-8 shrink-0 border-l border-black/10 flex items-center justify-center hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#588157]/30"
+                                title={`Conferir e confirmar ${reservation.code}`}
+                                aria-label={`Confirmar reserva ${reservation.code}`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             {canQuickEdit && (
                               <button
                                 type="button"
