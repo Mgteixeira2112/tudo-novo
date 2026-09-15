@@ -5,6 +5,7 @@ import {
   loadRoomAmenityInventoryItems,
   loadRoomPreparationKits,
   RoomAmenityInventoryItem,
+  RoomAmenityQuantityBasis,
   RoomPreparationKit,
   saveRoomPreparationKit
 } from '../services/roomPreparationStandards.ts';
@@ -17,6 +18,7 @@ export const RoomPreparationStandards: React.FC = () => {
   const [kits, setKits] = useState<RoomPreparationKit[]>([]);
   const [items, setItems] = useState<RoomAmenityInventoryItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [quantityBases, setQuantityBases] = useState<Record<string, RoomAmenityQuantityBasis>>({});
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,18 +51,27 @@ export const RoomPreparationStandards: React.FC = () => {
   const selectedKit = kits.find(kit => kit.roomTypeId === selectedRoomTypeId);
 
   useEffect(() => {
-    const next: Record<string, number> = {};
-    selectedKit?.items.forEach(item => { next[item.inventoryItemId] = item.quantity; });
-    setQuantities(next);
+    const nextQuantities: Record<string, number> = {};
+    const nextBases: Record<string, RoomAmenityQuantityBasis> = {};
+    selectedKit?.items.forEach(item => {
+      nextQuantities[item.inventoryItemId] = item.quantity;
+      nextBases[item.inventoryItemId] = item.quantityBasis;
+    });
+    setQuantities(nextQuantities);
+    setQuantityBases(nextBases);
     setNotes(selectedKit?.notes || '');
     setMessage(null);
   }, [selectedKit?.id, selectedRoomTypeId]);
 
   const selectedItems = useMemo(
     () => items
-      .map(item => ({ inventoryItemId: item.id, quantity: Number(quantities[item.id] || 0) }))
+      .map(item => ({
+        inventoryItemId: item.id,
+        quantity: Number(quantities[item.id] || 0),
+        quantityBasis: quantityBases[item.id] || 'per_guest' as RoomAmenityQuantityBasis
+      }))
       .filter(item => item.quantity > 0),
-    [items, quantities]
+    [items, quantities, quantityBases]
   );
 
   const save = async () => {
@@ -86,7 +97,7 @@ export const RoomPreparationStandards: React.FC = () => {
           <div>
             <h3 className="text-base font-black text-[#2C3327]">Padrão de Preparação do Quarto</h3>
             <p className="mt-1 text-xs leading-5 text-[#6B705C]">
-              Defina os amenities consumíveis esperados em cada categoria. Esta tela configura o padrão; a baixa real continua acontecendo somente na conclusão da tarefa de Governança.
+              Defina os amenities consumíveis esperados em cada categoria e escolha se a quantidade é por hóspede ou fixa por quarto. Esta tela configura o padrão; a baixa real continua acontecendo somente na conclusão da tarefa de Governança.
             </p>
           </div>
         </div>
@@ -126,7 +137,7 @@ export const RoomPreparationStandards: React.FC = () => {
           <div className="flex flex-col gap-3 border-b border-[#EFECE3] pb-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h4 className="text-base font-black text-[#2C3327]">{selectedRoomType?.name || 'Selecione uma categoria'}</h4>
-              <p className="mt-1 text-xs text-[#6B705C]">Informe a quantidade padrão de cada amenity que deve estar disponível no quarto preparado.</p>
+              <p className="mt-1 text-xs text-[#6B705C]">Informe a quantidade-base e como ela deve ser calculada para cada amenity.</p>
             </div>
             {!canEdit && (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E6E3D8] bg-[#F8F7F2] px-2.5 py-1 text-[10px] font-bold text-[#6B705C]">
@@ -143,29 +154,48 @@ export const RoomPreparationStandards: React.FC = () => {
             </div>
           ) : (
             <div className="mt-5 space-y-3">
-              {items.map(item => (
-                <div key={item.id} className="grid gap-3 rounded-xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 sm:grid-cols-[1fr_130px] sm:items-center">
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-[#2C3327]">{item.name}</p>
-                    <p className="mt-1 text-[10px] text-[#6B705C]">SKU {item.sku} • Estoque atual: {item.currentStock} {item.unit}</p>
+              {items.map(item => {
+                const basis = quantityBases[item.id] || 'per_guest';
+                return (
+                  <div key={item.id} className="grid gap-3 rounded-xl border border-[#E6E3D8] bg-[#FDFBF7] p-4 lg:grid-cols-[1fr_130px_180px] lg:items-center">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-[#2C3327]">{item.name}</p>
+                      <p className="mt-1 text-[10px] text-[#6B705C]">SKU {item.sku} • Estoque atual: {item.currentStock} {item.unit}</p>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Quantidade</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        disabled={!canEdit}
+                        value={quantities[item.id] || ''}
+                        onChange={event => setQuantities(current => ({ ...current, [item.id]: Number(event.target.value || 0) }))}
+                        placeholder="0"
+                        className="w-full rounded-lg border border-[#E6E3D8] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#588157] disabled:bg-[#F4F1EA]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Cálculo</label>
+                      <select
+                        disabled={!canEdit}
+                        value={basis}
+                        onChange={event => setQuantityBases(current => ({ ...current, [item.id]: event.target.value as RoomAmenityQuantityBasis }))}
+                        className="w-full rounded-lg border border-[#E6E3D8] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#588157] disabled:bg-[#F4F1EA]"
+                      >
+                        <option value="per_guest">Por hóspede</option>
+                        <option value="fixed_per_room">Fixo por quarto</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#8E9280]">Qtd. padrão</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      disabled={!canEdit}
-                      value={quantities[item.id] || ''}
-                      onChange={event => setQuantities(current => ({ ...current, [item.id]: Number(event.target.value || 0) }))}
-                      placeholder="0"
-                      className="w-full rounded-lg border border-[#E6E3D8] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#588157] disabled:bg-[#F4F1EA]"
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
+
+          <div className="mt-4 rounded-xl border border-[#DADFD1] bg-[#F8FAF2] px-4 py-3 text-[11px] leading-5 text-[#56604E]">
+            Exemplo: quantidade 1 “Por hóspede” significa 1 unidade para cada pessoa da reserva. Quantidade 1 “Fixo por quarto” significa 1 unidade para a preparação inteira, independentemente da ocupação.
+          </div>
 
           <div className="mt-5">
             <label className="mb-1 block text-xs font-semibold text-[#6B705C]">Observações do padrão</label>
