@@ -9,6 +9,7 @@ import {
   Clock3,
   CreditCard,
   Mail,
+  Pencil,
   Phone,
   Plus,
   RefreshCw,
@@ -167,6 +168,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const [archiveStatus, setArchiveStatus] = useState<'ALL' | 'CheckOut' | 'Cancelada'>('ALL');
   const [archivePeriod, setArchivePeriod] = useState<'7' | '30' | '90' | 'ALL'>('ALL');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [selectedActionMode, setSelectedActionMode] = useState<'edit' | null>(null);
   const [dashboardFilter, setDashboardFilter] = useState<DashboardReservationFilter>('ALL');
   const [guestDirectory, setGuestDirectory] = useState<Guest[]>(guests);
   const [quickCreate, setQuickCreate] = useState<{ room: Room; checkInDate: string } | null>(null);
@@ -190,7 +192,10 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   }, [guests]);
 
   useEffect(() => {
-    if (!selectedReservation) return;
+    if (!selectedReservation) {
+      setSelectedActionMode(null);
+      return;
+    }
     const latest = reservations.find(item => item.id === selectedReservation.id);
     if (!latest) return;
     setSelectedReservation(current => current?.id === latest.id ? latest : current);
@@ -400,8 +405,9 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
 
   const shiftTimeline = (days: number) => setTimelineStart(previous => addDays(previous, days));
 
-  const openReservationDetails = (reservation: Reservation, closeArchive = false) => {
+  const openReservationDetails = (reservation: Reservation, closeArchive = false, initialMode: 'edit' | null = null) => {
     if (closeArchive) setArchiveOpen(false);
+    setSelectedActionMode(initialMode);
     setSelectedReservation(reservation);
   };
 
@@ -423,6 +429,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   const handleQuickReservationCreated = async (reservation: Reservation) => {
     await refreshData();
     setQuickCreate(null);
+    setSelectedActionMode(null);
     setSelectedReservation(reservation);
   };
 
@@ -470,6 +477,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   };
 
   const handleReservationUpdated = async (updated: Reservation) => {
+    setSelectedActionMode(null);
     setSelectedReservation(updated);
     try {
       await refreshData();
@@ -737,26 +745,42 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                         const span = Math.max(1, diffDays(visibleStart, visibleFinish));
                         const beginsBefore = reservation.checkInDate < timelineStart;
                         const endsAfter = reservation.checkOutDate > timelineEnd;
+                        const canQuickEdit = hasPermission('manage_checkinout') && ['Pendente', 'Confirmada'].includes(reservation.status);
 
                         return (
-                          <button
-                            type="button"
+                          <div
                             key={reservation.id}
-                            onClick={() => openReservationDetails(reservation)}
-                            className={`z-10 mx-1 my-3 h-10 rounded-lg border px-2 flex items-center overflow-hidden shadow-sm text-left cursor-pointer hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-[#588157]/30 ${STATUS_CLASSES[reservation.status]}`}
+                            className={`z-10 mx-1 my-3 h-10 rounded-lg border flex items-stretch overflow-hidden shadow-sm ${STATUS_CLASSES[reservation.status]}`}
                             style={{
                               gridColumn: `${startIndex + 2} / span ${span}`,
                               gridRow: 1
                             }}
-                            title={`Abrir ${reservation.code} · ${reservation.guestName}`}
                           >
-                            <div className="min-w-0 leading-tight">
-                              <strong className="block truncate text-[10px]">
-                                {beginsBefore ? '← ' : ''}{reservation.guestName}{endsAfter ? ' →' : ''}
-                              </strong>
-                              <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
-                            </div>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => openReservationDetails(reservation)}
+                              className="min-w-0 flex-1 px-2 flex items-center text-left cursor-pointer hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#588157]/30"
+                              title={`Abrir ${reservation.code} · ${reservation.guestName}`}
+                            >
+                              <div className="min-w-0 leading-tight">
+                                <strong className="block truncate text-[10px]">
+                                  {beginsBefore ? '← ' : ''}{reservation.guestName}{endsAfter ? ' →' : ''}
+                                </strong>
+                                <span className="block truncate text-[9px] opacity-80">{reservation.code}</span>
+                              </div>
+                            </button>
+                            {canQuickEdit && (
+                              <button
+                                type="button"
+                                onClick={() => openReservationDetails(reservation, false, 'edit')}
+                                className="w-8 shrink-0 border-l border-black/10 flex items-center justify-center hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#588157]/30"
+                                title={`Editar ${reservation.code}`}
+                                aria-label={`Editar reserva ${reservation.code}`}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -1190,6 +1214,7 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
                 reservation={selectedReservation}
                 roomCapacity={selectedRoom?.capacity}
                 canManage={hasPermission('manage_checkinout')}
+                initialMode={selectedActionMode || undefined}
                 onUpdated={handleReservationUpdated}
               />
 

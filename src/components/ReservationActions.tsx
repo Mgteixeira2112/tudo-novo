@@ -17,6 +17,7 @@ interface ReservationActionsProps {
   reservation: Reservation;
   roomCapacity?: number;
   canManage: boolean;
+  initialMode?: Exclude<ActionMode, null>;
   onUpdated: (reservation: Reservation) => void | Promise<void>;
 }
 
@@ -44,9 +45,10 @@ const buildEditForm = (reservation: Reservation): EditFormState => ({
   notes: reservation.notes || ''
 });
 
-export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservation, roomCapacity, canManage, onUpdated }) => {
+export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservation, roomCapacity, canManage, initialMode, onUpdated }) => {
   const { settings, transactions, rooms, reservations } = useHotel();
-  const [mode, setMode] = useState<ActionMode>(null);
+  const canManageReservation = canManage && ['Pendente', 'Confirmada'].includes(reservation.status);
+  const [mode, setMode] = useState<ActionMode>(() => initialMode && canManageReservation ? initialMode : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -57,11 +59,15 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
   const [folioError, setFolioError] = useState('');
 
   useEffect(() => {
-    setMode(null);
+    setMode(initialMode && canManageReservation ? initialMode : null);
     setError('');
     setCancelReason('');
     setEditForm(buildEditForm(reservation));
-  }, [reservation.id, reservation.status, reservation.roomId, reservation.checkInDate, reservation.checkOutDate]);
+  }, [reservation.id, initialMode]);
+
+  useEffect(() => {
+    setEditForm(buildEditForm(reservation));
+  }, [reservation.status, reservation.roomId, reservation.checkInDate, reservation.checkOutDate]);
 
   useEffect(() => {
     let active = true;
@@ -248,8 +254,6 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
       setBusy(false);
     }
   };
-
-  const canManageReservation = canManage && ['Pendente', 'Confirmada'].includes(reservation.status);
 
   return (
     <>
