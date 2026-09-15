@@ -45,6 +45,11 @@ const buildEditForm = (reservation: Reservation): EditFormState => ({
   notes: reservation.notes || ''
 });
 
+const formatStayDate = (value: string) => {
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+};
+
 export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservation, roomCapacity, canManage, initialMode, onUpdated }) => {
   const { settings, transactions, rooms, reservations } = useHotel();
   const canManageReservation = canManage && ['Pendente', 'Confirmada'].includes(reservation.status);
@@ -394,8 +399,34 @@ export const ReservationActions: React.FC<ReservationActionsProps> = ({ reservat
               <div className="p-5">
                 <div className="rounded-2xl border border-[#CCD5AE] bg-[#F2F5E8] p-4 text-sm text-[#3A5A40]">
                   <strong className="block">Confirmar a reserva de {reservation.guestName}?</strong>
-                  <span className="mt-1 block text-xs">Ela passará de Pendente para Confirmada e continuará ocupando o mesmo quarto e período.</span>
+                  <span className="mt-1 block text-xs">Revise os dados abaixo antes de alterar o status para Confirmada.</span>
                 </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-[#E6E3D8] bg-white p-3 text-xs">
+                  <div className="col-span-2">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Hóspede</span>
+                    <strong className="text-[#2C3327]">{reservation.guestName}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Quarto</span>
+                    <strong className="text-[#2C3327]">{reservation.roomNumber} · {reservation.roomTypeName}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Ocupação</span>
+                    <strong className="text-[#2C3327]">{reservation.adults} adulto(s){reservation.children ? ` · ${reservation.children} criança(s)` : ''}</strong>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Período</span>
+                    <strong className="text-[#2C3327]">{formatStayDate(reservation.checkInDate)} → {formatStayDate(reservation.checkOutDate)} · {reservation.nights} diária(s)</strong>
+                  </div>
+                  <div className="col-span-2 flex items-end justify-between gap-3 border-t border-[#EEEAE1] pt-2">
+                    <span className="text-[10px] text-[#6B705C]">Tarifa {money(reservation.pricePerNight)} / diária</span>
+                    <div className="text-right">
+                      <span className="block text-[9px] font-bold uppercase tracking-wider text-[#8A8F7D]">Total hospedagem</span>
+                      <strong className="text-sm text-[#2C3327]">{money(reservation.totalNightsAmount)}</strong>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-[10px] leading-relaxed text-[#6B705C]">A confirmação não altera quarto, período, ocupação ou tarifa; apenas muda o status da reserva de Pendente para Confirmada.</p>
                 {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</p>}
                 <div className="mt-5 flex justify-end gap-2">
                   <button type="button" onClick={closeAction} disabled={busy} className="rounded-xl border border-[#DADFD1] bg-white px-4 py-2.5 text-xs font-bold text-[#6B705C] disabled:opacity-50">Voltar</button>
