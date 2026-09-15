@@ -14,8 +14,28 @@ export const ReceptionCheckFlowPage: React.FC<{ flow: ReceptionCheckFlow }> = ({
     return () => window.clearTimeout(timer);
   }, [flow]);
 
+  const confirmCheckInSubmit = (event: React.FormEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof HTMLFormElement)) return;
+
+    const confirmed = window.confirm(
+      'Confirma o check-in agora?\n\n' +
+      'Esta ação irá ocupar o quarto, alterar a reserva para CheckIn, registrar o pagamento informado e criar a tarefa de Governança.\n\n' +
+      'Confira os dados do formulário antes de continuar.'
+    );
+
+    if (!confirmed) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
   if (flow === 'checkin') {
-    return <ReceptionCheckInFlow />;
+    return (
+      <div onSubmitCapture={confirmCheckInSubmit}>
+        <ReceptionCheckInFlow />
+      </div>
+    );
   }
 
   return (
