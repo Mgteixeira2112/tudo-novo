@@ -207,7 +207,7 @@ export async function loadKanbanTasksFromSupabase(sector?: string): Promise<Kanb
     .order('created_at',{ascending:false});
   if (sector) q=q.eq('sector',sector);
   const { data,error }=await q; if(error) throw error;
-  return (data||[]).map((r:any)=>({id:r.id,title:r.title,description:r.description||'',sector:r.sector,status:r.status,priority:r.priority,roomNumber:r.room_number||undefined,guestName:r.guest_name||undefined,assignedTo:r.assigned_to||undefined,relatedType:r.related_type||undefined,relatedId:r.related_id||undefined,createdAt:r.created_at,updatedAt:r.updated_at})) as KanbanTask[];
+  return (data||[]).map((r:any)=>({id:r.id,title:r.title,description:r.description||'',sector:r.sector,status:r.status,priority:r.priority,roomNumber:r.room_number||undefined,guestName:r.guest_name||undefined,assignedTo:r.assigned_to||undefined,relatedType:r.related_type||undefined,relatedId:r.related_id||undefined,createdAt:r.created_at,updatedAt:r.updated_at,completedAt:r.completed_at||undefined})) as KanbanTask[];
 }
 
 
@@ -217,7 +217,7 @@ function mapKanbanRow(r: any): KanbanTask {
     status: r.status, priority: r.priority, roomNumber: r.room_number || undefined,
     guestName: r.guest_name || undefined, assignedTo: r.assigned_to || undefined,
     relatedType: r.related_type || undefined, relatedId: r.related_id || undefined,
-    createdAt: r.created_at, updatedAt: r.updated_at
+    createdAt: r.created_at, updatedAt: r.updated_at, completedAt: r.completed_at || undefined
   } as KanbanTask;
 }
 

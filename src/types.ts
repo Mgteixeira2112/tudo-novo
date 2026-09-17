@@ -195,6 +195,7 @@ export interface KanbanTask {
   relatedId?: string;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string;
 }
 
 export interface FinancialTransaction {
