@@ -106,7 +106,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ initialSector = 'Todos
   const inProgressTasks = filteredTasks.filter(t => t.status === 'Em_Andamento');
   const doneTasks = filteredTasks.filter(t => {
     if (t.status !== 'Concluido') return false;
-    const completedAt = new Date(t.updatedAt).getTime();
+    const completedAt = t.completedAt ? new Date(t.completedAt).getTime() : Number.NaN;
     return !Number.isFinite(completedAt) || archiveClock - completedAt < 5 * 60 * 1000;
   });
 
