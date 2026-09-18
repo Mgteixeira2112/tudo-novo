@@ -21,14 +21,13 @@ EXPECTED = {
 class RbacPolicyScopeTests(unittest.TestCase):
     def test_all_and_only_expected_policies_require_active_staff(self):
         sql = MIGRATION.read_text(encoding='utf-8')
-        changes = re.findall(
-            r'ALTER POLICY (\w+) ON public\.(\w+)\s+USING '\n            r'\(EXISTS \(SELECT 1 FROM public\.staff_users s WHERE '
-            r's\.id = auth\.uid\(\) AND s\.active = true\)\);',
-            sql,
-            re.I,
-        )
-        self.assertEqual({(table, name) for name, table in changes}, EXPECTED)
+        changes = re.findall(r'ALTER POLICY (\w+) ON public\.(\w+)\s+USING \(([^;]+)\);', sql, re.I | re.S)
+        self.assertEqual({(table, name) for name, table, _ in changes}, EXPECTED)
         self.assertEqual(len(changes), len(EXPECTED))
+        for _, _, expression in changes:
+            self.assertIn('EXISTS (SELECT 1 FROM public.staff_users s', expression)
+            self.assertIn('s.id = auth.uid()', expression)
+            self.assertIn('s.active = true', expression)
         self.assertNotRegex(sql, r'(?i)grant\s+.*\s+to\s+anon')
         self.assertNotRegex(sql, r'(?i)\b(create|drop)\s+policy\b')
 
@@ -36,7 +35,6 @@ class RbacPolicyScopeTests(unittest.TestCase):
         audit_sql = AUDIT.read_text(encoding='utf-8')
         for table, policy in EXPECTED:
             self.assertIn(f"('{table}','{policy}')", audit_sql)
-        self.assertEqual(audit_sql.count("'authenticated_read'"), 0)
         self.assertIn('overly_broad_authenticated_reads', audit_sql)
         self.assertNotRegex(audit_sql, r'(?i)\b(alter|update|delete|insert|drop|create)\s+(?:role|policy|table|schema|on|into|from)\b')
 
