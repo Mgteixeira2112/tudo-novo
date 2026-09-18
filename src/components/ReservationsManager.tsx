@@ -20,13 +20,13 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { loadGuestsCloud } from '../services/adminPages.ts';
+import { RESERVATION_NAVIGATION_KEY } from '../services/reservationAlertNavigation.ts';
 import { ReservationActions } from './ReservationActions.tsx';
 import { ReservationQuickCreateModal } from './ReservationQuickCreateModal.tsx';
 import { Guest, Reservation, ReservationStatus, Room } from '../types.ts';
 
 const VIEW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const RESERVATION_NAVIGATION_KEY = 'novohotel:reservation-navigation';
 const KANBAN_NAVIGATION_KEY = 'novohotel:kanban-navigation';
 const GUEST_NAVIGATION_KEY = 'novohotel:guest-navigation';
 
@@ -203,35 +203,61 @@ export const ReservationsManager: React.FC<ReservationsManagerProps> = ({ onOpen
   }, [reservations, selectedReservation?.id]);
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(RESERVATION_NAVIGATION_KEY);
-      if (!raw) return;
-      sessionStorage.removeItem(RESERVATION_NAVIGATION_KEY);
-      const parsed = JSON.parse(raw) as { filter?: DashboardReservationFilter };
-      if (!parsed.filter || !['ARRIVALS_TODAY', 'DEPARTURES_TODAY', 'PENDING'].includes(parsed.filter)) return;
+    const applyNavigationIntent = () => {
+      try {
+        const raw = sessionStorage.getItem(RESERVATION_NAVIGATION_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { filter?: DashboardReservationFilter; reservationId?: string };
 
-      setSearch('');
-      setRoomTypeFilter('ALL');
-      setFloorFilter('ALL');
-      setTimelineStart(today);
-      setArchiveOpen(false);
-      setSelectedReservation(null);
-      setDashboardFilter(parsed.filter);
+        if (parsed.reservationId) {
+          const reservation = reservations.find(item => item.id === parsed.reservationId);
+          // Keep the intent until asynchronous reservations have been loaded.
+          if (!reservation) return;
+          sessionStorage.removeItem(RESERVATION_NAVIGATION_KEY);
+          setSearch('');
+          setRoomTypeFilter('ALL');
+          setFloorFilter('ALL');
+          setTimelineStart(today);
+          setArchiveOpen(false);
+          setStatusFilter('ALL');
+          setOperationalView('active');
+          setDashboardFilter('ALL');
+          setSelectedActionMode(null);
+          setSelectedReservation(reservation);
+          return;
+        }
 
-      if (parsed.filter === 'DEPARTURES_TODAY') {
-        setStatusFilter('CheckIn');
-        setOperationalView('staying');
-      } else if (parsed.filter === 'PENDING') {
-        setStatusFilter('Pendente');
-        setOperationalView('active');
-      } else {
-        setStatusFilter('ALL');
-        setOperationalView('active');
+        sessionStorage.removeItem(RESERVATION_NAVIGATION_KEY);
+        if (!parsed.filter || !['ARRIVALS_TODAY', 'DEPARTURES_TODAY', 'PENDING'].includes(parsed.filter)) return;
+
+        setSearch('');
+        setRoomTypeFilter('ALL');
+        setFloorFilter('ALL');
+        setTimelineStart(today);
+        setArchiveOpen(false);
+        setSelectedReservation(null);
+        setDashboardFilter(parsed.filter);
+
+        if (parsed.filter === 'DEPARTURES_TODAY') {
+          setStatusFilter('CheckIn');
+          setOperationalView('staying');
+        } else if (parsed.filter === 'PENDING') {
+          setStatusFilter('Pendente');
+          setOperationalView('active');
+        } else {
+          setStatusFilter('ALL');
+          setOperationalView('active');
+        }
+      } catch {
+        // Keep the default Central de Reservas view if transient navigation state is unavailable.
+        sessionStorage.removeItem(RESERVATION_NAVIGATION_KEY);
       }
-    } catch {
-      // Keep the default Central de Reservas view if transient navigation state is unavailable.
-    }
-  }, [today]);
+    };
+
+    window.addEventListener('hotel:reservation-navigation', applyNavigationIntent);
+    applyNavigationIntent();
+    return () => window.removeEventListener('hotel:reservation-navigation', applyNavigationIntent);
+  }, [today, reservations]);
 
   const timelineEnd = addDays(timelineStart, VIEW_DAYS);
   const visibleDays = useMemo(

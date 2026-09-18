@@ -12,6 +12,7 @@ import {
   setOperationalAlertsMuted
 } from '../services/operationalAlertPreferences.ts';
 import { OperationalAlertNotificationToast } from './OperationalAlertNotificationToast.tsx';
+import { prepareReservationAlertNavigation } from '../services/reservationAlertNavigation.ts';
 
 interface OperationalAlertsBellProps {
   userId: string;
@@ -192,6 +193,7 @@ export const OperationalAlertsBell: React.FC<OperationalAlertsBellProps> = ({ us
 
     const receptionModule = resolveReceptionModule(item);
     if (receptionModule) {
+      prepareReservationAlertNavigation(item.sourceType, item.sourceId);
       setOpen(false);
       window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module: receptionModule } }));
       return;

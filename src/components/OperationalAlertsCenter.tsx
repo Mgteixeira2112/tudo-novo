@@ -9,6 +9,7 @@ import {
 } from '../services/operationalAlertsInbox.ts';
 import { getSupabaseAuthUser } from '../services/supabase.ts';
 import { AdminTab } from '../types.ts';
+import { prepareReservationAlertNavigation } from '../services/reservationAlertNavigation.ts';
 
 type Filter = 'all' | 'unread' | 'read';
 type ReceptionAlertModule = 'reservations' | 'checkin' | 'checkout';
@@ -145,6 +146,7 @@ export const OperationalAlertsCenter: React.FC<OperationalAlertsCenterProps> = (
     await markRead(item);
     const receptionModule = resolveReceptionModule(item);
     if (receptionModule) {
+      prepareReservationAlertNavigation(item.sourceType, item.sourceId);
       window.dispatchEvent(new CustomEvent('hotel:close_operational_alerts'));
       window.dispatchEvent(new CustomEvent('hotel:navigate-standalone-module', { detail: { module: receptionModule } }));
       return;
