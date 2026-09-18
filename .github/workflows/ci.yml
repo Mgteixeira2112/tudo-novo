@@ -22,6 +22,9 @@ jobs:
       - name: Testes offline do validador operacional
         run: python3 -m unittest discover -s tests -p 'test_render_operational_audit.py' -v
 
+      - name: Testes offline de escopo RBAC
+        run: python3 -m unittest discover -s tests -p 'test_rbac_active_staff_policies.py' -v
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
