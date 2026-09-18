@@ -1,0 +1,78 @@
+name: Auditoria operacional (somente leitura)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Diariamente, 08:17 em Brasília (11:17 UTC; não depende do fuso do runner).
+    - cron: '17 11 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operational-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    # Inerte até ativação explícita: nunca entregar um falso "aprovado" sem credencial.
+    if: ${{ github.ref == 'refs/heads/main' && (vars.GOVERMIX_AUDIT_ENABLED == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      AUDIT_DATABASE_URL: ${{ secrets.GOVERMIX_AUDIT_DATABASE_URL }}
+      PGOPTIONS: '-c default_transaction_read_only=on -c statement_timeout=60000 -c lock_timeout=5000'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirmar configuracao segura
+        shell: bash
+        run: |
+          if [[ -z "$AUDIT_DATABASE_URL" ]]; then
+            echo '::error::Configure GOVERMIX_AUDIT_DATABASE_URL como secret de conexao de usuario somente leitura (veja docs/AUDITORIA-AUTOMATICA.md).'
+            exit 1
+          fi
+          if [[ "$AUDIT_DATABASE_URL" != postgres://* && "$AUDIT_DATABASE_URL" != postgresql://* ]]; then
+            echo '::error::O secret deve conter uma connection string PostgreSQL valida.'
+            exit 1
+          fi
+
+      - name: Instalar cliente PostgreSQL
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+
+      - name: Executar as 17 verificacoes no banco em modo read-only
+        shell: bash
+        run: |
+          mkdir -p audit-output
+          psql "$AUDIT_DATABASE_URL" -X -q -v ON_ERROR_STOP=1 --csv \
+            -f supabase/audits/operational_integrity.sql > audit-output/results.csv
+
+      - name: Validar resultado e gerar relatorio
+        shell: bash
+        run: |
+          python3 scripts/render_operational_audit.py \
+            audit-output/results.csv audit-output/report.md \
+            --commit "$GITHUB_SHA"
+
+      - name: Publicar resumo na execucao
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f audit-output/report.md ]]; then
+            cat audit-output/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Auditoria **não executada** ou sem relatório: consultar o job com falha. Não homologada.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Guardar evidencias (somente agregados)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-audit-${{ github.run_id }}
+          path: audit-output/
+          if-no-files-found: warn
+          retention-days: 14
