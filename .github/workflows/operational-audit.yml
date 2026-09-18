@@ -44,6 +44,16 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client > /dev/null
 
+      - name: Bloquear conexao sem visibilidade completa ou privilegiada
+        shell: bash
+        run: |
+          preflight_result="$(psql "$AUDIT_DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 \
+            -f supabase/audits/audit_access_preflight.sql)"
+          if [[ "$preflight_result" != 'OK' ]]; then
+            echo '::error::Pré-verificação de acesso/RLS falhou. Não execute a auditoria com role privilegiada, políticas ausentes ou dados essenciais invisíveis. Veja docs/AUDITORIA-AUTOMATICA.md.'
+            exit 1
+          fi
+
       - name: Executar as 17 verificacoes no banco em modo read-only
         shell: bash
         run: |
