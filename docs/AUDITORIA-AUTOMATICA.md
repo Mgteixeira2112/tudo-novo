@@ -1,28 +1,28 @@
 # Auditoria operacional automática — ativação controlada
 
-O workflow `Auditoria operacional (somente leitura)` reutiliza as 17 consultas em `supabase/audits/operational_integrity.sql` e publica um CSV e relatório no GitHub Actions. **Sem conexão configurada, o agendamento fica inativo.** A CI valida apenas o código e os testes offline; não prova que a auditoria agendada já funciona.
+O workflow `Auditoria operacional (somente leitura)` executa 17 checagens e publica somente nomes de verificações e contagens no GitHub Actions. A auditoria **não está ativa** até que uma conexão segura seja configurada e uma execução real seja validada.
 
-## Descoberta obrigatória sobre o RLS
+## Preparação técnica feita pelo projeto
 
-As **dez tabelas auditadas têm RLS ativado**. Suas políticas existentes são destinadas a usuários da aplicação (`authenticated`/`auth.uid()`), não a uma conta PostgreSQL externa. Apenas conceder `GRANT SELECT` a uma nova conta pode devolver zero registros e gerar **17 falsos OK**. A conta `supabase_read_only_user` usada na conexão de inspeção tem `BYPASSRLS` e herda `pg_read_all_data`: **não use suas credenciais no GitHub**.
+A migration `20260918153000_audit_aggregate_only_reader.sql` cria a role **`govermix_audit_reader` inicialmente `NOLOGIN`, sem senha**, e o schema privado `govermix_audit` com duas views agregadas: `operational_integrity` (17 verificações) e `scope_counts` (apenas totais de quartos e reservas). A role recebe `USAGE` no schema e `SELECT` apenas nas views, **nenhum SELECT nas dez tabelas originais, nenhum acesso a registros individuais e nenhuma permissão de escrita**. O schema não deve ser incluído na lista de schemas expostos pela API Supabase. A role não possui `BYPASSRLS` nem herda `pg_read_all_data`.
 
-O job agora executa primeiro `supabase/audits/audit_access_preflight.sql`. Ele exige uma identidade não privilegiada, sem `BYPASSRLS`, sem participação em `pg_read_all_data`/`pg_write_all_data`, sem CREATE no schema e sem privilégios de escrita nas dez tabelas. Também verifica permissão SELECT, RLS ativo, política SELECT **específica para a role de auditoria com `USING (true)` em cada tabela**, ausência de políticas restritivas aplicáveis e visibilidade de pelo menos um quarto e uma reserva. Caso contrário, **falha antes de declarar qualquer resultado aprovado**.
+Views de segurança padrão executam como o proprietário (esperado: `postgres`), que pode consultar os dados das tabelas. O workflow valida dono da view, ausência de `security_invoker=true`, falta de acesso direto às tabelas e existência de dados básicos ANTES de executar o relatório. Nada disso concede acesso à role dos funcionários ou altera políticas RLS operacionais. O SQL original em `supabase/audits/operational_integrity.sql` continua disponível somente para auditoria manual autorizada; o GitHub executa exclusivamente `SELECT ... FROM govermix_audit.operational_integrity`.
 
-A política dedicada deve ser criada/revisada por administrador do Supabase em migration versionada e com escopo exclusivo para a role de auditoria; não altere políticas dos usuários operacionais nem use `BYPASSRLS` como atalho. Para um SaaS multi-hotel, reavalie o desenho para retornar apenas agregados por tenant antes de permitir acesso cross-tenant. A conta deste estágio só deve ser usada em ambiente de testes autorizado.
+**Limite SaaS:** o relatório é agregado do projeto, não segmentado por hotel. Ative somente em ambiente de testes autorizado até existir isolamento multi-hotel verificado e critérios explícitos para estatísticas globais. Mesmo sendo agregados, as contagens não devem ser publicadas em logs abertos.
 
-## Ativação pelo administrador (necessária uma única vez)
+## Ativação — única intervenção necessária do administrador
 
-1. Provisione uma credencial **PostgreSQL exclusiva para auditoria** com `LOGIN`, leitura apenas das dez tabelas do SQL, políticas RLS próprias revisadas e nenhum privilégio de escrita/admin. Revise a role, a migration RLS e o escopo de dados antes de ativar. O `PGOPTIONS` força `default_transaction_read_only=on` como proteção adicional, não substitui os privilégios reais. Não envie senha ou URL ao chat nem adicione credenciais ao repositório.
-2. Em GitHub → `Mgteixeira2112/tudo-novo` → **Settings → Secrets and variables → Actions → Secrets → New repository secret**, crie `GOVERMIX_AUDIT_DATABASE_URL` com a URI PostgreSQL deste usuário (senha codificada para URL e TLS `sslmode=require` ou `verify-full` com CA confiável). Use endpoint acessível aos runners GitHub e restrinja exposição da credencial. Nunca use `VITE_*`, chave `service_role`, conta `postgres` ou `supabase_read_only_user`.
-3. Em **Variables**, crie `GOVERMIX_AUDIT_ENABLED` com valor exato `true`. Sem ela, jobs agendados ficam ignorados. Para pausar, use `false`; revogue ou rode a senha se a credencial for comprometida.
-4. GitHub → **Actions → Auditoria operacional (somente leitura) → Run workflow**, selecione **main**. Confira o preflight aprovado, o resultado do job, o resumo e o artifact `operational-audit-<run_id>`; exija 17 verificações, zero falhas e zero inconsistências antes de registrar homologação.
+1. Confirmar que a migration foi aplicada, que a role consta como `NOLOGIN` e que os testes de permissões e equivalência de contagens foram aprovados. Se não foi, pare e solicite a validação; não tente conceder SELECT manualmente.
+2. Com seu gerenciador de senhas, gerar uma senha longa e exclusiva. No SQL Editor privado do projeto de testes Supabase, executar **somente após aprovação técnica**: `ALTER ROLE govermix_audit_reader LOGIN PASSWORD '<SENHA_FORTE_GERADA_POR_VOCE>';` (substituir apenas o trecho entre aspas, sem enviar a senha ao chat). Se o dashboard oferecer redefinição da senha da role via interface, prefira essa opção. Não deixar a senha no histórico compartilhado, prints ou arquivos. Não usar postgres, service_role ou supabase_read_only_user.
+3. Obter o host/porta/endpoint de conexão PostgreSQL do projeto pela aba Connect do Supabase. Montar a URI com usuário `govermix_audit_reader`, senha codificada para URL, base `postgres` e TLS `sslmode=require` ou `verify-full`; conferir suporte de rede/IPv4/pooler para GitHub Actions.
+4. GitHub → repositório `Mgteixeira2112/tudo-novo` → Settings → Secrets and variables → Actions → Secrets → New repository secret. Nome `GOVERMIX_AUDIT_DATABASE_URL`; valor a URI exclusiva. **Nunca** usar prefixo `VITE_` nem salvar em arquivo, commit, print ou conversa.
+5. Na aba Variables criar `GOVERMIX_AUDIT_ENABLED` = `true`. Para pausar, definir `false`; manual `workflow_dispatch` ainda pode tentar executar se o secret estiver presente.
+6. GitHub → Actions → `Auditoria operacional (somente leitura)` → Run workflow → `main`. Verificar pré-verificação verde, 17/17 checagens, zero falhas e relatório/artifact agregados. Só então registrar homologação.
 
-## Frequência e resposta a erros
+## Frequência, resultados e segurança
 
-- Cron diário: 11:17 UTC (08:17 em Brasília, UTC−3); o GitHub pode atrasar a execução. Uma execução manual inicial permite validar sem esperar o cron.
-- Evidências: `results.csv` e `report.md` apenas com nomes técnicos e contagens agregadas, retidos 14 dias. Nenhum nome de hóspede é exportado.
-- Falha de conexão, role excessiva, políticas ausentes, dados essenciais invisíveis, resultado incompleto ou inconsistência deixam o job vermelho. Investigue em PR/migration própria, sem afrouxar a segurança apenas para passar no teste. Não há envio próprio de WhatsApp ou e-mail neste checkpoint.
-
-## Limites e homologação
-
-O workflow não modifica tabelas e não executa transações de teste. O preflight verifica o desenho de leitura, mas não substitui revisão de segurança, RBAC, testes reais de RLS, concorrência, interface ou isolamento multi-hotel. A CI de PR executa apenas testes offline e build; a primeira execução real com a role correta na `main` continua necessária para homologar a automação.
+- Cron: diariamente 11:17 UTC (08:17 Brasília UTC−3), sujeito a atraso do GitHub. Primeiro disparo manual após configuração.
+- Arquivos `results.csv` e `report.md`: nomes técnicos e contagens, sem registros individuais; retenção de 14 dias. Evitar tornar os artifacts acessíveis fora de membros autorizados; o repositório é público.
+- Falha de segredo, conexão, role, ACL, owner das views, dados essenciais invisíveis ou qualquer inconsistência deixa o job vermelho. CI verde valida apenas os testes offline e o build, não acesso real ao banco.
+- A conta não deve acessar registros individuais. Nunca usar BYPASSRLS ou GRANT SELECT nas tabelas para fazer o workflow passar. Para revogar: variável false, `ALTER ROLE govermix_audit_reader NOLOGIN`, excluir secret/rotacionar senha.
+- Escopo não cobre RLS/RBAC da aplicação, segurança de todos os módulos, concorrência, UX, liquidação financeira completa ou isolamento multi-hotel. Esses testes seguem checkpoints separados.

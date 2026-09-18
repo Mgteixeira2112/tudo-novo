@@ -3,7 +3,7 @@ name: Auditoria operacional (somente leitura)
 on:
   workflow_dispatch:
   schedule:
-    # Diariamente, 08:17 em Brasília (11:17 UTC; não depende do fuso do runner).
+    # Diariamente 08:17 em Brasilia (11:17 UTC).
     - cron: '17 11 * * *'
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   audit:
-    # Inerte até ativação explícita: nunca entregar um falso "aprovado" sem credencial.
+    # Inerte ate ativacao explicita: nenhuma auditoria de banco ocorre sem secret.
     if: ${{ github.ref == 'refs/heads/main' && (vars.GOVERMIX_AUDIT_ENABLED == 'true' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$AUDIT_DATABASE_URL" ]]; then
-            echo '::error::Configure GOVERMIX_AUDIT_DATABASE_URL como secret de conexao de usuario somente leitura (veja docs/AUDITORIA-AUTOMATICA.md).'
+            echo '::error::Configure GOVERMIX_AUDIT_DATABASE_URL como secret de uma conta exclusiva sem acesso a tabelas. Veja docs/AUDITORIA-AUTOMATICA.md.'
             exit 1
           fi
           if [[ "$AUDIT_DATABASE_URL" != postgres://* && "$AUDIT_DATABASE_URL" != postgresql://* ]]; then
@@ -44,22 +44,23 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client > /dev/null
 
-      - name: Bloquear conexao sem visibilidade completa ou privilegiada
+      - name: Bloquear identidade privilegiada, dados invisiveis ou acesso bruto
         shell: bash
         run: |
           preflight_result="$(psql "$AUDIT_DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 \
             -f supabase/audits/audit_access_preflight.sql)"
           if [[ "$preflight_result" != 'OK' ]]; then
-            echo '::error::Pré-verificação de acesso/RLS falhou. Não execute a auditoria com role privilegiada, políticas ausentes ou dados essenciais invisíveis. Veja docs/AUDITORIA-AUTOMATICA.md.'
+            echo '::error::Preflight falhou. Role deve ser govermix_audit_reader, com acesso apenas as views agregadas e sem escrita/BYPASSRLS.'
             exit 1
           fi
 
-      - name: Executar as 17 verificacoes no banco em modo read-only
+      - name: Consultar somente os 17 resultados agregados
         shell: bash
         run: |
           mkdir -p audit-output
           psql "$AUDIT_DATABASE_URL" -X -q -v ON_ERROR_STOP=1 --csv \
-            -f supabase/audits/operational_integrity.sql > audit-output/results.csv
+            -c 'SELECT check_name,issues,result,checks_total,failed_checks,issues_total FROM govermix_audit.operational_integrity ORDER BY check_name' \
+            > audit-output/results.csv
 
       - name: Validar resultado e gerar relatorio
         shell: bash
@@ -75,7 +76,7 @@ jobs:
           if [[ -f audit-output/report.md ]]; then
             cat audit-output/report.md >> "$GITHUB_STEP_SUMMARY"
           else
-            echo 'Auditoria **não executada** ou sem relatório: consultar o job com falha. Não homologada.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Auditoria **nao executada** ou sem relatorio: consultar o job com falha. Nao homologada.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Guardar evidencias (somente agregados)
