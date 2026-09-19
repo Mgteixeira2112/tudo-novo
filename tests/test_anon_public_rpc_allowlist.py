@@ -25,7 +25,10 @@ class AnonPublicRpcAllowlistTests(unittest.TestCase):
     def test_read_only_catalog_and_positive_guards(self):
         sql = re.sub(r'^--.*$', '', SQL, flags=re.M).lower()
         self.assertTrue(sql.lstrip().startswith('with expected('))
-        self.assertNotRegex(sql, r'\b(insert|update|delete|drop|alter|create|grant|revoke|truncate|execute|call)\b')
+        # EXECUTE is a legitimate privilege name inside has_function_privilege;
+        # prohibit the executable SQL statement instead of its string literal.
+        self.assertNotRegex(sql, r'\b(insert|update|delete|drop|alter|create|grant|revoke|truncate|call)\b')
+        self.assertNotRegex(sql, r'^\s*execute\b')
         for snippet in (
             'has_function_privilege(\'anon\'',
             'p.prosecdef',
