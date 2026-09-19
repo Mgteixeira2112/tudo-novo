@@ -1,11 +1,11 @@
--- The bearer token grants access to one reservation, not the entire hotel guest registry.
--- Never match an arbitrary guest by supplied email, phone, name or document and UPDATE
--- their profile. A linked guest can be reused read-only only on document+name match;
--- otherwise create a separate profile linked only to the token's reservation.
+-- Bearer token belongs to ONE reservation; never update hotel-wide guest records.
+-- Matched previously-linked guest may be reused read-only; otherwise create new.
 DO $preflight$
 DECLARE v_def text;
 BEGIN
-  SELECT pg_get_functiondef('public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean)'::regprocedure) INTO v_def;
+  SELECT pg_get_functiondef(p.oid) INTO v_def
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.proname='complete_reservation_precheckin_public' AND p.pronargs=26;
   IF v_def IS NULL OR (position('order by created_at asc' in lower(v_def))=0 AND position('PRECHECKIN_SCOPED_GUEST_V1' in v_def)=0) THEN
     RAISE EXCEPTION 'Unexpected pre-check-in implementation; review before migrating';
   END IF;
@@ -38,9 +38,7 @@ BEGIN
   WHERE pre_checkin_token_hash=encode(digest(p_token,'sha256'),'hex')
     AND pre_checkin_token_expires_at>now() AND status='Confirmada'
   FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Link de pré-check-in inválido ou expirado.';
-  END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Link de pré-check-in inválido ou expirado.'; END IF;
   IF v_res.pre_checkin_status='Concluido' THEN
     RETURN jsonb_build_object('status','Concluido','reservation_code',v_res.code,'completed_at',v_res.pre_checked_in_at);
   END IF;
@@ -63,8 +61,8 @@ BEGIN
     RAISE EXCEPTION 'É necessário confirmar a declaração do pré-check-in.';
   END IF;
 
-  -- PRECHECKIN_SCOPED_GUEST_V1. Never search hotel-wide guest registry.
-  -- An existing master profile is read-only for public token holders.
+  -- PRECHECKIN_SCOPED_GUEST_V1: never search the global guest registry.
+  -- An existing master profile is read-only for bearer-token holders.
   IF v_res.guest_id IS NOT NULL THEN
     SELECT * INTO v_guest FROM public.guests WHERE id=v_res.guest_id;
     IF FOUND AND v_guest.document IS NOT NULL
@@ -107,13 +105,13 @@ BEGIN
 END;
 $function$;
 
--- CREATE OR REPLACE retains grants; validate instead of accidentally broadening them.
+-- Keep existing EXECUTE grants; fail if public/internal access changes unexpectedly.
 DO $verify$
 DECLARE v_proc oid; v_def text;
 BEGIN
   SELECT p.oid,pg_get_functiondef(p.oid) INTO v_proc,v_def
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-  WHERE n.nspname='public' AND p.proname='complete_reservation_precheckin_public';
+  WHERE n.nspname='public' AND p.proname='complete_reservation_precheckin_public' AND p.pronargs=26;
   IF v_proc IS NULL OR position('PRECHECKIN_SCOPED_GUEST_V1' in v_def)=0
     OR position('UPDATE public.guests' in v_def)>0
     OR position('order by created_at asc' in lower(v_def))>0
