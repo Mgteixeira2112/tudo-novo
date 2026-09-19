@@ -25,6 +25,9 @@ jobs:
       - name: Testes offline de escopo RBAC
         run: python3 -m unittest discover -s tests -p 'test_rbac_active_staff_policies.py' -v
 
+      - name: Testes offline de notificações RBAC
+        run: python3 -m unittest discover -s tests -p 'test_rbac_notifications_active_staff.py' -v
+
       - name: Testes offline de EXECUTE das RPCs internas
         run: python3 -m unittest discover -s tests -p 'test_rbac_internal_rpc_execute.py' -v
 
