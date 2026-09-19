@@ -1,6 +1,7 @@
 -- Encerramento da reserva ficticia solicitada para homologacao da PR #335.
 -- Preserva a reserva e o perfil de teste como historico; nao toca outros hospedes.
 -- Reexecutavel: no replay de migrations, o pre-check-in pode ainda estar NaoIniciado.
+-- Nao usa o ID/codigo/quarto gerados, que variam entre ambientes.
 DO $cleanup$
 DECLARE
   v_res public.reservations%rowtype;
@@ -26,10 +27,10 @@ BEGIN
     RETURN;
   END IF;
 
-  IF v_res.code IS DISTINCT FROM 'NH-47A95602'
-     OR v_res.status IS DISTINCT FROM 'Confirmada'
+  IF v_res.status IS DISTINCT FROM 'Confirmada'
      OR v_res.guest_email IS DISTINCT FROM 'precheckin-pr335@example.invalid'
-     OR v_res.room_number IS DISTINCT FROM '101'
+     OR v_res.room_id IS NULL
+     OR NOT EXISTS (SELECT 1 FROM public.rooms r WHERE r.id = v_res.room_id AND r.type_id = 'rt_standard')
      OR v_res.check_out_date IS DISTINCT FROM v_res.check_in_date + 1
      OR v_res.checked_in_at IS NOT NULL
      OR v_res.checked_out_at IS NOT NULL
