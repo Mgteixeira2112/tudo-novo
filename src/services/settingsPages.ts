@@ -67,25 +67,51 @@ export async function updateSettingsCloud(
 
 async function countRows(table: string): Promise<number> {
   const supabase = getSupabaseClient();
-  if (!supabase) return 0;
+  if (!supabase) throw new Error('Supabase não configurado.');
   const { count, error } = await supabase
     .from(table)
     .select('*', { count: 'exact', head: true });
-  if (error) return 0;
-  return count || 0;
+  // An authorization or network failure is not the same as an empty table.
+  // Reject the whole refresh rather than caching misleading zeroes.
+  if (error) throw error;
+  if (count === null) throw new Error(`Contagem indisponível: ${table}`);
+  return count;
 }
 
-// Status/counts are diagnostic, not live operational state. Cache only these
-// counts; rooms, reservations and task data continue to refresh independently.
+// Only diagnostic counts are cached; operational data refreshes independently.
 const STATUS_CACHE_MS = 60_000;
 let statusCache: { value: SupabaseConfigStatus; expiresAt: number } | null = null;
 let statusInFlight: Promise<SupabaseConfigStatus> | null = null;
+let cacheGeneration = 0;
+let subscribedClient: ReturnType<typeof getSupabaseClient> | null = null;
+let unsubscribeAuth: (() => void) | null = null;
+
+function invalidateStatusCache() {
+  cacheGeneration += 1;
+  statusCache = null;
+  statusInFlight = null;
+}
+
+function watchAuthChanges(client: NonNullable<ReturnType<typeof getSupabaseClient>>) {
+  if (subscribedClient === client) return;
+  unsubscribeAuth?.();
+  invalidateStatusCache();
+  subscribedClient = client;
+  const { data: { subscription } } = client.auth.onAuthStateChange(event => {
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+      invalidateStatusCache();
+    }
+  });
+  unsubscribeAuth = () => subscription.unsubscribe();
+}
 
 export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    statusCache = null;
-    statusInFlight = null;
+    unsubscribeAuth?.();
+    unsubscribeAuth = null;
+    subscribedClient = null;
+    invalidateStatusCache();
     return {
       connected: false,
       urlConfigured: false,
@@ -94,9 +120,11 @@ export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
     };
   }
 
+  watchAuthChanges(supabase);
   if (statusCache && Date.now() < statusCache.expiresAt) return statusCache.value;
   if (statusInFlight) return statusInFlight;
 
+  const generation = cacheGeneration;
   const request = (async (): Promise<SupabaseConfigStatus> => {
     const [guests, rooms, reservations, kanbanTasks, orders, transactions] = await Promise.all([
       countRows('guests'),
@@ -127,7 +155,10 @@ export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
   statusInFlight = request;
   try {
     const value = await request;
-    statusCache = { value, expiresAt: Date.now() + STATUS_CACHE_MS };
+    // A request started by a previous account must never populate the new cache.
+    if (generation === cacheGeneration) {
+      statusCache = { value, expiresAt: Date.now() + STATUS_CACHE_MS };
+    }
     return value;
   } finally {
     if (statusInFlight === request) statusInFlight = null;
