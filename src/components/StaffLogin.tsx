@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../context/HotelContext.tsx';
 import { resendSupabaseConfirmation } from '../services/supabase.ts';
+import { authErrorPtBr } from '../services/authErrorPtBr.ts';
 
 export const StaffLogin: React.FC = () => {
   const { login, bootstrapAdmin, settings } = useHotel();
@@ -32,7 +33,7 @@ export const StaffLogin: React.FC = () => {
     try {
       await login(email.trim(), password);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+      setErrorMessage(authErrorPtBr(err, 'Não foi possível entrar. Verifique seus dados e tente novamente.'));
     } finally {
       setSubmitting(false);
     }
@@ -51,7 +52,7 @@ export const StaffLogin: React.FC = () => {
         setErrorMessage('Conta criada. Confirme o e-mail recebido e depois use o botão de login.');
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Não foi possível criar o administrador inicial.');
+      setErrorMessage(authErrorPtBr(err, 'Não foi possível criar o administrador inicial.'));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +69,7 @@ export const StaffLogin: React.FC = () => {
       await resendSupabaseConfirmation(email.trim());
       setErrorMessage('Novo e-mail de confirmação enviado. Use somente o link mais recente.');
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Não foi possível reenviar o e-mail de confirmação.');
+      setErrorMessage(authErrorPtBr(err, 'Não foi possível reenviar o e-mail de confirmação.'));
     } finally {
       setSubmitting(false);
     }
