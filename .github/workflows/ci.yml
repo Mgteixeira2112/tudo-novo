@@ -31,6 +31,9 @@ jobs:
       - name: Testes offline de EXECUTE dos auxiliares RBAC
         run: python3 -m unittest discover -s tests -p 'test_rbac_auth_helper_execute.py' -v
 
+      - name: Testes offline de EXECUTE dos triggers internos
+        run: python3 -m unittest discover -s tests -p 'test_rbac_trigger_function_execute.py' -v
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
