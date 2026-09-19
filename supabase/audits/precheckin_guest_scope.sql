@@ -1,9 +1,10 @@
--- Read-only production audit. Does not return guest data, credentials or tokens.
+-- Read-only live audit; no guest data, passwords or tokens returned.
 WITH fn AS (
   SELECT p.oid, lower(pg_get_functiondef(p.oid)) AS body
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public'
-    AND p.oid='public.complete_reservation_precheckin_public(text,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,integer,integer,text,boolean)'::regprocedure
+    AND p.proname='complete_reservation_precheckin_public'
+    AND p.pronargs=26
 )
 SELECT
   count(*)=1 AS function_present,
