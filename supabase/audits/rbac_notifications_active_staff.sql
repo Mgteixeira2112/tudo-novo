@@ -11,14 +11,15 @@ WITH expected(tablename,policyname,expected_cmd,check_required) AS (
 ), inspected AS (
   SELECT e.*, p.policyname IS NOT NULL AS present,
     p.cmd=e.expected_cmd AND p.roles=ARRAY['authenticated']::name[]
-      AND p.qual LIKE '%auth.uid()%'
-      AND p.qual LIKE '%s.id = auth.uid()%'
-      AND p.qual LIKE '%s.active = true%'
-      AND (e.tablename='operational_notifications'
-           AND p.qual LIKE '%nr.user_id = auth.uid()%'
-           OR e.tablename<>'operational_notifications'
-              AND (e.expected_cmd='INSERT' OR p.qual LIKE '%user_id = auth.uid()%'))
-      AS guarded_using,
+      AND (e.expected_cmd='INSERT' OR (
+        p.qual LIKE '%auth.uid()%'
+        AND p.qual LIKE '%s.id = auth.uid()%'
+        AND p.qual LIKE '%s.active = true%'
+        AND (e.tablename='operational_notifications'
+             AND p.qual LIKE '%nr.user_id = auth.uid()%'
+             OR e.tablename<>'operational_notifications'
+                AND p.qual LIKE '%user_id = auth.uid()%')
+      )) AS guarded_using,
     NOT e.check_required OR (
       p.with_check LIKE '%user_id = auth.uid()%'
       AND p.with_check LIKE '%s.id = auth.uid()%'
