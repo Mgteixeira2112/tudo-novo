@@ -75,9 +75,17 @@ async function countRows(table: string): Promise<number> {
   return count || 0;
 }
 
+// Status/counts are diagnostic, not live operational state. Cache only these
+// counts; rooms, reservations and task data continue to refresh independently.
+const STATUS_CACHE_MS = 60_000;
+let statusCache: { value: SupabaseConfigStatus; expiresAt: number } | null = null;
+let statusInFlight: Promise<SupabaseConfigStatus> | null = null;
+
 export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
   const supabase = getSupabaseClient();
   if (!supabase) {
+    statusCache = null;
+    statusInFlight = null;
     return {
       connected: false,
       urlConfigured: false,
@@ -86,28 +94,42 @@ export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
     };
   }
 
-  const [guests, rooms, reservations, kanbanTasks, orders, transactions] = await Promise.all([
-    countRows('guests'),
-    countRows('rooms'),
-    countRows('reservations'),
-    countRows('kanban_tasks'),
-    countRows('kitchen_orders'),
-    countRows('financial_transactions')
-  ]);
+  if (statusCache && Date.now() < statusCache.expiresAt) return statusCache.value;
+  if (statusInFlight) return statusInFlight;
 
-  return {
-    connected: true,
-    urlConfigured: true,
-    mode: 'supabase_cloud',
-    message: 'Conectado ao Supabase diretamente pelo GitHub Pages.',
-    tableCounts: {
-      settings: 1,
-      guests,
-      rooms,
-      reservations,
-      kanban_tasks: kanbanTasks,
-      orders,
-      financial_transactions: transactions
-    }
-  };
+  const request = (async (): Promise<SupabaseConfigStatus> => {
+    const [guests, rooms, reservations, kanbanTasks, orders, transactions] = await Promise.all([
+      countRows('guests'),
+      countRows('rooms'),
+      countRows('reservations'),
+      countRows('kanban_tasks'),
+      countRows('kitchen_orders'),
+      countRows('financial_transactions')
+    ]);
+
+    return {
+      connected: true,
+      urlConfigured: true,
+      mode: 'supabase_cloud',
+      message: 'Conectado ao Supabase diretamente pelo GitHub Pages.',
+      tableCounts: {
+        settings: 1,
+        guests,
+        rooms,
+        reservations,
+        kanban_tasks: kanbanTasks,
+        orders,
+        financial_transactions: transactions
+      }
+    };
+  })();
+
+  statusInFlight = request;
+  try {
+    const value = await request;
+    statusCache = { value, expiresAt: Date.now() + STATUS_CACHE_MS };
+    return value;
+  } finally {
+    if (statusInFlight === request) statusInFlight = null;
+  }
 }
