@@ -236,6 +236,17 @@ export interface FinancialStats {
   }[];
 }
 
+export type HotelProductPlan = 'BOOKING_LITE' | 'HOTEL_FULL';
+
+export interface TenantHotel {
+  id: string;
+  organizationId: string;
+  name: string;
+  productPlan: HotelProductPlan;
+  status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+  role: string;
+}
+
 export interface SupabaseConfigStatus {
   connected: boolean;
   urlConfigured: boolean;
