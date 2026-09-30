@@ -419,7 +419,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
       {
         url: supabaseStatus?.supabaseUrl,
-        anonKey: supabaseStatus?.supabaseAnonKey
+        anonKey: supabaseStatus?.supabaseAnonKey,
+        hotelId: activeHotel?.id
       }
     );
 
