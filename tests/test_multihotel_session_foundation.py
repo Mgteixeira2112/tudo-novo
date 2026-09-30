@@ -40,7 +40,7 @@ class MultiHotelSessionFoundationTests(unittest.TestCase):
         ):
             src = self.read(path)
             self.assertIn("hotelId?: string", src)
-            self.assertIn("hotel_id=eq.\${config.hotelId}", src)
+            self.assertIn("hotel_id=eq.${config.hotelId}", src)
 
         app = self.read("src/App.tsx")
         self.assertGreaterEqual(app.count("hotelId: activeHotel?.id"), 2)
