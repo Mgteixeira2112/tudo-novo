@@ -419,8 +419,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
       {
         url: supabaseStatus?.supabaseUrl,
-        anonKey: supabaseStatus?.supabaseAnonKey,
-        hotelId: activeHotel?.id
+        anonKey: supabaseStatus?.supabaseAnonKey
       }
     );
 
@@ -471,7 +470,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
       {
         url: supabaseStatus?.supabaseUrl,
-        anonKey: supabaseStatus?.supabaseAnonKey
+        anonKey: supabaseStatus?.supabaseAnonKey,
+        hotelId: activeHotel?.id
       }
     );
 
@@ -479,7 +479,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       active = false;
       if (unsub) unsub();
     };
-  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+  }, [currentUser?.id, activeHotel?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
   // Real-time polling every 6 seconds to keep Kanbans, Room status, and financial counters synced across all screens
   useEffect(() => {
