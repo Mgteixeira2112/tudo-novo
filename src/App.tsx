@@ -251,7 +251,8 @@ const AppContent: React.FC = () => {
       },
       {
         url: supabaseStatus?.supabaseUrl,
-        anonKey: supabaseStatus?.supabaseAnonKey
+        anonKey: supabaseStatus?.supabaseAnonKey,
+        hotelId: activeHotel?.id
       }
     );
 
@@ -259,7 +260,7 @@ const AppContent: React.FC = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
       if (unsubscribe) unsubscribe();
     };
-  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, refreshData]);
+  }, [currentUser?.id, activeHotel?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, refreshData]);
 
   useEffect(() => {
     const handleOrderCreatedEvent = (e: any) => {
