@@ -1,5 +1,6 @@
 import { HotelSettings, KanbanTask, KitchenOrder, MenuItem, Reservation, Room } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
+import { requireActiveHotelId } from './tenantSession.ts';
 
 
 export async function loadPublicSettingsFromSupabase(): Promise<HotelSettings> {
@@ -32,9 +33,11 @@ export async function loadRoomsFromSupabase(): Promise<Room[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
+  const hotelId = requireActiveHotelId();
   const { data, error } = await supabase
     .from('rooms')
     .select('*')
+    .eq('hotel_id', hotelId)
     .order('number', { ascending: true });
 
   if (error) throw error;
@@ -59,9 +62,11 @@ export async function loadReservationsFromSupabase(): Promise<Reservation[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
+  const hotelId = requireActiveHotelId();
   const { data, error } = await supabase
     .from('reservations')
     .select('*')
+    .eq('hotel_id', hotelId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;

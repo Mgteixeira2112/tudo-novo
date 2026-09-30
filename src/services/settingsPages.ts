@@ -1,5 +1,6 @@
 import { HotelSettings, SupabaseConfigStatus } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
+import { requireActiveHotelId } from './tenantSession.ts';
 
 function mapSettingsRow(row: any): HotelSettings {
   return {
@@ -27,7 +28,10 @@ export async function loadSettingsCloud(): Promise<HotelSettings> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
-  const { data, error } = await supabase.rpc('get_hotel_settings_admin');
+  const hotelId = requireActiveHotelId();
+  const { data, error } = await supabase.rpc('get_hotel_settings_admin_for_hotel', {
+    p_hotel_id: hotelId
+  });
   if (error) throw error;
   if (!data) throw new Error('Configurações do hotel não encontradas.');
   return mapSettingsRow(data);
@@ -39,7 +43,9 @@ export async function updateSettingsCloud(
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase não configurado.');
 
-  const { data, error } = await supabase.rpc('update_hotel_settings_safe', {
+  const hotelId = requireActiveHotelId();
+  const { data, error } = await supabase.rpc('update_hotel_settings_safe_for_hotel', {
+    p_hotel_id: hotelId,
     p_updates: {
       ...(updates.hotelName !== undefined ? { hotel_name: updates.hotelName } : {}),
       ...(updates.tagline !== undefined ? { tagline: updates.tagline } : {}),
@@ -65,12 +71,14 @@ export async function updateSettingsCloud(
   return mapSettingsRow(data);
 }
 
-async function countRows(table: string): Promise<number> {
+async function countRows(table: string, hotelScoped = false): Promise<number> {
   const supabase = getSupabaseClient();
   if (!supabase) return 0;
-  const { count, error } = await supabase
+  let query = supabase
     .from(table)
     .select('*', { count: 'exact', head: true });
+  if (hotelScoped) query = query.eq('hotel_id', requireActiveHotelId());
+  const { count, error } = await query;
   if (error) return 0;
   return count || 0;
 }
@@ -87,9 +95,9 @@ export async function loadSupabaseStatusCloud(): Promise<SupabaseConfigStatus> {
   }
 
   const [guests, rooms, reservations, kanbanTasks, orders, transactions] = await Promise.all([
-    countRows('guests'),
-    countRows('rooms'),
-    countRows('reservations'),
+    countRows('guests', true),
+    countRows('rooms', true),
+    countRows('reservations', true),
     countRows('kanban_tasks'),
     countRows('kitchen_orders'),
     countRows('financial_transactions')

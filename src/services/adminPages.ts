@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Guest, PermissionKey, StaffUser, UserRole, UserSector } from '../types.ts';
 import { getSupabaseClient } from './supabase.ts';
+import { requireActiveHotelId } from './tenantSession.ts';
 
 const DEFAULT_SUPABASE_URL = 'https://izuymcuzbggrdkezwxyu.supabase.co';
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3x35e1xKYzhP3PTGxMGAOA_W6QCq2P8';
@@ -59,26 +60,30 @@ function guestPayload(input: Partial<Guest>) {
 }
 
 export async function loadGuestsCloud(): Promise<Guest[]> {
-  const { data, error } = await client().from('guests').select('*').order('full_name');
+  const hotelId = requireActiveHotelId();
+  const { data, error } = await client().from('guests').select('*').eq('hotel_id', hotelId).order('full_name');
   if (error) throw error;
   return (data || []).map(mapGuest);
 }
 
 export async function createGuestCloud(input: Omit<Guest, 'id' | 'createdAt' | 'updatedAt' | 'totalStays' | 'totalSpent'>): Promise<Guest> {
   const id = `guest_${crypto.randomUUID().replace(/-/g, '')}`;
-  const { data, error } = await client().from('guests').insert({ id, ...guestPayload(input) }).select('*').single();
+  const hotelId = requireActiveHotelId();
+  const { data, error } = await client().from('guests').insert({ id, hotel_id: hotelId, ...guestPayload(input) }).select('*').single();
   if (error) throw error;
   return mapGuest(data);
 }
 
 export async function updateGuestCloud(id: string, input: Partial<Guest>): Promise<Guest> {
-  const { data, error } = await client().from('guests').update({ ...guestPayload(input), updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+  const hotelId = requireActiveHotelId();
+  const { data, error } = await client().from('guests').update({ ...guestPayload(input), updated_at: new Date().toISOString() }).eq('id', id).eq('hotel_id', hotelId).select('*').single();
   if (error) throw error;
   return mapGuest(data);
 }
 
 export async function deleteGuestCloud(id: string): Promise<void> {
-  const { error } = await client().from('guests').delete().eq('id', id);
+  const hotelId = requireActiveHotelId();
+  const { error } = await client().from('guests').delete().eq('id', id).eq('hotel_id', hotelId);
   if (error) throw error;
 }
 

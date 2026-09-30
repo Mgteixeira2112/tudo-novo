@@ -7,7 +7,7 @@ import { getSupabaseClient } from './supabase.ts';
  */
 export function subscribeToReservationsRealtime(
   onChanged: (eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void,
-  config?: { url?: string; anonKey?: string }
+  config?: { url?: string; anonKey?: string; hotelId?: string }
 ): (() => void) | null {
   const supabase = getSupabaseClient(config?.url, config?.anonKey);
   if (!supabase) return null;
@@ -23,7 +23,8 @@ export function subscribeToReservationsRealtime(
         {
           event: '*',
           schema: 'public',
-          table: 'reservations'
+          table: 'reservations',
+          ...(config?.hotelId ? { filter: `hotel_id=eq.${config.hotelId}` } : {})
         },
         payload => {
           const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';

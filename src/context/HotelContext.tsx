@@ -10,7 +10,8 @@ import {
   SupabaseConfigStatus,
   StaffUser,
   AdminTab,
-  PermissionKey
+  PermissionKey,
+  TenantHotel
 } from '../types.ts';
 import { api, setApiAccessToken, hasApiAccessToken } from '../services/api.ts';
 import { loadReservationsFromSupabase, loadRoomsFromSupabase } from '../services/pagesData.ts';
@@ -30,6 +31,11 @@ import {
   getSupabaseStaffProfile,
   bootstrapFirstAdmin
 } from '../services/supabase.ts';
+import {
+  clearActiveHotelId,
+  initializeTenantSession,
+  setActiveHotelId
+} from '../services/tenantSession.ts';
 
 interface HotelContextType {
   settings: HotelSettings | null;
@@ -48,6 +54,9 @@ interface HotelContextType {
   setActiveAdminTab: (tab: AdminTab) => void;
   refreshData: () => Promise<void>;
   updateSettings: (updates: Partial<HotelSettings>) => Promise<void>;
+  availableHotels: TenantHotel[];
+  activeHotel: TenantHotel | null;
+  selectActiveHotel: (hotelId: string) => Promise<void>;
 
   // User Management & RBAC
   currentUser: StaffUser | null;
@@ -87,6 +96,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [supabaseStatus, setSupabaseStatus] = useState<SupabaseConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableHotels, setAvailableHotels] = useState<TenantHotel[]>([]);
+  const [activeHotel, setActiveHotel] = useState<TenantHotel | null>(null);
 
   const [mode, setMode] = useState<'admin' | 'booking'>('admin');
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('overview');
@@ -99,6 +110,13 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const clearPrivateData = useCallback(() => {
     setRooms([]); setGuests([]); setReservations([]); setTasks([]); setTransactions([]); setStats(null); setSupabaseStatus(null); setAllUsers([]);
+  }, []);
+
+  const establishTenantSession = useCallback(async (userId: string) => {
+    const tenant = await initializeTenantSession(userId);
+    setAvailableHotels(tenant.hotels);
+    setActiveHotel(tenant.activeHotel);
+    return tenant.activeHotel;
   }, []);
 
   const refreshData = useCallback(async () => {
@@ -125,6 +143,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setError(err.message || 'Erro ao carregar dados do servidor.');
     } finally { setLoading(false); }
   }, [clearPrivateData]);
+
+  const selectActiveHotel = useCallback(async (hotelId: string) => {
+    const hotel = availableHotels.find(item => item.id === hotelId);
+    if (!hotel) throw new Error('Hotel não autorizado para esta sessão.');
+    setActiveHotelId(hotel.id, availableHotels.map(item => item.id));
+    setActiveHotel(hotel);
+    clearPrivateData();
+    await refreshData();
+  }, [availableHotels, clearPrivateData, refreshData]);
 
   const updateSettings = async (updates: Partial<HotelSettings>) => {
     try {
@@ -160,6 +187,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!staff || !staff.active) {
         throw new Error('Usuário autenticado, mas sem perfil de colaborador ativo.');
       }
+      await establishTenantSession(staff.id);
       setCurrentUser(staff);
       setIsImpersonating(false);
       setOriginalAdminUser(null);
@@ -183,6 +211,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (result.profile) {
       const session = await getSupabaseAuthSession();
       if (session?.access_token) setApiAccessToken(session.access_token);
+      await establishTenantSession(result.profile.id);
       setCurrentUser(result.profile);
       setActiveAdminTab('overview');
       setMode('admin');
@@ -235,6 +264,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
 
     setApiAccessToken(null);
+    clearActiveHotelId();
+    setAvailableHotels([]);
+    setActiveHotel(null);
     setIsImpersonating(false);
     setOriginalAdminUser(null);
     setCurrentUser(null);
@@ -307,6 +339,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         if (!staff || cancelled) return;
 
+        await establishTenantSession(staff.id);
         setCurrentUser(staff);
         setIsImpersonating(false);
         setOriginalAdminUser(null);
@@ -337,6 +370,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (event === 'SIGNED_OUT' || !session?.access_token || !session?.user?.id) {
           setApiAccessToken(null);
           if (!cancelled) {
+            clearActiveHotelId();
+            setAvailableHotels([]);
+            setActiveHotel(null);
             setCurrentUser(null);
             setIsImpersonating(false);
             setOriginalAdminUser(null);
@@ -361,6 +397,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
+          await establishTenantSession(staff.id);
           setCurrentUser(staff);
           setIsImpersonating(false);
           setOriginalAdminUser(null);
@@ -371,6 +408,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (err: any) {
           if (cancelled) return;
           setApiAccessToken(null);
+          clearActiveHotelId();
+          setAvailableHotels([]);
+          setActiveHotel(null);
           setCurrentUser(null);
           clearPrivateData();
           setMode('booking');
@@ -387,7 +427,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       cancelled = true;
       if (unsub) unsub();
     };
-  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, clearPrivateData, refreshData]);
+  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey, clearPrivateData, establishTenantSession, refreshData]);
 
   // Initial load
   useEffect(() => {
@@ -410,7 +450,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       if (unsub) unsub();
     };
-  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+  }, [currentUser?.id, activeHotel?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
   // Keep reservations state aligned directly with Supabase Realtime.
   // The direct read avoids waiting for the API/polling layer after a database event.
@@ -430,7 +470,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
       {
         url: supabaseStatus?.supabaseUrl,
-        anonKey: supabaseStatus?.supabaseAnonKey
+        anonKey: supabaseStatus?.supabaseAnonKey,
+        hotelId: activeHotel?.id
       }
     );
 
@@ -438,7 +479,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       active = false;
       if (unsub) unsub();
     };
-  }, [currentUser?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
+  }, [currentUser?.id, activeHotel?.id, supabaseStatus?.supabaseUrl, supabaseStatus?.supabaseAnonKey]);
 
   // Real-time polling every 6 seconds to keep Kanbans, Room status, and financial counters synced across all screens
   useEffect(() => {
@@ -456,7 +497,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, activeHotel?.id]);
 
   return (
     <HotelContext.Provider
@@ -477,6 +518,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveAdminTab,
         refreshData,
         updateSettings,
+        availableHotels,
+        activeHotel,
+        selectActiveHotel,
         currentUser,
         allUsers,
         isImpersonating,
